@@ -1,0 +1,350 @@
+{
+  "info": {
+    "_postman_id": "2b2f4509-06df-479c-9e76-a7fac068bedc",
+    "name": "Rithmo API - User Profile",
+    "description": "User profile management endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "3293293",
+    "_collection_link": "https://go.postman.co/collection/3293293-2b2f4509-06df-479c-9e76-a7fac068bedc?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Profile Management",
+      "item": [
+        {
+          "name": "Get User Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/user/profile/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "profile",
+                ""
+              ]
+            },
+            "description": "Get current user's profile information including partners"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Jane\",\n  \"last_name\": \"Doe\",\n  \"sex\": \"female\",\n  \"cycle_length\": 28,\n  \"period_duration\": 5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/profile/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "profile",
+                ""
+              ]
+            },
+            "description": "Update user profile information"
+          },
+          "response": []
+        },
+        {
+          "name": "Partial Update Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cycle_length\": 30\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/profile/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "profile",
+                ""
+              ]
+            },
+            "description": "Partially update user profile"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Partner Management",
+      "item": [
+        {
+          "name": "Get Invitation Code",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/user/invitation/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "invitation",
+                ""
+              ]
+            },
+            "description": "Get current active invitation code if exists"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Invitation Code",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/user/invitation/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "invitation",
+                ""
+              ]
+            },
+            "description": "Generate new invitation code for partner linking"
+          },
+          "response": []
+        },
+        {
+          "name": "Accept Invitation Code",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code_to_accept\": \"12345\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/invitation/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "invitation",
+                ""
+              ]
+            },
+            "description": "Accept partner's invitation code to link accounts"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Remove Code",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/user/partner/remove/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "partner",
+                "remove",
+                ""
+              ]
+            },
+            "description": "Generate code to remove current partner"
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Partner",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"remove_code\": \"54321\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/partner/remove/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "partner",
+                "remove",
+                ""
+              ]
+            },
+            "description": "Remove current partner using remove code"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.rithmo.ir",
+      "type": "string",
+      "description": "Base URL for the API"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT access token (auto-populated after login)"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT refresh token (auto-populated after login)"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string",
+      "description": "Current user ID (set manually if needed)"
+    },
+    {
+      "key": "partner_id",
+      "value": "",
+      "type": "string",
+      "description": "Partner user ID (set manually for partner operations)"
+    }
+  ]
+}

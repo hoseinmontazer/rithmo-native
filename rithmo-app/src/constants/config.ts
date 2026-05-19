@@ -1,0 +1,84 @@
+/**
+ * API base URL.
+ * Both dev and production point to the live Rithmo API.
+ * Change the DEV_API_URL below if you run a local backend.
+ */
+const DEV_API_URL = 'https://api.rithmo.ir';
+const PROD_API_URL = 'https://api.rithmo.ir';
+
+export const API_BASE_URL = __DEV__ ? DEV_API_URL : PROD_API_URL;
+
+export const API_TIMEOUT_MS = 15_000;
+
+export const API_ENDPOINTS = {
+  // Auth
+  AUTH_LOGIN: '/api/auth/jwt/create/',
+  AUTH_REFRESH: '/api/auth/jwt/refresh/',
+  AUTH_VERIFY: '/api/auth/jwt/verify/',
+  AUTH_REGISTER: '/api/auth/users/',
+  AUTH_ACTIVATE: '/api/auth/users/activation/',
+  AUTH_ME: '/api/auth/users/me/',
+  AUTH_SET_PASSWORD: '/api/auth/users/set_password/',
+  AUTH_RESET_PASSWORD: '/api/auth/users/reset_password/',
+  AUTH_RESET_PASSWORD_CONFIRM: '/api/auth/users/reset_password_confirm/',
+
+  // Profile
+  USER_PROFILE: '/api/user/profile/',
+  USER_INVITATION: '/api/user/invitation/',
+  USER_PARTNER_REMOVE: '/api/user/partner/remove/',
+
+  // Periods
+  PERIODS: '/api/periods/',
+  PERIODS_UPDATE_LATEST: '/api/periods/update/',
+  PERIODS_CYCLE_ANALYSIS: '/api/periods/cycle_analysis/',
+  PERIODS_CYCLE_INSIGHTS: '/api/periods/cycle_insights/',
+  PERIODS_WELLNESS_CORRELATION: '/api/periods/wellness_correlation/',
+  PERIODS_SYMPTOM_PATTERNS: '/api/periods/symptom_patterns/',
+
+  // Ovulation
+  OVULATION: '/api/ovulation/',
+
+  // Wellness
+  WELLNESS: '/api/wellness/',
+  WELLNESS_ANALYTICS: '/api/wellness/analytics/',
+  WELLNESS_STREAKS: '/api/wellness/streaks/',
+  WELLNESS_TODAY: '/api/wellness/today/',
+  WELLNESS_WEEKLY_SUMMARY: '/api/wellness/weekly-summary/',
+
+  // Notifications
+  NOTIFICATIONS: '/api/notifications/notifications/',
+  NOTIFICATIONS_UNREAD: '/api/notifications/notifications/unread/',
+  NOTIFICATIONS_MARK_ALL_READ: '/api/notifications/notifications/mark_all_read/',
+  NOTIFICATIONS_PREFERENCES: '/api/notifications/preferences/',
+  NOTIFICATIONS_PREFERENCES_UPDATE: '/api/notifications/preferences/update_preferences/',
+  PUSH_TOKENS: '/api/notifications/push-tokens/',
+  GENERATE_NOTIFICATIONS: '/api/generate-notifications/',
+
+  // Messages
+  MESSAGES: '/api/notifications/messages/',
+  MESSAGES_CONVERSATION: '/api/notifications/messages/conversation/',
+  MESSAGES_UNREAD: '/api/notifications/messages/unread/',
+
+  // AI
+  AI_SUGGESTIONS: '/api/ai/suggestions/',
+  AI_SUGGESTION_HISTORY: '/api/ai/suggestion-history/',
+  AI_MODEL_STATUS: '/api/ai/model-status/',
+  AI_DEBUG_SUGGESTIONS: '/api/ai/debug-suggestions/',
+  AI_FEEDBACK: '/api/ai/feedback/',
+
+  // Dashboard
+  DASHBOARD_CORRELATIONS: '/api/dashboard/correlations/',
+  DASHBOARD_COMPARISON: '/api/dashboard/comparison/',
+
+  // Medications
+  MEDICATION_TYPES: '/api/medications/types/',
+  MEDICATION_DRUGS: '/api/medications/drugs/',
+  MEDICATION_DRUG_SEARCH: '/api/medications/drugs/search/',
+  USER_MEDICATIONS: '/api/medications/my-medications/',
+  MEDICATION_LOGS: '/api/medications/logs/',
+  MEDICATION_REMINDERS: '/api/medications/reminders/',
+} as const;
+
+export const KEYCHAIN_SERVICE = 'com.rithmo.auth';
+export const QUERY_STALE_TIME_MS = 5 * 60 * 1000; // 5 minutes
+export const QUERY_CACHE_TIME_MS = 10 * 60 * 1000; // 10 minutes

@@ -1,0 +1,304 @@
+{
+  "info": {
+    "_postman_id": "d4303ca0-363f-4a23-bdb1-8ec64aa3dd51",
+    "name": "Rithmo API - AI Suggestions",
+    "description": "AI-powered health suggestions and feedback endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "3293293",
+    "_collection_link": "https://go.postman.co/collection/3293293-d4303ca0-363f-4a23-bdb1-8ec64aa3dd51?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "AI Suggestions",
+      "item": [
+        {
+          "name": "Get AI Health Suggestion",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/ai/suggestions/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "suggestions",
+                ""
+              ]
+            },
+            "description": "Get personalized AI health suggestion based on current cycle and wellness data"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Suggestion History",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/ai/suggestion-history/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "suggestion-history",
+                ""
+              ]
+            },
+            "description": "Get history of AI suggestions with feedback"
+          },
+          "response": []
+        },
+        {
+          "name": "Give Positive Feedback",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"feedback\": true,\n  \"corrected_label\": \"\",\n  \"response_text\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/ai/feedback/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "feedback",
+                "1",
+                ""
+              ]
+            },
+            "description": "Give positive feedback on AI suggestion"
+          },
+          "response": []
+        },
+        {
+          "name": "Give Negative Feedback with Correction",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"feedback\": false,\n  \"corrected_label\": \"High stress: meditation recommended\",\n  \"response_text\": \"Try 10 minutes of meditation instead\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/ai/feedback/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "feedback",
+                "1",
+                ""
+              ]
+            },
+            "description": "Give negative feedback with corrected suggestion"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Suggestion Response",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"response_text\": \"Try 30 minutes of light exercise like walking or yoga\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/ai/feedback/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "feedback",
+                "1",
+                ""
+              ]
+            },
+            "description": "Update the response text for a suggestion"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Model Management",
+      "item": [
+        {
+          "name": "Get Model Status",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/ai/model-status/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "model-status",
+                ""
+              ]
+            },
+            "description": "Check AI model status and information"
+          },
+          "response": []
+        },
+        {
+          "name": "Debug Suggestions",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/ai/debug-suggestions/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "debug-suggestions",
+                ""
+              ]
+            },
+            "description": "Debug endpoint to check user's suggestions (development only)"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.rithmo.ir",
+      "type": "string",
+      "description": "Base URL for the API"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT access token (auto-populated after login)"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT refresh token (auto-populated after login)"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string",
+      "description": "Current user ID (set manually if needed)"
+    },
+    {
+      "key": "partner_id",
+      "value": "",
+      "type": "string",
+      "description": "Partner user ID (set manually for partner operations)"
+    }
+  ]
+}

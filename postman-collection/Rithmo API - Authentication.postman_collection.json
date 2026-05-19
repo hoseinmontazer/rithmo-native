@@ -1,0 +1,565 @@
+{
+  "info": {
+    "_postman_id": "7a973558-434f-4686-bae2-4c57346f43e8",
+    "name": "Rithmo API - Authentication",
+    "description": "Authentication endpoints for Rithmo Period Tracker API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "3293293",
+    "_collection_link": "https://go.postman.co/collection/3293293-7a973558-434f-4686-bae2-4c57346f43e8?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "User Management (Djoser)",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"re_password\": \"SecurePass123!\",\n  \"sex\": \"female\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                ""
+              ]
+            },
+            "description": "Register a new user account with sex field"
+          },
+          "response": []
+        },
+        {
+          "name": "Activate User",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": \"user_id_from_email\",\n  \"token\": \"activation_token_from_email\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/activation/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                "activation",
+                ""
+              ]
+            },
+            "description": "Activate user account using email token"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/me/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                "me",
+                ""
+              ]
+            },
+            "description": "Get current authenticated user details"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Current User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"email\": \"newemail@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/me/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                "me",
+                ""
+              ]
+            },
+            "description": "Update current user information"
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_password\": \"NewSecurePass123!\",\n  \"re_new_password\": \"NewSecurePass123!\",\n  \"current_password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/set_password/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                "set_password",
+                ""
+              ]
+            },
+            "description": "Change user password"
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/reset_password/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                "reset_password",
+                ""
+              ]
+            },
+            "description": "Request password reset email"
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm Password Reset",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": \"user_id_from_email\",\n  \"token\": \"reset_token_from_email\",\n  \"new_password\": \"NewSecurePass123!\",\n  \"re_new_password\": \"NewSecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/reset_password_confirm/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                "reset_password_confirm",
+                ""
+              ]
+            },
+            "description": "Confirm password reset with token"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User Account",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/me/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                "me",
+                ""
+              ]
+            },
+            "description": "Delete current user account"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "JWT Authentication",
+      "item": [
+        {
+          "name": "Login (Get JWT Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    ",
+                  "    // Save to both collection and environment variables",
+                  "    // This works for both development and production environments",
+                  "    pm.collectionVariables.set('access_token', jsonData.access);",
+                  "    pm.collectionVariables.set('refresh_token', jsonData.refresh);",
+                  "    ",
+                  "    // Also save to environment variables (for production)",
+                  "    pm.environment.set('access_token', jsonData.access);",
+                  "    pm.environment.set('refresh_token', jsonData.refresh);",
+                  "    ",
+                  "    // Save user info if available",
+                  "    if (jsonData.user_id) {",
+                  "        pm.collectionVariables.set('user_id', jsonData.user_id);",
+                  "        pm.environment.set('user_id', jsonData.user_id);",
+                  "    }",
+                  "    ",
+                  "    console.log('✅ Tokens saved successfully to both collection and environment variables');",
+                  "    console.log('🔑 Access Token:', jsonData.access.substring(0, 30) + '...');",
+                  "    console.log('🔄 Refresh Token:', jsonData.refresh.substring(0, 30) + '...');",
+                  "    console.log('📍 Environment:', pm.environment.name || 'No environment selected');",
+                  "} else {",
+                  "    console.log('❌ Login failed with status:', pm.response.code);",
+                  "    console.log('📝 Response:', pm.response.text());",
+                  "    ",
+                  "    // Clear tokens on failed login",
+                  "    pm.collectionVariables.unset('access_token');",
+                  "    pm.collectionVariables.unset('refresh_token');",
+                  "    pm.environment.unset('access_token');",
+                  "    pm.environment.unset('refresh_token');",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"hosein\",\n  \"password\": \"Aa12345678@\"\n}\n\n// {\n//   \"username\": \"Zara\",\n//   \"password\": \"Aa12345678@\"\n// }"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/jwt/create/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "jwt",
+                "create",
+                ""
+              ]
+            },
+            "description": "Login with username and password to get JWT tokens. Tokens are automatically saved to collection variables."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh JWT Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    ",
+                  "    // Update access token in both collection and environment",
+                  "    pm.collectionVariables.set('access_token', jsonData.access);",
+                  "    pm.environment.set('access_token', jsonData.access);",
+                  "    ",
+                  "    console.log('✅ Access token refreshed successfully');",
+                  "    console.log('🔑 New Access Token:', jsonData.access.substring(0, 30) + '...');",
+                  "    console.log('📍 Environment:', pm.environment.name || 'No environment selected');",
+                  "} else {",
+                  "    console.log('❌ Token refresh failed with status:', pm.response.code);",
+                  "    console.log('📝 Response:', pm.response.text());",
+                  "    console.log('🔄 Please login again to get new tokens');",
+                  "    ",
+                  "    // Clear invalid tokens",
+                  "    pm.collectionVariables.unset('access_token');",
+                  "    pm.collectionVariables.unset('refresh_token');",
+                  "    pm.environment.unset('access_token');",
+                  "    pm.environment.unset('refresh_token');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/jwt/refresh/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "jwt",
+                "refresh",
+                ""
+              ]
+            },
+            "description": "Refresh access token using refresh token. New access token is automatically saved."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify JWT Token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{access_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/jwt/verify/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "jwt",
+                "verify",
+                ""
+              ]
+            },
+            "description": "Verify if JWT token is valid"
+          },
+          "response": []
+        },
+        {
+          "name": "Test Authentication",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/me/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                "me",
+                ""
+              ]
+            },
+            "description": "Test if authentication is working by getting current user info"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.rithmo.ir",
+      "type": "string",
+      "description": "Base URL for the API"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string",
+      "description": "Current user ID (set manually if needed)"
+    },
+    {
+      "key": "partner_id",
+      "value": "",
+      "type": "string",
+      "description": "Partner user ID (set manually for partner operations)"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
+      "value": ""
+    }
+  ]
+}

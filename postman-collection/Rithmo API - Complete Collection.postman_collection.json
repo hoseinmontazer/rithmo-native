@@ -1,0 +1,2744 @@
+{
+  "info": {
+    "_postman_id": "dd716edb-370a-4dda-a1d5-b36143ac668c",
+    "name": "Rithmo API - Complete Collection",
+    "description": "Complete API collection for Rithmo Period Tracker application with all endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "3293293",
+    "_collection_link": "https://go.postman.co/collection/3293293-dd716edb-370a-4dda-a1d5-b36143ac668c?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "User Management (Djoser)",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"re_password\": \"SecurePass123!\",\n  \"sex\": \"female\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                ""
+              ]
+            },
+            "description": "Register a new user account with sex field"
+          },
+          "response": []
+        },
+        {
+          "name": "Activate User",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": \"user_id_from_email\",\n  \"token\": \"activation_token_from_email\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/activation/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                "activation",
+                ""
+              ]
+            },
+            "description": "Activate user account using email token"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/me/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                "me",
+                ""
+              ]
+            },
+            "description": "Get current authenticated user details"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Current User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"email\": \"newemail@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/me/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                "me",
+                ""
+              ]
+            },
+            "description": "Update current user information"
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_password\": \"NewSecurePass123!\",\n  \"re_new_password\": \"NewSecurePass123!\",\n  \"current_password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/set_password/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                "set_password",
+                ""
+              ]
+            },
+            "description": "Change user password"
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/reset_password/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                "reset_password",
+                ""
+              ]
+            },
+            "description": "Request password reset email"
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm Password Reset",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": \"user_id_from_email\",\n  \"token\": \"reset_token_from_email\",\n  \"new_password\": \"NewSecurePass123!\",\n  \"re_new_password\": \"NewSecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/reset_password_confirm/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                "reset_password_confirm",
+                ""
+              ]
+            },
+            "description": "Confirm password reset with token"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User Account",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/me/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                "me",
+                ""
+              ]
+            },
+            "description": "Delete current user account"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "JWT Authentication",
+      "item": [
+        {
+          "name": "Login (Get JWT Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    ",
+                  "    // Save to both collection and environment variables",
+                  "    // This works for both development and production environments",
+                  "    pm.collectionVariables.set('access_token', jsonData.access);",
+                  "    pm.collectionVariables.set('refresh_token', jsonData.refresh);",
+                  "    ",
+                  "    // Also save to environment variables (for production)",
+                  "    pm.environment.set('access_token', jsonData.access);",
+                  "    pm.environment.set('refresh_token', jsonData.refresh);",
+                  "    ",
+                  "    // Save user info if available",
+                  "    if (jsonData.user_id) {",
+                  "        pm.collectionVariables.set('user_id', jsonData.user_id);",
+                  "        pm.environment.set('user_id', jsonData.user_id);",
+                  "    }",
+                  "    ",
+                  "    console.log('✅ Tokens saved successfully to both collection and environment variables');",
+                  "    console.log('🔑 Access Token:', jsonData.access.substring(0, 30) + '...');",
+                  "    console.log('🔄 Refresh Token:', jsonData.refresh.substring(0, 30) + '...');",
+                  "    console.log('📍 Environment:', pm.environment.name || 'No environment selected');",
+                  "} else {",
+                  "    console.log('❌ Login failed with status:', pm.response.code);",
+                  "    console.log('📝 Response:', pm.response.text());",
+                  "    ",
+                  "    // Clear tokens on failed login",
+                  "    pm.collectionVariables.unset('access_token');",
+                  "    pm.collectionVariables.unset('refresh_token');",
+                  "    pm.environment.unset('access_token');",
+                  "    pm.environment.unset('refresh_token');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"Zara\",\n  \"password\": \"Aa12345678@\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/jwt/create/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "jwt",
+                "create",
+                ""
+              ]
+            },
+            "description": "Login with username and password to get JWT tokens. Tokens are automatically saved to collection variables."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh JWT Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    ",
+                  "    // Update access token in both collection and environment",
+                  "    pm.collectionVariables.set('access_token', jsonData.access);",
+                  "    pm.environment.set('access_token', jsonData.access);",
+                  "    ",
+                  "    console.log('✅ Access token refreshed successfully');",
+                  "    console.log('🔑 New Access Token:', jsonData.access.substring(0, 30) + '...');",
+                  "    console.log('📍 Environment:', pm.environment.name || 'No environment selected');",
+                  "} else {",
+                  "    console.log('❌ Token refresh failed with status:', pm.response.code);",
+                  "    console.log('📝 Response:', pm.response.text());",
+                  "    console.log('🔄 Please login again to get new tokens');",
+                  "    ",
+                  "    // Clear invalid tokens",
+                  "    pm.collectionVariables.unset('access_token');",
+                  "    pm.collectionVariables.unset('refresh_token');",
+                  "    pm.environment.unset('access_token');",
+                  "    pm.environment.unset('refresh_token');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/jwt/refresh/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "jwt",
+                "refresh",
+                ""
+              ]
+            },
+            "description": "Refresh access token using refresh token. New access token is automatically saved."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify JWT Token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{access_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/jwt/verify/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "jwt",
+                "verify",
+                ""
+              ]
+            },
+            "description": "Verify if JWT token is valid"
+          },
+          "response": []
+        },
+        {
+          "name": "Test Authentication",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/users/me/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "users",
+                "me",
+                ""
+              ]
+            },
+            "description": "Test if authentication is working by getting current user info"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Profile Management",
+      "item": [
+        {
+          "name": "Get User Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/user/profile/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "profile",
+                ""
+              ]
+            },
+            "description": "Get current user's profile information including partners"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Jane\",\n  \"last_name\": \"Doe\",\n  \"sex\": \"female\",\n  \"cycle_length\": 28,\n  \"period_duration\": 5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/profile/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "profile",
+                ""
+              ]
+            },
+            "description": "Update user profile information"
+          },
+          "response": []
+        },
+        {
+          "name": "Partial Update Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cycle_length\": 30\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/profile/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "profile",
+                ""
+              ]
+            },
+            "description": "Partially update user profile"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Partner Management",
+      "item": [
+        {
+          "name": "Get Invitation Code",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/user/invitation/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "invitation",
+                ""
+              ]
+            },
+            "description": "Get current active invitation code if exists"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Invitation Code",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/user/invitation/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "invitation",
+                ""
+              ]
+            },
+            "description": "Generate new invitation code for partner linking"
+          },
+          "response": []
+        },
+        {
+          "name": "Accept Invitation Code",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code_to_accept\": \"12345\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/invitation/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "invitation",
+                ""
+              ]
+            },
+            "description": "Accept partner's invitation code to link accounts"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Remove Code",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/user/partner/remove/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "partner",
+                "remove",
+                ""
+              ]
+            },
+            "description": "Generate code to remove current partner"
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Partner",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"remove_code\": \"54321\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/partner/remove/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "user",
+                "partner",
+                "remove",
+                ""
+              ]
+            },
+            "description": "Remove current partner using remove code"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Period Management",
+      "item": [
+        {
+          "name": "List All Periods",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/periods/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "periods",
+                ""
+              ]
+            },
+            "description": "Get all periods for authenticated user"
+          },
+          "response": []
+        },
+        {
+          "name": "List Partner's Periods",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/periods/?role=partner",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "periods",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "partner"
+                }
+              ]
+            },
+            "description": "Get partner's periods (if linked)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create New Period",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start_date\": \"2025-01-15\",\n  \"end_date\": \"2025-01-20\",\n  \"symptoms\": \"cramps,headache,fatigue\",\n  \"medication\": \"ibuprofen,heating pad\",\n  \"cycle_length\": 28,\n  \"period_duration\": 5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/periods/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "periods",
+                ""
+              ]
+            },
+            "description": "Create a new period entry"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Specific Period",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/periods/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "periods",
+                "1",
+                ""
+              ]
+            },
+            "description": "Get details of a specific period"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Specific Period",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start_date\": \"2025-01-15\",\n  \"end_date\": \"2025-01-21\",\n  \"symptoms\": \"cramps,headache,fatigue,bloating\",\n  \"medication\": \"ibuprofen\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/periods/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "periods",
+                "1",
+                ""
+              ]
+            },
+            "description": "Update a specific period completely"
+          },
+          "response": []
+        },
+        {
+          "name": "Partial Update Period",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"end_date\": \"2025-01-21\",\n  \"symptoms\": \"cramps,headache,fatigue,bloating\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/periods/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "periods",
+                "1",
+                ""
+              ]
+            },
+            "description": "Partially update a specific period"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Latest Period",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"period_id\": 1,\n  \"end_date\": \"2025-01-21\",\n  \"symptoms\": \"cramps,headache,fatigue\",\n  \"medication\": \"ibuprofen\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/periods/update/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "periods",
+                "update",
+                ""
+              ]
+            },
+            "description": "Update the latest period using custom endpoint"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Period",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/periods/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "periods",
+                "1",
+                ""
+              ]
+            },
+            "description": "Delete a specific period"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Cycle Analysis",
+      "item": [
+        {
+          "name": "Get Cycle Analysis",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/periods/cycle_analysis/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "periods",
+                "cycle_analysis",
+                ""
+              ]
+            },
+            "description": "Get comprehensive cycle analysis for user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Partner Cycle Analysis",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/periods/cycle_analysis/?role=partner",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "periods",
+                "cycle_analysis",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "partner"
+                }
+              ]
+            },
+            "description": "Get partner's cycle analysis (limited data)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cycle Insights",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/periods/cycle_insights/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "periods",
+                "cycle_insights",
+                ""
+              ]
+            },
+            "description": "Get personalized cycle insights and predictions"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Wellness Correlation",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/periods/wellness_correlation/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "periods",
+                "wellness_correlation",
+                ""
+              ]
+            },
+            "description": "Analyze correlation between wellness metrics and cycle phases"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Symptom Patterns",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/periods/symptom_patterns/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "periods",
+                "symptom_patterns",
+                ""
+              ]
+            },
+            "description": "Analyze symptom patterns across cycles"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Ovulation Tracking",
+      "item": [
+        {
+          "name": "Get Latest Ovulation Prediction",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/ovulation/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ovulation",
+                ""
+              ]
+            },
+            "description": "Get ovulation prediction for latest period"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Ovulation for Specific Period",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/ovulation/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ovulation",
+                "1",
+                ""
+              ]
+            },
+            "description": "Get ovulation prediction for specific period ID"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Wellness Logs",
+      "item": [
+        {
+          "name": "List Wellness Logs",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/wellness/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "wellness",
+                ""
+              ]
+            },
+            "description": "Get all wellness logs for user"
+          },
+          "response": []
+        },
+        {
+          "name": "Create/Update Daily Wellness Log",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stress_level\": 3,\n  \"sleep_hours\": 7.5,\n  \"mood_level\": 1,\n  \"energy_level\": 6,\n  \"pain_level\": 2,\n  \"exercise_minutes\": 30,\n  \"nutrition_quality\": 4,\n  \"caffeine_intake\": 2,\n  \"alcohol_intake\": 0,\n  \"smoking\": 0,\n  \"anxiety_level\": 2,\n  \"focus_level\": 7,\n  \"notes\": \"Feeling good today, had a productive workout\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/wellness/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "wellness",
+                ""
+              ]
+            },
+            "description": "Create or update wellness log for today (auto-creates/updates based on date)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Specific Wellness Log",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/wellness/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "wellness",
+                "1",
+                ""
+              ]
+            },
+            "description": "Get specific wellness log entry"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Wellness Log",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stress_level\": 2,\n  \"sleep_hours\": 8.0,\n  \"mood_level\": 2,\n  \"energy_level\": 8,\n  \"notes\": \"Updated - feeling much better after good sleep\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/wellness/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "wellness",
+                "1",
+                ""
+              ]
+            },
+            "description": "Update specific wellness log"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Wellness Log",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/wellness/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "wellness",
+                "1",
+                ""
+              ]
+            },
+            "description": "Delete specific wellness log"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notification Generation",
+      "item": [
+        {
+          "name": "Generate Smart Notifications",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/generate-notifications/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "generate-notifications",
+                ""
+              ]
+            },
+            "description": "Generate smart notifications based on cycle data and preferences"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notifications Management",
+      "item": [
+        {
+          "name": "List All Notifications",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/notifications/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "notifications",
+                ""
+              ]
+            },
+            "description": "Get all notifications for user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Unread Notifications",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/notifications/unread/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "notifications",
+                "unread",
+                ""
+              ]
+            },
+            "description": "Get only unread notifications with count"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Notification",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notification_type\": \"system\",\n  \"title\": \"Test Notification\",\n  \"message\": \"This is a test notification\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notifications/notifications/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "notifications",
+                ""
+              ]
+            },
+            "description": "Create a new notification"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Specific Notification",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/notifications/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "notifications",
+                "1",
+                ""
+              ]
+            },
+            "description": "Get details of specific notification"
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/notifications/1/mark_read/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "notifications",
+                "1",
+                "mark_read",
+                ""
+              ]
+            },
+            "description": "Mark specific notification as read"
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/notifications/mark_all_read/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "notifications",
+                "mark_all_read",
+                ""
+              ]
+            },
+            "description": "Mark all notifications as read"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Notification",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Notification\",\n  \"message\": \"Updated message\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notifications/notifications/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "notifications",
+                "1",
+                ""
+              ]
+            },
+            "description": "Update notification"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/notifications/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "notifications",
+                "1",
+                ""
+              ]
+            },
+            "description": "Delete notification"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Partner Messaging",
+      "item": [
+        {
+          "name": "List All Messages",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/messages/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "messages",
+                ""
+              ]
+            },
+            "description": "Get all partner messages"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Message to Partner",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"receiver\": \"{{partner_id}}\",\n  \"message\": \"How are you feeling today? \\ud83d\\udc95\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notifications/messages/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "messages",
+                ""
+              ]
+            },
+            "description": "Send message to partner"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Conversation with Partner",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/messages/conversation/?partner_id={{partner_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "messages",
+                "conversation",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "partner_id",
+                  "value": "{{partner_id}}"
+                }
+              ]
+            },
+            "description": "Get conversation history with specific partner"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Unread Messages",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/messages/unread/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "messages",
+                "unread",
+                ""
+              ]
+            },
+            "description": "Get unread messages with count"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Specific Message",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/messages/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "messages",
+                "1",
+                ""
+              ]
+            },
+            "description": "Get specific message details"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Message",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Updated message content\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notifications/messages/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "messages",
+                "1",
+                ""
+              ]
+            },
+            "description": "Update message content"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Message",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/messages/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "messages",
+                "1",
+                ""
+              ]
+            },
+            "description": "Delete message"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notification Preferences",
+      "item": [
+        {
+          "name": "Get Notification Preferences",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/preferences/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "preferences",
+                ""
+              ]
+            },
+            "description": "Get user's notification preferences"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Preferences (POST)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email_period_reminder\": true,\n  \"email_ovulation\": true,\n  \"email_partner_message\": true,\n  \"email_wellness_reminder\": false,\n  \"push_period_reminder\": true,\n  \"push_ovulation\": true,\n  \"push_partner_message\": true,\n  \"push_wellness_reminder\": true,\n  \"inapp_period_reminder\": true,\n  \"inapp_ovulation\": true,\n  \"inapp_partner_message\": true,\n  \"inapp_wellness_reminder\": true,\n  \"reminder_days_before\": 2,\n  \"reminder_time\": \"09:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notifications/preferences/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "preferences",
+                ""
+              ]
+            },
+            "description": "Create or update notification preferences"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Preferences (PUT)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"push_period_reminder\": false,\n  \"reminder_days_before\": 3,\n  \"reminder_time\": \"08:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notifications/preferences/update_preferences/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "preferences",
+                "update_preferences",
+                ""
+              ]
+            },
+            "description": "Update notification preferences using PUT method"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Push Notification Tokens",
+      "item": [
+        {
+          "name": "List Push Tokens",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/push-tokens/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "push-tokens",
+                ""
+              ]
+            },
+            "description": "Get all registered push tokens for user"
+          },
+          "response": []
+        },
+        {
+          "name": "Register Push Token",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_type\": \"android\",\n  \"token\": \"ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notifications/push-tokens/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "push-tokens",
+                ""
+              ]
+            },
+            "description": "Register new push notification token"
+          },
+          "response": []
+        },
+        {
+          "name": "Register iOS Push Token",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_type\": \"ios\",\n  \"token\": \"ios_device_token_here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notifications/push-tokens/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "push-tokens",
+                ""
+              ]
+            },
+            "description": "Register iOS push notification token"
+          },
+          "response": []
+        },
+        {
+          "name": "Register Web Push Token",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"device_type\": \"web\",\n  \"token\": \"web_push_token_here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notifications/push-tokens/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "push-tokens",
+                ""
+              ]
+            },
+            "description": "Register web push notification token"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Specific Push Token",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/push-tokens/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "push-tokens",
+                "1",
+                ""
+              ]
+            },
+            "description": "Get specific push token details"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Push Token",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"updated_token_here\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notifications/push-tokens/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "push-tokens",
+                "1",
+                ""
+              ]
+            },
+            "description": "Update push token"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Push Token",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications/push-tokens/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "push-tokens",
+                "1",
+                ""
+              ]
+            },
+            "description": "Delete push token"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "AI Suggestions",
+      "item": [
+        {
+          "name": "Get AI Health Suggestion",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/ai/suggestions/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "suggestions",
+                ""
+              ]
+            },
+            "description": "Get personalized AI health suggestion based on current cycle and wellness data"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Suggestion History",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/ai/suggestion-history/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "suggestion-history",
+                ""
+              ]
+            },
+            "description": "Get history of AI suggestions with feedback"
+          },
+          "response": []
+        },
+        {
+          "name": "Give Positive Feedback",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"feedback\": true,\n  \"corrected_label\": \"\",\n  \"response_text\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/ai/feedback/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "feedback",
+                "1",
+                ""
+              ]
+            },
+            "description": "Give positive feedback on AI suggestion"
+          },
+          "response": []
+        },
+        {
+          "name": "Give Negative Feedback with Correction",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"feedback\": false,\n  \"corrected_label\": \"High stress: meditation recommended\",\n  \"response_text\": \"Try 10 minutes of meditation instead\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/ai/feedback/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "feedback",
+                "1",
+                ""
+              ]
+            },
+            "description": "Give negative feedback with corrected suggestion"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Suggestion Response",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"response_text\": \"Try 30 minutes of light exercise like walking or yoga\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/ai/feedback/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "feedback",
+                "1",
+                ""
+              ]
+            },
+            "description": "Update the response text for a suggestion"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Model Management",
+      "item": [
+        {
+          "name": "Get Model Status",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/ai/model-status/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "model-status",
+                ""
+              ]
+            },
+            "description": "Check AI model status and information"
+          },
+          "response": []
+        },
+        {
+          "name": "Debug Suggestions",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/ai/debug-suggestions/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ai",
+                "debug-suggestions",
+                ""
+              ]
+            },
+            "description": "Debug endpoint to check user's suggestions (development only)"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.rithmo.ir",
+      "type": "string",
+      "description": "Base URL for the API"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT access token (auto-populated after login)"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT refresh token (auto-populated after login)"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string",
+      "description": "Current user ID (set manually if needed)"
+    },
+    {
+      "key": "partner_id",
+      "value": "",
+      "type": "string",
+      "description": "Partner user ID (set manually for partner operations)"
+    }
+  ]
+}
