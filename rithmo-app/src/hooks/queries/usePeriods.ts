@@ -67,7 +67,24 @@ export function useDeletePeriod() {
 export function useCycleAnalysis(role?: 'partner') {
   return useQuery({
     queryKey: queryKeys.periods.cycleAnalysis(role),
-    queryFn: () => periodService.getCycleAnalysis(role).then((r) => r.data),
+    queryFn: async () => {
+      try {
+        const response = await periodService.getCycleAnalysis(role);
+        return response.data;
+      } catch (error: any) {
+        // 404 means no cycle data yet - this is normal, not an error
+        if (error?.response?.status === 404) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error: any) => {
+      // Don't retry on 404 - it means no data exists
+      if (error?.response?.status === 404) return false;
+      return failureCount < 2;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
@@ -88,6 +105,21 @@ export function useSymptomPatterns() {
 export function useLatestOvulation() {
   return useQuery({
     queryKey: queryKeys.ovulation.latest(),
-    queryFn: () => periodService.getLatestOvulation().then((r) => r.data),
+    queryFn: async () => {
+      try {
+        const response = await periodService.getLatestOvulation();
+        return response.data;
+      } catch (error: any) {
+        // 404 means no ovulation data yet
+        if (error?.response?.status === 404) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 2;
+    },
   });
 }

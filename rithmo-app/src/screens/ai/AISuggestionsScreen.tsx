@@ -218,8 +218,6 @@ function HistoryCard({
               height: 40,
               borderRadius: 12,
               backgroundColor: colors.luteal + '15',
-              borderWidth: 1,
-              borderColor: colors.luteal + '25',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
@@ -591,8 +589,6 @@ export default function AISuggestionsScreen() {
                     height: 52,
                     borderRadius: 16,
                     backgroundColor: colors.primary + '15',
-                    borderWidth: 1,
-                    borderColor: colors.primary + '25',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}

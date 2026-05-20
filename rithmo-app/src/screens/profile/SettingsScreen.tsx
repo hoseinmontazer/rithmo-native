@@ -8,10 +8,64 @@ import {
   useNotificationPreferences,
   useSaveNotificationPreferences,
 } from '@hooks/queries/useNotifications';
-import { Card, Divider, LoadingState } from '@components/ui';
+import { Card, Divider, LoadingState, AppIcon } from '@components/ui';
+import icons from '../../assets/icons';
 import type { NotificationPreferences } from '@types/notification.types';
 
 type ThemeMode = 'light' | 'dark' | 'system';
+
+// ── Pref row with PNG icon ────────────────────────────────────────────────────
+
+function PrefRow({
+  iconSource,
+  label,
+  prefKey,
+  value,
+  onToggle,
+  last,
+}: {
+  iconSource: ReturnType<typeof require>;
+  label: string;
+  prefKey: keyof NotificationPreferences;
+  value: boolean;
+  onToggle: (key: keyof NotificationPreferences, v: boolean) => void;
+  last?: boolean;
+}) {
+  const { colors, spacing, typography } = useTheme();
+  return (
+    <>
+      <View style={[styles.prefRow, { paddingVertical: spacing[3] }]}>
+        <View style={styles.prefLeft}>
+          {/* Icon container — no border */}
+          <View
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              backgroundColor: colors.primaryLighter,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginRight: spacing[3],
+            }}
+          >
+            <AppIcon source={iconSource} size={20} />
+          </View>
+          <Text style={{ color: colors.textPrimary, fontSize: typography.sm }}>{label}</Text>
+        </View>
+        <Switch
+          value={value}
+          onValueChange={(v) => onToggle(prefKey, v)}
+          trackColor={{ false: colors.border, true: colors.primary }}
+          thumbColor={colors.surface}
+          accessibilityLabel={label}
+        />
+      </View>
+      {!last && <Divider />}
+    </>
+  );
+}
+
+// ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function SettingsScreen() {
   const { colors, spacing, typography } = useTheme();
@@ -40,11 +94,14 @@ export default function SettingsScreen() {
       contentContainerStyle={{ padding: spacing[5] }}
       showsVerticalScrollIndicator={false}
     >
-      {/* Appearance */}
+      {/* ── Appearance ───────────────────────────────────────────────── */}
       <Card style={{ marginBottom: spacing[4] }}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, fontWeight: '600', marginBottom: spacing[3] }]}>
-          🎨  Appearance
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[2], marginBottom: spacing[3] }}>
+          <AppIcon source={icons.settings} size={20} />
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, fontWeight: '600' }]}>
+            Appearance
+          </Text>
+        </View>
         <View style={styles.themeRow}>
           {THEME_OPTIONS.map((opt) => (
             <TouchableOpacity
@@ -80,66 +137,94 @@ export default function SettingsScreen() {
         </View>
       </Card>
 
-      {/* Push notifications */}
+      {/* ── Push Notifications ───────────────────────────────────────── */}
       <Card style={{ marginBottom: spacing[4] }}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, fontWeight: '600', marginBottom: spacing[3] }]}>
-          🔔  Push Notifications
-        </Text>
-        {PUSH_PREFS.map((item, i) => (
-          <React.Fragment key={item.key}>
-            <View style={[styles.prefRow, { paddingVertical: spacing[3] }]}>
-              <View style={styles.prefLeft}>
-                <Text style={{ fontSize: 16, marginRight: spacing[2] }}>{item.emoji}</Text>
-                <Text style={{ color: colors.textPrimary, fontSize: typography.sm }}>{item.label}</Text>
-              </View>
-              <Switch
-                value={prefs?.[item.key as keyof NotificationPreferences] as boolean ?? false}
-                onValueChange={(v) => togglePref(item.key as keyof NotificationPreferences, v)}
-                trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor={colors.surface}
-                accessibilityLabel={item.label}
-              />
-            </View>
-            {i < PUSH_PREFS.length - 1 && <Divider />}
-          </React.Fragment>
-        ))}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[2], marginBottom: spacing[3] }}>
+          <AppIcon source={icons.pushNotification} size={20} />
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, fontWeight: '600' }]}>
+            Push Notifications
+          </Text>
+        </View>
+        <PrefRow
+          iconSource={icons.menstruation}
+          label="Period Reminder"
+          prefKey="push_period_reminder"
+          value={prefs?.push_period_reminder ?? false}
+          onToggle={togglePref}
+        />
+        <PrefRow
+          iconSource={icons.fertilization}
+          label="Ovulation Alert"
+          prefKey="push_ovulation"
+          value={prefs?.push_ovulation ?? false}
+          onToggle={togglePref}
+        />
+        <PrefRow
+          iconSource={icons.chat}
+          label="Partner Messages"
+          prefKey="push_partner_message"
+          value={prefs?.push_partner_message ?? false}
+          onToggle={togglePref}
+        />
+        <PrefRow
+          iconSource={icons.wellness}
+          label="Wellness Reminder"
+          prefKey="push_wellness_reminder"
+          value={prefs?.push_wellness_reminder ?? false}
+          onToggle={togglePref}
+          last
+        />
       </Card>
 
-      {/* Email notifications */}
+      {/* ── Email Notifications ──────────────────────────────────────── */}
       <Card style={{ marginBottom: spacing[4] }}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, fontWeight: '600', marginBottom: spacing[3] }]}>
-          📧  Email Notifications
-        </Text>
-        {EMAIL_PREFS.map((item, i) => (
-          <React.Fragment key={item.key}>
-            <View style={[styles.prefRow, { paddingVertical: spacing[3] }]}>
-              <View style={styles.prefLeft}>
-                <Text style={{ fontSize: 16, marginRight: spacing[2] }}>{item.emoji}</Text>
-                <Text style={{ color: colors.textPrimary, fontSize: typography.sm }}>{item.label}</Text>
-              </View>
-              <Switch
-                value={prefs?.[item.key as keyof NotificationPreferences] as boolean ?? false}
-                onValueChange={(v) => togglePref(item.key as keyof NotificationPreferences, v)}
-                trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor={colors.surface}
-                accessibilityLabel={item.label}
-              />
-            </View>
-            {i < EMAIL_PREFS.length - 1 && <Divider />}
-          </React.Fragment>
-        ))}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[2], marginBottom: spacing[3] }}>
+          <AppIcon source={icons.pushNotification} size={20} />
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, fontWeight: '600' }]}>
+            Email Notifications
+          </Text>
+        </View>
+        <PrefRow
+          iconSource={icons.menstruation}
+          label="Period Reminder"
+          prefKey="email_period_reminder"
+          value={prefs?.email_period_reminder ?? false}
+          onToggle={togglePref}
+        />
+        <PrefRow
+          iconSource={icons.fertilization}
+          label="Ovulation Alert"
+          prefKey="email_ovulation"
+          value={prefs?.email_ovulation ?? false}
+          onToggle={togglePref}
+        />
+        <PrefRow
+          iconSource={icons.chat}
+          label="Partner Messages"
+          prefKey="email_partner_message"
+          value={prefs?.email_partner_message ?? false}
+          onToggle={togglePref}
+        />
+        <PrefRow
+          iconSource={icons.wellness}
+          label="Wellness Reminder"
+          prefKey="email_wellness_reminder"
+          value={prefs?.email_wellness_reminder ?? false}
+          onToggle={togglePref}
+          last
+        />
       </Card>
 
-      {/* App info */}
+      {/* ── About ────────────────────────────────────────────────────── */}
       <Card style={{ marginBottom: spacing[4] }}>
         <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, fontWeight: '600', marginBottom: spacing[3] }]}>
-          ℹ️  About
+          About
         </Text>
-        <InfoRow label="Version"    value="1.0.0"              colors={colors} typography={typography} />
+        <InfoRow label="Version" value="1.0.0"         colors={colors} typography={typography} />
         <Divider style={{ marginVertical: spacing[2] }} />
-        <InfoRow label="API"        value="api.rithmo.ir"      colors={colors} typography={typography} />
+        <InfoRow label="API"     value="api.rithmo.ir" colors={colors} typography={typography} />
         <Divider style={{ marginVertical: spacing[2] }} />
-        <InfoRow label="Build"      value="Production"         colors={colors} typography={typography} />
+        <InfoRow label="Build"   value="Production"    colors={colors} typography={typography} />
       </Card>
 
       <View style={{ height: spacing[8] }} />
@@ -157,20 +242,6 @@ function InfoRow({ label, value, colors, typography }: {
     </View>
   );
 }
-
-const PUSH_PREFS = [
-  { key: 'push_period_reminder', label: 'Period Reminder',  emoji: '•' },
-  { key: 'push_ovulation',       label: 'Ovulation Alert',  emoji: '✨' },
-  { key: 'push_partner_message', label: 'Partner Messages', emoji: '💬' },
-  { key: 'push_wellness_reminder', label: 'Wellness Reminder', emoji: '💚' },
-];
-
-const EMAIL_PREFS = [
-  { key: 'email_period_reminder', label: 'Period Reminder',  emoji: '•' },
-  { key: 'email_ovulation',       label: 'Ovulation Alert',  emoji: '✨' },
-  { key: 'email_partner_message', label: 'Partner Messages', emoji: '💬' },
-  { key: 'email_wellness_reminder', label: 'Wellness Reminder', emoji: '💚' },
-];
 
 const styles = StyleSheet.create({
   flex:         { flex: 1 },

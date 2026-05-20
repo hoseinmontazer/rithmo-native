@@ -8,6 +8,8 @@ export function useProfile() {
   return useQuery({
     queryKey: queryKeys.profile.all(),
     queryFn: () => profileService.getProfile().then((r) => r.data),
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 

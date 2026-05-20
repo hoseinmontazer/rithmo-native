@@ -28,7 +28,22 @@ export function useNotification(id: number) {
 export function useUnreadNotifications() {
   return useQuery({
     queryKey: queryKeys.notifications.unread(),
-    queryFn: () => notificationService.getUnread().then((r) => r.data),
+    queryFn: async () => {
+      try {
+        const response = await notificationService.getUnread();
+        return response.data;
+      } catch (error: any) {
+        // 404 means no unread notifications - return { count: 0 }
+        if (error?.response?.status === 404) {
+          return { count: 0 };
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 2;
+    },
     refetchInterval: 60_000, // poll every minute
   });
 }
@@ -172,7 +187,22 @@ export function useConversation(partnerId: string) {
 export function useUnreadMessages() {
   return useQuery({
     queryKey: queryKeys.messages.unread(),
-    queryFn: () => notificationService.getUnreadMessages().then((r) => r.data),
+    queryFn: async () => {
+      try {
+        const response = await notificationService.getUnreadMessages();
+        return response.data;
+      } catch (error: any) {
+        // 404 means no unread messages - return { count: 0 }
+        if (error?.response?.status === 404) {
+          return { count: 0 };
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 2;
+    },
     refetchInterval: 30_000,
   });
 }

@@ -15,7 +15,6 @@ import {
   RefreshControl,
   Dimensions,
   ActivityIndicator,
-  Image,
   ImageSourcePropType,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -74,8 +73,6 @@ function StatTile({
           width: HALF_CARD,
           backgroundColor: colors.surface,
           borderRadius: 20,
-          borderWidth: 1,
-          borderColor: colors.border,
           padding: spacing[4],
           shadowColor: colors.shadowColor,
           shadowOffset: { width: 0, height: 4 },
@@ -154,8 +151,6 @@ function QuickChip({
         {
           backgroundColor: color + '14',
           borderRadius: 14,
-          borderWidth: 1,
-          borderColor: color + '30',
           paddingHorizontal: spacing[3],
           paddingVertical: spacing[2],
           flexDirection: 'row',
@@ -250,8 +245,6 @@ function HubCard({
           width: w,
           backgroundColor: colors.surface,
           borderRadius: 20,
-          borderWidth: 1,
-          borderColor: colors.border,
           overflow: 'hidden',
           shadowColor: colors.shadowColor,
           shadowOffset: { width: 0, height: 4 },
@@ -282,8 +275,6 @@ function HubCard({
               backgroundColor: accent + '18',
               alignItems: 'center',
               justifyContent: 'center',
-              borderWidth: 1,
-              borderColor: accent + '28',
             }}
           >
             {pngSource ? (
@@ -345,7 +336,7 @@ export default function HomeScreen() {
   const { colors, spacing, typography } = useTheme();
   const { user } = useAuth();
 
-  const { data: cycleData, isLoading: cycleLoading, refetch: refetchCycle } = useCycleAnalysis();
+  const { data: cycleData, isLoading: cycleLoading, refetch: refetchCycle, isError: cycleError, error: cycleErrorObj } = useCycleAnalysis();
   const { data: ovulation } = useLatestOvulation();
   const { data: unreadNotifs } = useUnreadNotifications();
   const { data: unreadMsgs } = useUnreadMessages();
@@ -353,15 +344,33 @@ export default function HomeScreen() {
   const { data: medications } = useUserMedications();
   const { data: todayWellness } = useTodayWellnessLog();
   const { data: streaks } = useWellnessStreaks();
-  const { data: profile } = useProfile();
+  const { data: profile, isLoading: profileLoading, isError: profileError, refetch: refetchProfile, error: profileErrorObj } = useProfile();
 
   const [refreshing, setRefreshing] = React.useState(false);
 
+  // Debug logging
+  React.useEffect(() => {
+    if (profileError) {
+      console.error('Profile loading error:', profileErrorObj);
+    }
+    if (cycleError) {
+      // Only log non-404 errors (404 means no cycle data, which is normal)
+      const status = (cycleErrorObj as any)?.response?.status;
+      if (status !== 404) {
+        console.error('Cycle loading error:', cycleErrorObj);
+      }
+    }
+  }, [profileError, cycleError, profileErrorObj, cycleErrorObj]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refetchCycle();
+    try {
+      await Promise.all([refetchCycle(), refetchProfile()]);
+    } catch (error) {
+      console.error('Refresh error:', error);
+    }
     setRefreshing(false);
-  }, [refetchCycle]);
+  }, [refetchCycle, refetchProfile]);
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();
@@ -384,22 +393,52 @@ export default function HomeScreen() {
   const notifCount = unreadNotifs?.count ?? 0;
   const msgCount   = unreadMsgs?.count ?? 0;
 
+  // Safe data access with fallbacks
+  const daysUntilPeriod = cycleData?.days_until_next_period ?? 0;
+  const avgCycleLength = cycleData?.average_cycle_length ?? 28;
+  const ovulationDay = ovulation?.ovulation_date
+    ? new Date(ovulation.ovulation_date).getDate()
+    : null;
+
   // Whether this user tracks their own cycle — use profile.sex (from /api/user/profile/)
   // which is the authoritative source. Falls back to cycle view while profile loads.
-  const isCycleUser = profile?.sex !== 'male';
+  // If profile fails to load, default to showing cycle content (safer default)
+  const isCycleUser = profileError ? true : profile?.sex !== 'male';
+  
   // Whether cycle data exists yet
-  const hasCycleData = !cycleLoading && !!cycleData;
+  // 404 error means no data (normal), other errors are actual errors
+  const cycleDataNotFound = cycleError && (cycleErrorObj as any)?.response?.status === 404;
+  const cycleActualError = cycleError && !cycleDataNotFound;
+  const hasCycleData = !cycleLoading && !!cycleData && !cycleError;
 
   const goTo = useCallback(
     (tab: string, screen: string) => {
       try {
         navigation.getParent()?.navigate(tab as any, { screen });
-      } catch {
-        /* no-op */
+      } catch (error) {
+        console.error('Navigation error:', error);
       }
     },
     [navigation],
   );
+
+  // Show loading state only on initial load (not on refresh)
+  // Only show loading if we're actually loading and have no cached data
+  const isInitialLoading = profileLoading && !profile && !profileError && !refreshing;
+
+  // Don't block rendering - let the screen show with loading indicators for individual sections
+  // This ensures the header and navigation always work
+  
+  if (isInitialLoading) {
+    return (
+      <View style={[styles.root, { backgroundColor: colors.background, flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ color: colors.textSecondary, marginTop: spacing[4], fontSize: typography.sm }}>
+          Loading your dashboard...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -496,8 +535,57 @@ export default function HomeScreen() {
             },
           ]}
         >
-          {cycleLoading ? (
+          {cycleLoading && !cycleData ? (
             <ActivityIndicator size="large" color={colors.primary} style={{ height: 200 }} />
+          ) : cycleActualError ? (
+            /* ── Cycle data error (not 404) — show retry option ─────────── */
+            <View
+              style={{
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: colors.border,
+                padding: spacing[6],
+                alignItems: 'center',
+              }}
+            >
+              <View
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: 20,
+                  backgroundColor: colors.menstrualBg,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: spacing[4],
+                }}
+              >
+                <Icon name="alert-circle-outline" size={36} color={colors.menstrual} />
+              </View>
+
+              <Text
+                style={{
+                  color: colors.textPrimary,
+                  fontSize: typography.lg,
+                  fontWeight: '800',
+                  letterSpacing: -0.3,
+                  marginBottom: spacing[2],
+                  textAlign: 'center',
+                }}
+              >
+                Unable to load cycle data
+              </Text>
+              <Text
+                style={{
+                  color: colors.textSecondary,
+                  fontSize: typography.sm,
+                  textAlign: 'center',
+                  lineHeight: 20,
+                  marginBottom: spacing[5],
+                }}
+              >
+                Pull down to refresh or check your connection
+              </Text>
+            </View>
           ) : hasCycleData ? (
             <>
               {/* Phase pill */}
@@ -508,10 +596,8 @@ export default function HomeScreen() {
               {/* Ring */}
               <View style={{ alignItems: 'center', marginBottom: spacing[5] }}>
                 <CycleRing
-                  currentDay={
-                    cycleData!.average_cycle_length - cycleData!.days_until_next_period
-                  }
-                  totalDays={cycleData!.average_cycle_length}
+                  currentDay={avgCycleLength - daysUntilPeriod}
+                  totalDays={avgCycleLength}
                   phase={phase}
                   size={200}
                 />
@@ -529,7 +615,7 @@ export default function HomeScreen() {
               >
                 <View style={{ alignItems: 'center' }}>
                   <Text style={{ color: phaseAccent, fontSize: typography['2xl'], fontWeight: '800' }}>
-                    {cycleData!.days_until_next_period}
+                    {daysUntilPeriod}
                   </Text>
                   <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2 }}>
                     days to period
@@ -540,9 +626,7 @@ export default function HomeScreen() {
 
                 <View style={{ alignItems: 'center' }}>
                   <Text style={{ color: colors.ovulationColor, fontSize: typography['2xl'], fontWeight: '800' }}>
-                    {ovulation?.ovulation_date
-                      ? new Date(ovulation.ovulation_date).getDate()
-                      : '—'}
+                    {ovulationDay ?? '—'}
                   </Text>
                   <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2 }}>
                     ovulation day
@@ -553,7 +637,7 @@ export default function HomeScreen() {
 
                 <View style={{ alignItems: 'center' }}>
                   <Text style={{ color: colors.primary, fontSize: typography['2xl'], fontWeight: '800' }}>
-                    {cycleData!.average_cycle_length}
+                    {avgCycleLength}
                   </Text>
                   <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2 }}>
                     avg cycle
@@ -793,8 +877,6 @@ export default function HomeScreen() {
               {
                 backgroundColor: colors.surface,
                 borderRadius: 20,
-                borderWidth: 1,
-                borderColor: colors.border,
                 overflow: 'hidden',
                 shadowColor: colors.shadowColor,
                 shadowOffset: { width: 0, height: 4 },
@@ -827,8 +909,6 @@ export default function HomeScreen() {
                   backgroundColor: colors.luteal + '18',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  borderWidth: 1,
-                  borderColor: colors.luteal + '28',
                   flexShrink: 0,
                 }}
               >
@@ -928,7 +1008,7 @@ export default function HomeScreen() {
         {/* Row 2 — full-width wellness */}
         <View style={{ marginBottom: CARD_GAP }}>
           <HubCard
-            pngSource={icons.betterHealth}
+            pngSource={icons.wellness}
             title="Wellness Dashboard"
             description="Mood, sleep, energy, stress — all in one place"
             accent={colors.luteal}
@@ -947,7 +1027,7 @@ export default function HomeScreen() {
             onPress={() => goTo('CycleTab', 'CycleAnalysis')}
           />
           <HubCard
-            pngSource={icons.chatbot}
+            pngSource={icons.chat}
             title="Partner"
             description="Messages and shared insights"
             accent={colors.follicular}

@@ -32,11 +32,6 @@ function TabItem({ source, label, focused, color, badge }: TabItemProps) {
   return (
     <View style={styles.tabItem}>
       <View style={styles.iconWrap}>
-        {/* Active pill background */}
-        {focused && (
-          <View style={[styles.activePill, { backgroundColor: color + '18' }]} />
-        )}
-
         <TabIcon source={source} size={24} color={color} />
 
         {/* Unread badge */}
@@ -71,6 +66,7 @@ export function MainNavigator() {
 
   const isMale = profile?.sex === 'male';
   const TAB_H  = Platform.OS === 'ios' ? 80 : 64;
+  const tabIconColor = colors.primary;
 
   return (
     <Tab.Navigator
@@ -90,8 +86,8 @@ export function MainNavigator() {
           shadowRadius:     12,
           elevation:        16,
         },
-        tabBarActiveTintColor:   colors.primaryDark,
-        tabBarInactiveTintColor: colors.textTertiary,
+        tabBarActiveTintColor:   tabIconColor,
+        tabBarInactiveTintColor: tabIconColor,
       }}
     >
       {/* ── Home ─────────────────────────────────────────────────────── */}
@@ -136,7 +132,7 @@ export function MainNavigator() {
         options={{
           tabBarIcon: ({ focused, color }) => (
             <TabItem
-              source={icons.healthcare}
+              source={icons.wellness}
               label="Wellness"
               focused={focused}
               color={color}
@@ -152,7 +148,7 @@ export function MainNavigator() {
         options={{
           tabBarIcon: ({ focused, color }) => (
             <TabItem
-              source={isMale ? icons.robotWriting : icons.chatbot}
+              source={isMale ? icons.robotWriting : icons.chat}
               label={isMale ? 'AI' : 'Messages'}
               focused={focused}
               color={color}
@@ -196,12 +192,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 30,
     position: 'relative',
-  },
-  activePill: {
-    position: 'absolute',
-    width: 40,
-    height: 28,
-    borderRadius: 10,
   },
   badgeDot: {
     position: 'absolute',

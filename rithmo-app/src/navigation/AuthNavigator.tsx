@@ -3,12 +3,12 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from './types';
 import { useTheme } from '@hooks/useTheme';
 
-// Lazy-loaded auth screens
-const LoginScreen        = React.lazy(() => import('@screens/auth/LoginScreen'));
-const RegisterScreen     = React.lazy(() => import('@screens/auth/RegisterScreen'));
-const ForgotPasswordScreen = React.lazy(() => import('@screens/auth/ForgotPasswordScreen'));
-const ResetPasswordConfirmScreen = React.lazy(() => import('@screens/auth/ResetPasswordConfirmScreen'));
-const ActivateAccountScreen = React.lazy(() => import('@screens/auth/ActivateAccountScreen'));
+// Auth screens
+import LoginScreen from '@screens/auth/LoginScreen';
+import RegisterScreen from '@screens/auth/RegisterScreen';
+import ForgotPasswordScreen from '@screens/auth/ForgotPasswordScreen';
+import ResetPasswordConfirmScreen from '@screens/auth/ResetPasswordConfirmScreen';
+import ActivateAccountScreen from '@screens/auth/ActivateAccountScreen';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
@@ -23,11 +23,11 @@ export function AuthNavigator() {
         animation: 'slide_from_right',
       }}
     >
-      <Stack.Screen name="Login"           component={LoginScreen as React.ComponentType} />
-      <Stack.Screen name="Register"        component={RegisterScreen as React.ComponentType} />
-      <Stack.Screen name="ForgotPassword"  component={ForgotPasswordScreen as React.ComponentType} />
-      <Stack.Screen name="ResetPasswordConfirm" component={ResetPasswordConfirmScreen as React.ComponentType} />
-      <Stack.Screen name="ActivateAccount" component={ActivateAccountScreen as React.ComponentType} />
+      <Stack.Screen name="Login"           component={LoginScreen} />
+      <Stack.Screen name="Register"        component={RegisterScreen} />
+      <Stack.Screen name="ForgotPassword"  component={ForgotPasswordScreen} />
+      <Stack.Screen name="ResetPasswordConfirm" component={ResetPasswordConfirmScreen} />
+      <Stack.Screen name="ActivateAccount" component={ActivateAccountScreen} />
     </Stack.Navigator>
   );
 }

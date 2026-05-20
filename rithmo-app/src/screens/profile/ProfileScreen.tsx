@@ -11,7 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@hooks/useTheme';
 import { useAuth } from '@hooks/useAuth';
 import { useProfile } from '@hooks/queries/useProfile';
-import { LoadingState, ErrorState, Divider, TabIcon } from '@components/ui';
+import { LoadingState, ErrorState, Divider, AppIcon } from '@components/ui';
 import icons from '../../assets/icons';
 import type { ProfileScreenProps } from '@navigation/types';
 
@@ -26,7 +26,7 @@ function initials(first?: string, last?: string, username?: string) {
   return '?';
 }
 
-function sexEmoji(sex?: string) {
+function sexLabel(sex?: string) {
   if (sex === 'female') return '🌸 Female';
   if (sex === 'male')   return '🌿 Male';
   if (sex === 'other')  return '🌈 Other';
@@ -35,13 +35,9 @@ function sexEmoji(sex?: string) {
 
 // ── sub-components ────────────────────────────────────────────────────────────
 
-/**
- * MenuRow — icon pill uses a custom PNG when pngSource is provided,
- * falls back to emoji text otherwise.
- */
+/** Menu row with PNG icon — no border on the icon container */
 function MenuRow({
-  emoji,
-  pngSource,
+  iconSource,
   label,
   sub,
   accentColor,
@@ -49,8 +45,7 @@ function MenuRow({
   danger,
   last,
 }: {
-  emoji?: string;
-  pngSource?: ReturnType<typeof require>;
+  iconSource: ReturnType<typeof require>;
   label: string;
   sub?: string;
   accentColor: string;
@@ -69,25 +64,19 @@ function MenuRow({
         style={[styles.menuRow, { paddingVertical: spacing[4] }]}
         accessibilityRole="button"
       >
-        {/* Icon pill */}
+        {/* Icon container — no border */}
         <View
           style={{
             width: 44,
             height: 44,
             borderRadius: 13,
             backgroundColor: accentColor + '18',
-            borderWidth: 1,
-            borderColor: accentColor + '28',
             alignItems: 'center',
             justifyContent: 'center',
             marginRight: spacing[3],
           }}
         >
-          {pngSource ? (
-            <TabIcon source={pngSource} size={24} color={accentColor} />
-          ) : (
-            <Text style={{ fontSize: 20 }}>{emoji}</Text>
-          )}
+          <AppIcon source={iconSource} size={26} />
         </View>
 
         <View style={{ flex: 1 }}>
@@ -108,16 +97,14 @@ function MenuRow({
   );
 }
 
-/** Stat pill — same style as HomeScreen StatTile */
+/** Stat pill with PNG icon — no border on icon */
 function StatPill({
-  emoji,
-  pngSource,
+  iconSource,
   label,
   value,
   accent,
 }: {
-  emoji?: string;
-  pngSource?: ReturnType<typeof require>;
+  iconSource: ReturnType<typeof require>;
   label: string;
   value: string;
   accent: string;
@@ -129,19 +116,13 @@ function StatPill({
         flex: 1,
         backgroundColor: accent + '12',
         borderRadius: 16,
-        borderWidth: 1,
-        borderColor: accent + '25',
         paddingVertical: spacing[3],
         paddingHorizontal: spacing[2],
         alignItems: 'center',
         gap: 2,
       }}
     >
-      {pngSource ? (
-        <TabIcon source={pngSource} size={22} color={accent} />
-      ) : (
-        <Text style={{ fontSize: 18 }}>{emoji}</Text>
-      )}
+      <AppIcon source={iconSource} size={24} />
       <Text style={{ color: accent, fontSize: typography.lg, fontWeight: '800' }}>
         {value}
       </Text>
@@ -152,7 +133,7 @@ function StatPill({
   );
 }
 
-/** Section header — same uppercase label style as HomeScreen */
+/** Section header */
 function SectionHeader({ label }: { label: string }) {
   const { colors, spacing, typography } = useTheme();
   return (
@@ -173,7 +154,7 @@ function SectionHeader({ label }: { label: string }) {
   );
 }
 
-/** Card container — same shadow/border style as HomeScreen hub cards */
+/** Card container */
 function MenuCard({ children }: { children: React.ReactNode }) {
   const { colors, spacing } = useTheme();
   return (
@@ -182,8 +163,6 @@ function MenuCard({ children }: { children: React.ReactNode }) {
         marginHorizontal: spacing[5],
         backgroundColor: colors.surface,
         borderRadius: 20,
-        borderWidth: 1,
-        borderColor: colors.border,
         overflow: 'hidden',
         paddingHorizontal: spacing[4],
         shadowColor: colors.shadowColor,
@@ -240,7 +219,7 @@ export default function ProfileScreen() {
           alignItems: 'center',
         }}
       >
-        {/* Avatar ring — uses primary color accent bar like hub cards */}
+        {/* Avatar */}
         <View
           style={{
             width: 96,
@@ -255,8 +234,6 @@ export default function ProfileScreen() {
             shadowOpacity: 0.28,
             shadowRadius: 16,
             elevation: 8,
-            borderWidth: 3,
-            borderColor: colors.primary + '40',
           }}
         >
           <Text style={{ color: '#fff', fontSize: typography['2xl'], fontWeight: '900' }}>
@@ -264,30 +241,17 @@ export default function ProfileScreen() {
           </Text>
         </View>
 
-        {/* Name */}
-        <Text
-          style={{
-            color: colors.textPrimary,
-            fontSize: typography['2xl'],
-            fontWeight: '800',
-            letterSpacing: -0.5,
-            marginBottom: 3,
-          }}
-        >
+        <Text style={{ color: colors.textPrimary, fontSize: typography['2xl'], fontWeight: '800', letterSpacing: -0.5, marginBottom: 3 }}>
           {displayName}
         </Text>
-
-        {/* Email */}
         <Text style={{ color: colors.textSecondary, fontSize: typography.sm }}>
           {profile?.email ?? user?.email}
         </Text>
-
-        {/* Username */}
         <Text style={{ color: colors.textTertiary, fontSize: typography.xs, marginTop: 2 }}>
           @{profile?.username ?? user?.username}
         </Text>
 
-        {/* Sex badge — warm pill */}
+        {/* Sex badge */}
         <View
           style={{
             marginTop: spacing[3],
@@ -295,12 +259,10 @@ export default function ProfileScreen() {
             borderRadius: 20,
             paddingHorizontal: spacing[4],
             paddingVertical: spacing[1],
-            borderWidth: 1,
-            borderColor: colors.primary + '30',
           }}
         >
           <Text style={{ color: colors.primary, fontSize: typography.xs, fontWeight: '700' }}>
-            {sexEmoji(profile?.sex)}
+            {sexLabel(profile?.sex)}
           </Text>
         </View>
 
@@ -309,13 +271,13 @@ export default function ProfileScreen() {
           {!isMale && (
             <>
               <StatPill
-                pngSource={icons.menstruation}
+                iconSource={icons.menstruation}
                 label="Cycle"
                 value={`${profile?.cycle_length ?? 28}d`}
                 accent={colors.menstrual}
               />
               <StatPill
-                pngSource={icons.healthcare}
+                iconSource={icons.fertilization}
                 label="Period"
                 value={`${profile?.period_duration ?? 5}d`}
                 accent={colors.luteal}
@@ -323,7 +285,7 @@ export default function ProfileScreen() {
             </>
           )}
           <StatPill
-            pngSource={icons.profile}
+            iconSource={icons.collaborate}
             label="Partners"
             value={String(profile?.partners?.length ?? 0)}
             accent={colors.primary}
@@ -338,28 +300,19 @@ export default function ProfileScreen() {
           <>
             {profile!.partners!.map((p, i) => (
               <React.Fragment key={p.id}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingVertical: spacing[3],
-                  }}
-                >
-                  {/* Partner avatar */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: spacing[3] }}>
                   <View
                     style={{
                       width: 44,
                       height: 44,
                       borderRadius: 22,
                       backgroundColor: colors.follicular + '20',
-                      borderWidth: 2,
-                      borderColor: colors.follicular + '40',
                       alignItems: 'center',
                       justifyContent: 'center',
                       marginRight: spacing[3],
                     }}
                   >
-                    <Text style={{ fontSize: 20 }}>💞</Text>
+                    <AppIcon source={icons.collaborate} size={26} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: typography.base }}>
@@ -369,19 +322,8 @@ export default function ProfileScreen() {
                       {p.email}
                     </Text>
                   </View>
-                  <View
-                    style={{
-                      backgroundColor: colors.success + '18',
-                      borderRadius: 8,
-                      paddingHorizontal: spacing[2],
-                      paddingVertical: 3,
-                      borderWidth: 1,
-                      borderColor: colors.success + '30',
-                    }}
-                  >
-                    <Text style={{ color: colors.success, fontSize: 10, fontWeight: '800' }}>
-                      LINKED
-                    </Text>
+                  <View style={{ backgroundColor: colors.success + '18', borderRadius: 8, paddingHorizontal: spacing[2], paddingVertical: 3 }}>
+                    <Text style={{ color: colors.success, fontSize: 10, fontWeight: '800' }}>LINKED</Text>
                   </View>
                 </View>
                 {i < profile!.partners!.length - 1 && <Divider />}
@@ -389,7 +331,7 @@ export default function ProfileScreen() {
             ))}
             <Divider />
             <MenuRow
-              pngSource={icons.chatbot}
+              iconSource={icons.collaborate}
               label="Manage Partner"
               sub="Unlink or update partner connection"
               accentColor={colors.primary}
@@ -399,7 +341,7 @@ export default function ProfileScreen() {
           </>
         ) : (
           <MenuRow
-            pngSource={icons.chatbot}
+            iconSource={icons.collaborate}
             label="Link a Partner"
             sub="Invite your partner to connect"
             accentColor={colors.primary}
@@ -409,24 +351,25 @@ export default function ProfileScreen() {
         )}
       </MenuCard>
 
+      {/* ── Account ────────────────────────────────────────────────────── */}
       <SectionHeader label="Account" />
       <MenuCard>
         <MenuRow
-          pngSource={icons.userInfoWriting}
+          iconSource={icons.userInfoWriting}
           label="Edit Profile"
           sub="Name, sex, cycle settings"
           accentColor={colors.primary}
           onPress={() => navigation.navigate('EditProfile')}
         />
         <MenuRow
-          emoji="🔑"
+          iconSource={icons.secure}
           label="Change Password"
           sub="Update your login password"
           accentColor={colors.ovulationColor}
           onPress={() => navigation.navigate('ChangePassword')}
         />
         <MenuRow
-          emoji="⚙️"
+          iconSource={icons.settings}
           label="Settings"
           sub="Notifications, theme, preferences"
           accentColor={colors.follicular}
@@ -439,7 +382,7 @@ export default function ProfileScreen() {
       <SectionHeader label="Session" />
       <MenuCard>
         <MenuRow
-          emoji="👋"
+          iconSource={icons.logout}
           label="Sign Out"
           sub="See you soon"
           accentColor={colors.warning}
@@ -447,7 +390,7 @@ export default function ProfileScreen() {
           onPress={handleLogout}
         />
         <MenuRow
-          emoji="🗑️"
+          iconSource={icons.delete}
           label="Delete Account"
           sub="Permanently remove all your data"
           accentColor={colors.error}
@@ -462,8 +405,5 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   flex:    { flex: 1 },
-  menuRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  menuRow: { flexDirection: 'row', alignItems: 'center' },
 });

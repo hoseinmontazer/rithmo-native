@@ -1,5 +1,5 @@
-import React, { Suspense } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import React, { Suspense, useEffect } from 'react';
+import { View, ActivityIndicator, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { useAuthStore } from '@store/authStore';
 import { AuthNavigator } from './AuthNavigator';
@@ -11,6 +11,7 @@ function SplashFallback() {
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
       <ActivityIndicator size="large" color={colors.primary} />
+      <Text style={{ marginTop: 16, color: colors.textPrimary }}>Loading...</Text>
     </View>
   );
 }
@@ -18,9 +19,21 @@ function SplashFallback() {
 export function RootNavigator() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isInitializing  = useAuthStore((s) => s.isInitializing);
+  const initialize      = useAuthStore((s) => s.initialize);
   const { colors, isDark } = useTheme();
 
-  if (isInitializing) return <SplashFallback />;
+  // Ensure initialization runs
+  useEffect(() => {
+    initialize().catch((error) => {
+      if (__DEV__) {
+        console.error('Initialization error:', error);
+      }
+    });
+  }, [initialize]);
+
+  if (isInitializing) {
+    return <SplashFallback />;
+  }
 
   return (
     <NavigationContainer

@@ -55,7 +55,22 @@ export function useMedicationDrugSearch(q: string) {
 export function useUserMedications() {
   return useQuery({
     queryKey: queryKeys.medications.userMedications(),
-    queryFn: () => medicationService.listUserMedications().then((r) => normalizeListResponse(r.data)),
+    queryFn: async () => {
+      try {
+        const response = await medicationService.listUserMedications();
+        return normalizeListResponse(response.data);
+      } catch (error: any) {
+        // 404 means no medications yet - return empty array
+        if (error?.response?.status === 404) {
+          return [];
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 2;
+    },
   });
 }
 

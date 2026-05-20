@@ -12,7 +12,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@hooks/useTheme';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Badge, Icon, Button } from '@components/ui';
+import { Card, Badge, Button } from '@components/ui';
 import type { CycleStackParamList } from '@navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 

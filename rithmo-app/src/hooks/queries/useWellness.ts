@@ -68,14 +68,42 @@ export function useWellnessAnalytics(days: number = 30) {
 export function useWellnessStreaks() {
   return useQuery<WellnessStreaks | null>({
     queryKey: queryKeys.wellness.streaks(),
-    queryFn: () => wellnessService.getStreaks(),
+    queryFn: async () => {
+      try {
+        return await wellnessService.getStreaks();
+      } catch (error: any) {
+        // 404 means no streaks yet - return null instead of error
+        if (error?.response?.status === 404) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 2;
+    },
   });
 }
 
 export function useTodayWellnessLog() {
   return useQuery<WellnessLog | null>({
     queryKey: queryKeys.wellness.today(),
-    queryFn: () => wellnessService.getTodayLog(),
+    queryFn: async () => {
+      try {
+        return await wellnessService.getTodayLog();
+      } catch (error: any) {
+        // 404 means no log today - return null instead of error
+        if (error?.response?.status === 404) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 2;
+    },
   });
 }
 

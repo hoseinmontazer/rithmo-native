@@ -44,9 +44,13 @@ export const useAuthStore = create<AuthState>((set) => ({
         isAuthenticated: true,
         isInitializing: false,
       });
-    } catch {
+    } catch (error) {
       // Token invalid or expired and refresh failed — clear and show login
-      await secureStorage.clearTokens();
+      try {
+        await secureStorage.clearTokens();
+      } catch (clearError) {
+        // Ignore clear errors
+      }
       set({ isInitializing: false, isAuthenticated: false });
     }
   },

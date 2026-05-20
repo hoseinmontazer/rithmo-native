@@ -6,7 +6,22 @@ import type { AISuggestionFeedbackRequest } from '@types/ai.types';
 export function useAISuggestion() {
   return useQuery({
     queryKey: queryKeys.ai.suggestion(),
-    queryFn: () => aiService.getSuggestion().then((r) => r.data),
+    queryFn: async () => {
+      try {
+        const response = await aiService.getSuggestion();
+        return response.data;
+      } catch (error: any) {
+        // 404 means no suggestion available yet
+        if (error?.response?.status === 404) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 2;
+    },
     staleTime: 30 * 60 * 1000, // suggestions are fresh for 30 min
   });
 }
