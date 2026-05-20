@@ -6,10 +6,16 @@ import { useTheme } from '@hooks/useTheme';
 import { useCycleAnalysis, useCycleInsights, useSymptomPatterns } from '@hooks/queries/usePeriods';
 import { Card, LoadingState, ErrorState, Badge } from '@components/ui';
 import { formatDate } from '@utils/dateUtils';
-import type { CyclePhase } from '@types/period.types';
 
-const PHASE_EMOJI: Record<CyclePhase, string> = {
-  menstrual: '•', follicular: '•', ovulation: '•', luteal: '•',
+const PHASE_EMOJI: Record<string, string> = {
+  menstrual: '🩸',
+  follicular: '🌱',
+  ovulation: '🥚',
+  luteal: '🌙',
+  Menstrual: '🩸',
+  Follicular: '🌱',
+  Ovulation: '🥚',
+  Luteal: '🌙',
 };
 
 export default function CycleAnalysisScreen() {
@@ -29,6 +35,19 @@ export default function CycleAnalysisScreen() {
   if (aLoading || iLoading || pLoading) return <LoadingState fullScreen message="Analysing your cycle…" />;
   if (aError) return <ErrorState fullScreen error={aErr} onRetry={refetchA} />;
 
+  // Handle both old and new API response formats
+  const currentPhase = analysis?.current_status?.phase || analysis?.current_phase;
+  const phaseDescription = analysis?.current_status?.phase_description;
+  const cycleDay = analysis?.current_status?.cycle_day;
+  const avgCycle = analysis?.average_cycle || analysis?.average_cycle_length;
+  const nextPeriodDate = analysis?.next_predicted_date || analysis?.next_period_date;
+  const daysUntilNext = analysis?.current_status?.days_until_next_period ?? analysis?.days_until_next_period;
+  const isOnPeriod = analysis?.current_status?.is_on_period;
+  const isFertileWindow = analysis?.current_status?.is_fertile_window;
+
+  // Check if we have any data to display
+  const hasData = analysis || insights || patterns;
+
   return (
     <ScrollView
       style={[styles.flex, { backgroundColor: colors.background }]}
@@ -39,55 +58,79 @@ export default function CycleAnalysisScreen() {
       }
     >
       {/* Current phase */}
-      {analysis && (
+      {currentPhase && (
         <Card elevated style={{ marginBottom: spacing[4] }}>
           <Text style={[styles.cardTitle, { color: colors.textPrimary, fontSize: typography.lg, fontWeight: '700', marginBottom: spacing[4] }]}>
-            {PHASE_EMOJI[analysis.current_phase]}  Current Phase
+            {PHASE_EMOJI[currentPhase] || '•'}  Current Phase
           </Text>
           <Badge
-            label={analysis.current_phase.charAt(0).toUpperCase() + analysis.current_phase.slice(1)}
+            label={currentPhase}
             variant="primary"
             style={{ marginBottom: spacing[4] }}
           />
 
+          {phaseDescription && (
+            <Text style={{ color: colors.textSecondary, fontSize: typography.sm, marginBottom: spacing[4], lineHeight: 20 }}>
+              {phaseDescription}
+            </Text>
+          )}
+
           <View style={styles.statsGrid}>
-            <StatBox label="Avg Cycle" value={`${analysis.average_cycle_length}d`} colors={colors} spacing={spacing} typography={typography} borderRadius={borderRadius} />
-            <StatBox label="Avg Period" value={`${analysis.average_period_duration}d`} colors={colors} spacing={spacing} typography={typography} borderRadius={borderRadius} />
-            <StatBox label="Next Period" value={formatDate(analysis.next_period_date)} colors={colors} spacing={spacing} typography={typography} borderRadius={borderRadius} />
-            <StatBox label="Days Away" value={String(analysis.days_until_next_period)} colors={colors} spacing={spacing} typography={typography} borderRadius={borderRadius} />
+            {cycleDay !== undefined && cycleDay !== null && (
+              <StatBox label="Cycle Day" value={`Day ${cycleDay}`} colors={colors} spacing={spacing} typography={typography} borderRadius={borderRadius} />
+            )}
+            {avgCycle && (
+              <StatBox label="Avg Cycle" value={`${avgCycle}d`} colors={colors} spacing={spacing} typography={typography} borderRadius={borderRadius} />
+            )}
+            {nextPeriodDate && (
+              <StatBox label="Next Period" value={formatDate(nextPeriodDate)} colors={colors} spacing={spacing} typography={typography} borderRadius={borderRadius} />
+            )}
+            {daysUntilNext !== undefined && daysUntilNext !== null && (
+              <StatBox label="Days Away" value={String(daysUntilNext)} colors={colors} spacing={spacing} typography={typography} borderRadius={borderRadius} />
+            )}
           </View>
         </Card>
       )}
 
       {/* Fertile window */}
-      {analysis?.fertile_window_start && (
+      {(analysis?.fertile_window_start || analysis?.current_status?.is_fertile_window) && (
         <Card style={{ marginBottom: spacing[4] }}>
           <Text style={[styles.cardTitle, { color: colors.textPrimary, fontSize: typography.base, fontWeight: '600', marginBottom: spacing[3] }]}>
             ✨  Fertile Window
           </Text>
-          <View style={styles.row}>
-            <View style={[styles.dateChip, { backgroundColor: colors.primaryLight, borderRadius: borderRadius.lg, padding: spacing[3] }]}>
-              <Text style={{ color: colors.primary, fontSize: typography.sm, fontWeight: '600' }}>
-                {formatDate(analysis.fertile_window_start!)}
-              </Text>
-            </View>
-            <Text style={{ color: colors.textSecondary, marginHorizontal: spacing[3] }}>→</Text>
-            <View style={[styles.dateChip, { backgroundColor: colors.primaryLight, borderRadius: borderRadius.lg, padding: spacing[3] }]}>
-              <Text style={{ color: colors.primary, fontSize: typography.sm, fontWeight: '600' }}>
-                {formatDate(analysis.fertile_window_end!)}
-              </Text>
-            </View>
-          </View>
-          {analysis.ovulation_date && (
-            <Text style={{ color: colors.textSecondary, fontSize: typography.sm, marginTop: spacing[3] }}>
-              Ovulation predicted: {formatDate(analysis.ovulation_date)}
+          {analysis.fertile_window_start && analysis.fertile_window_end ? (
+            <>
+              <View style={styles.row}>
+                <View style={[styles.dateChip, { backgroundColor: colors.primaryLight, borderRadius: borderRadius.lg, padding: spacing[3] }]}>
+                  <Text style={{ color: colors.primary, fontSize: typography.sm, fontWeight: '600' }}>
+                    {formatDate(analysis.fertile_window_start)}
+                  </Text>
+                </View>
+                <Text style={{ color: colors.textSecondary, marginHorizontal: spacing[3] }}>→</Text>
+                <View style={[styles.dateChip, { backgroundColor: colors.primaryLight, borderRadius: borderRadius.lg, padding: spacing[3] }]}>
+                  <Text style={{ color: colors.primary, fontSize: typography.sm, fontWeight: '600' }}>
+                    {formatDate(analysis.fertile_window_end)}
+                  </Text>
+                </View>
+              </View>
+              {analysis.ovulation_date && (
+                <Text style={{ color: colors.textSecondary, fontSize: typography.sm, marginTop: spacing[3] }}>
+                  Ovulation predicted: {formatDate(analysis.ovulation_date)}
+                </Text>
+              )}
+            </>
+          ) : (
+            <Text style={{ color: colors.textSecondary, fontSize: typography.sm }}>
+              {analysis.current_status?.is_fertile_window 
+                ? 'You are currently in your fertile window' 
+                : 'Not currently in fertile window'}
             </Text>
           )}
         </Card>
       )}
 
       {/* Insights */}
-      {insights && insights.insights.length > 0 && (
+      {insights && insights.insights && insights.insights.length > 0 && (
         <Card style={{ marginBottom: spacing[4] }}>
           <Text style={[styles.cardTitle, { color: colors.textPrimary, fontSize: typography.base, fontWeight: '600', marginBottom: spacing[3] }]}>
             💡  Insights
@@ -104,7 +147,7 @@ export default function CycleAnalysisScreen() {
       )}
 
       {/* Symptom patterns */}
-      {patterns && patterns.patterns.length > 0 && (
+      {patterns && patterns.patterns && patterns.patterns.length > 0 && (
         <Card style={{ marginBottom: spacing[4] }}>
           <Text style={[styles.cardTitle, { color: colors.textPrimary, fontSize: typography.base, fontWeight: '600', marginBottom: spacing[3] }]}>
             📊  Symptom Patterns
@@ -122,6 +165,15 @@ export default function CycleAnalysisScreen() {
               <Badge label={`${p.frequency}×`} variant="neutral" />
             </View>
           ))}
+        </Card>
+      )}
+
+      {/* Empty state */}
+      {!hasData && (
+        <Card style={{ padding: spacing[6], alignItems: 'center' }}>
+          <Text style={{ color: colors.textSecondary, fontSize: typography.base, textAlign: 'center' }}>
+            No cycle data available yet.{'\n'}Log your first period to see analysis.
+          </Text>
         </Card>
       )}
 

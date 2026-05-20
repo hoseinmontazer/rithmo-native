@@ -23,15 +23,34 @@ export interface UpdatePeriodRequest extends Partial<CreatePeriodRequest> {
   period_id?: number;
 }
 
-export interface CycleAnalysis {
-  average_cycle_length: number;
-  average_period_duration: number;
-  next_period_date: string;
-  current_phase: CyclePhase;
+export interface CurrentStatus {
+  is_on_period: boolean;
+  current_day_of_period: number;
+  cycle_day: number;
+  phase: string;
+  phase_description: string;
   days_until_next_period: number;
-  ovulation_date: string | null;
-  fertile_window_start: string | null;
-  fertile_window_end: string | null;
+  is_fertile_window: boolean;
+  cycle_length: number;
+}
+
+export interface CycleAnalysis {
+  average_cycle: number | null;
+  regularity_score: number | null;
+  cycle_variations: any[];
+  prediction_reliability: number | null;
+  next_predicted_date: string;
+  current_status: CurrentStatus;
+  gender: string;
+  // Legacy fields for backward compatibility
+  average_cycle_length?: number;
+  average_period_duration?: number;
+  next_period_date?: string;
+  current_phase?: CyclePhase;
+  days_until_next_period?: number;
+  ovulation_date?: string | null;
+  fertile_window_start?: string | null;
+  fertile_window_end?: string | null;
 }
 
 export type CyclePhase =

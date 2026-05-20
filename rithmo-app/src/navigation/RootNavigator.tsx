@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { View, ActivityIndicator, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { useAuthStore } from '@store/authStore';
@@ -49,9 +49,7 @@ export function RootNavigator() {
         },
       }}
     >
-      <Suspense fallback={<SplashFallback />}>
-        {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
-      </Suspense>
+      {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );
 }

@@ -70,7 +70,12 @@ export function useCycleAnalysis(role?: 'partner') {
     queryFn: async () => {
       try {
         const response = await periodService.getCycleAnalysis(role);
-        return response.data;
+        // Handle wrapped response format: { status, data, view_type }
+        const apiData = response.data;
+        if (apiData && typeof apiData === 'object' && 'data' in apiData) {
+          return (apiData as any).data;
+        }
+        return apiData;
       } catch (error: any) {
         // 404 means no cycle data yet - this is normal, not an error
         if (error?.response?.status === 404) {
@@ -91,14 +96,50 @@ export function useCycleAnalysis(role?: 'partner') {
 export function useCycleInsights() {
   return useQuery({
     queryKey: queryKeys.periods.cycleInsights(),
-    queryFn: () => periodService.getCycleInsights().then((r) => r.data),
+    queryFn: async () => {
+      try {
+        const response = await periodService.getCycleInsights();
+        const apiData = response.data;
+        if (apiData && typeof apiData === 'object' && 'data' in apiData) {
+          return (apiData as any).data;
+        }
+        return apiData;
+      } catch (error: any) {
+        if (error?.response?.status === 404) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 2;
+    },
   });
 }
 
 export function useSymptomPatterns() {
   return useQuery({
     queryKey: queryKeys.periods.symptomPatterns(),
-    queryFn: () => periodService.getSymptomPatterns().then((r) => r.data),
+    queryFn: async () => {
+      try {
+        const response = await periodService.getSymptomPatterns();
+        const apiData = response.data;
+        if (apiData && typeof apiData === 'object' && 'data' in apiData) {
+          return (apiData as any).data;
+        }
+        return apiData;
+      } catch (error: any) {
+        if (error?.response?.status === 404) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 2;
+    },
   });
 }
 
