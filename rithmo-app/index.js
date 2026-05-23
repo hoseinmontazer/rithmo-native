@@ -22,7 +22,7 @@ LogBox.ignoreLogs([
 ]);
 
 // Global error handler
-const errorHandler = (error: Error, isFatal?: boolean) => {
+const errorHandler = (error, isFatal) => {
   if (__DEV__) {
     console.error('Global error:', error, 'isFatal:', isFatal);
   }

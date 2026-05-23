@@ -25,8 +25,8 @@ export interface UpdateProfileRequest {
 }
 
 export interface InvitationCode {
-  code: string;
-  expires_at: string;
+  invitation_code: string;
+  expires_in: number; // seconds until expiration
 }
 
 export interface AcceptInvitationRequest {

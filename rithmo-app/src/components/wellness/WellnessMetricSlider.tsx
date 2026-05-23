@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '@hooks/useTheme';
 
@@ -10,7 +10,7 @@ interface WellnessMetricSliderProps {
   colorOverride?: string;
 }
 
-export const WellnessMetricSlider = memo(function WellnessMetricSlider({
+export function WellnessMetricSlider({
   label,
   value,
   max = 10,
@@ -60,7 +60,7 @@ export const WellnessMetricSlider = memo(function WellnessMetricSlider({
       </View>
     </View>
   );
-});
+}
 
 const styles = StyleSheet.create({
   container: {},

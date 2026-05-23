@@ -304,7 +304,7 @@ export default function PartnerManageScreen() {
                 </View>
               </View>
 
-              {invitation?.code ? (
+              {invitation?.invitation_code ? (
                 <View>
                   <View
                     style={{
@@ -337,7 +337,7 @@ export default function PartnerManageScreen() {
                         letterSpacing: 6,
                       }}
                     >
-                      {invitation.code}
+                      {invitation.invitation_code}
                     </Text>
                     <Text
                       style={{
@@ -346,12 +346,12 @@ export default function PartnerManageScreen() {
                         marginTop: spacing[2],
                       }}
                     >
-                      Expires: {new Date(invitation.expires_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      Expires in: {Math.floor(invitation.expires_in / 3600)}h {Math.floor((invitation.expires_in % 3600) / 60)}m
                     </Text>
                   </View>
 
                   <TouchableOpacity
-                    onPress={() => handleShare(invitation.code)}
+                    onPress={() => handleShare(invitation.invitation_code)}
                     activeOpacity={0.8}
                     style={{
                       flexDirection: 'row',

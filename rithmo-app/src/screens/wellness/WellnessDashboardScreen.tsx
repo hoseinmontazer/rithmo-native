@@ -6,7 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@hooks/useTheme';
 import { useWellnessLogs } from '@hooks/queries/useWellness';
 import { Card, LoadingState, ErrorState, EmptyState, Badge, AppIcon } from '@components/ui';
-import { WellnessMetricSlider } from '@components/wellness/WellnessMetricSlider';
+import { WellnessMetricSlider } from '../../components/wellness/WellnessMetricSlider';
 import { formatDate } from '@utils/dateUtils';
 import icons from '../../assets/icons';
 import type { WellnessLog } from '../../types/wellness.types';

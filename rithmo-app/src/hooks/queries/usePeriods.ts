@@ -64,7 +64,13 @@ export function useDeletePeriod() {
   });
 }
 
-export function useCycleAnalysis(role?: 'partner') {
+export function useCycleAnalysis(role?: 'partner'): ReturnType<typeof useQuery>;
+export function useCycleAnalysis(options?: { role?: 'partner'; enabled?: boolean }): ReturnType<typeof useQuery>;
+export function useCycleAnalysis(roleOrOptions?: 'partner' | { role?: 'partner'; enabled?: boolean }) {
+  // Handle both old and new API
+  const role = typeof roleOrOptions === 'string' ? roleOrOptions : roleOrOptions?.role;
+  const enabled = typeof roleOrOptions === 'object' ? roleOrOptions?.enabled ?? true : true;
+  
   return useQuery({
     queryKey: queryKeys.periods.cycleAnalysis(role),
     queryFn: async () => {
@@ -90,6 +96,7 @@ export function useCycleAnalysis(role?: 'partner') {
       return failureCount < 2;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled,
   });
 }
 
@@ -143,7 +150,8 @@ export function useSymptomPatterns() {
   });
 }
 
-export function useLatestOvulation() {
+export function useLatestOvulation(options?: { enabled?: boolean }) {
+  const { enabled = true } = options ?? {};
   return useQuery({
     queryKey: queryKeys.ovulation.latest(),
     queryFn: async () => {
@@ -162,5 +170,6 @@ export function useLatestOvulation() {
       if (error?.response?.status === 404) return false;
       return failureCount < 2;
     },
+    enabled,
   });
 }

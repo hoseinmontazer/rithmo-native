@@ -32,7 +32,7 @@ export function useCreateOrUpdateWellnessLog() {
       queryClient.invalidateQueries({ queryKey: queryKeys.wellness.all() });
       queryClient.invalidateQueries({ queryKey: queryKeys.wellness.today() });
       queryClient.invalidateQueries({ queryKey: queryKeys.wellness.streaks() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.wellness.analytics(30) });
+      queryClient.invalidateQueries({ queryKey: ['wellness', 'analytics'] });
     },
   });
 }
@@ -61,7 +61,20 @@ export function useDeleteWellnessLog() {
 export function useWellnessAnalytics(days: number = 30) {
   return useQuery<WellnessAnalytics | null>({
     queryKey: queryKeys.wellness.analytics(days),
-    queryFn: () => wellnessService.getAnalytics(days),
+    queryFn: async () => {
+      try {
+        return await wellnessService.getAnalytics(days);
+      } catch (error: any) {
+        if (error?.response?.status === 404) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false;
+      return failureCount < 2;
+    },
   });
 }
 

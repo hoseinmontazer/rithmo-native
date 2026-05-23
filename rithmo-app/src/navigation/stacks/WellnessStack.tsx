@@ -13,6 +13,7 @@ export function WellnessStack() {
   const { colors } = useTheme();
   return (
     <Stack.Navigator
+      initialRouteName="WellnessDashboard"
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.primaryDark,
@@ -22,8 +23,8 @@ export function WellnessStack() {
       }}
     >
       <Stack.Screen name="WellnessDashboard" component={WellnessDashboardScreen} options={{ title: 'Wellness' }} />
-      <Stack.Screen name="LogWellness"       component={LogWellnessScreen}       options={{ title: 'Log Today' }} />
       <Stack.Screen name="Medications"       component={MedicationsScreen}       options={{ title: 'Medications' }} />
+      <Stack.Screen name="LogWellness"       component={LogWellnessScreen}       options={{ title: 'Log Today' }} />
     </Stack.Navigator>
   );
 }

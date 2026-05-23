@@ -8,8 +8,7 @@ import { WellnessStack }   from './stacks/WellnessStack';
 import { MessagesStack }   from './stacks/MessagesStack';
 import { PartnerAIStack }  from './stacks/PartnerAIStack';
 import { ProfileStack }    from './stacks/ProfileStack';
-import { useUnreadMessages, useUnreadNotifications } from '@hooks/queries/useNotifications';
-import { useProfile } from '@hooks/queries/useProfile';
+import { useUnreadNotifications } from '@hooks/queries/useNotifications';
 import { TabIcon } from '@components/ui';
 import { useTheme } from '@hooks/useTheme';
 import icons from '../assets/icons';
@@ -59,12 +58,9 @@ function TabItem({ source, label, focused, color, badge }: TabItemProps) {
 // ── Navigator ─────────────────────────────────────────────────────────────────
 
 export function MainNavigator() {
-  const { data: unreadMsgs }   = useUnreadMessages();
   const { data: unreadNotifs } = useUnreadNotifications();
-  const { data: profile }      = useProfile();
   const { colors }             = useTheme();
 
-  const isMale = profile?.sex === 'male';
   const TAB_H  = Platform.OS === 'ios' ? 80 : 64;
   const tabIconColor = colors.primary;
 
@@ -107,33 +103,21 @@ export function MainNavigator() {
         }}
       />
 
-      {/* ── Cycle — female / other only ──────────────────────────────── */}
-      {!isMale && (
-        <Tab.Screen
-          name="CycleTab"
-          component={CycleStack}
-          options={{
-            tabBarIcon: ({ focused, color }) => (
-              <TabItem
-                source={icons.menstruation}
-                label="Cycle"
-                focused={focused}
-                color={color}
-              />
-            ),
-          }}
-        />
-      )}
-
-      {/* ── Wellness ─────────────────────────────────────────────────── */}
+      {/* ── Medications ──────────────────────────────────────────────── */}
       <Tab.Screen
         name="WellnessTab"
         component={WellnessStack}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate('WellnessTab', { screen: 'Medications' });
+          },
+        })}
         options={{
           tabBarIcon: ({ focused, color }) => (
             <TabItem
-              source={icons.wellness}
-              label="Wellness"
+              source={icons.healthcare}
+              label="Medications"
               focused={focused}
               color={color}
             />
@@ -141,18 +125,39 @@ export function MainNavigator() {
         }}
       />
 
-      {/* ── Messages (female) / AI (male) ────────────────────────────── */}
+      {/* ── Stats (Cycle/Analytics) ──────────────────────────────────── */}
       <Tab.Screen
-        name="MessagesTab"
-        component={isMale ? PartnerAIStack : MessagesStack}
+        name="CycleTab"
+        component={CycleStack}
         options={{
           tabBarIcon: ({ focused, color }) => (
             <TabItem
-              source={isMale ? icons.robotWriting : icons.chat}
-              label={isMale ? 'AI' : 'Messages'}
+              source={icons.search}
+              label="Stats"
               focused={focused}
               color={color}
-              badge={isMale ? undefined : unreadMsgs?.count}
+            />
+          ),
+        }}
+      />
+
+      {/* ── Wellness ─────────────────────────────────────────────────── */}
+      <Tab.Screen
+        name="MessagesTab"
+        component={WellnessStack}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate('WellnessTab', { screen: 'WellnessDashboard' });
+          },
+        })}
+        options={{
+          tabBarIcon: ({ focused, color }) => (
+            <TabItem
+              source={icons.wellness}
+              label="Wellness"
+              focused={focused}
+              color={color}
             />
           ),
         }}

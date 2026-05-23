@@ -15,6 +15,7 @@ export function CycleStack() {
   const { colors } = useTheme();
   return (
     <Stack.Navigator
+      initialRouteName="CycleAnalysis"
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.primaryDark,
@@ -23,10 +24,10 @@ export function CycleStack() {
         contentStyle: { backgroundColor: colors.background },
       }}
     >
+      <Stack.Screen name="CycleAnalysis"   component={CycleAnalysisScreen} options={{ title: 'Cycle Analytics' }} />
       <Stack.Screen name="CycleTracker"    component={CycleTrackerScreen}  options={{ title: 'Cycle Tracker' }} />
       <Stack.Screen name="PeriodDetail"    component={PeriodDetailScreen}  options={{ title: 'Period Details' }} />
       <Stack.Screen name="LogPeriod"       component={LogPeriodScreen}     options={{ title: 'Log Period' }} />
-      <Stack.Screen name="CycleAnalysis"   component={CycleAnalysisScreen} options={{ title: 'Cycle Analysis' }} />
       <Stack.Screen name="OvulationDetail" component={OvulationScreen}     options={{ title: 'Ovulation' }} />
     </Stack.Navigator>
   );
