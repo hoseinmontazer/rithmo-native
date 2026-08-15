@@ -23,8 +23,8 @@ let failedQueue: Array<{
 
 function processQueue(error: unknown, token: string | null): void {
   failedQueue.forEach(({ resolve, reject }) => {
-    if (error) reject(error);
-    else if (token) resolve(token);
+    if (error) {reject(error);}
+    else if (token) {resolve(token);}
   });
   failedQueue = [];
 }
@@ -75,7 +75,7 @@ apiClient.interceptors.response.use(
 
     try {
       const tokens = await secureStorage.getTokens();
-      if (!tokens?.refreshToken) throw new Error('No refresh token available');
+      if (!tokens?.refreshToken) {throw new Error('No refresh token available');}
 
       const { data } = await axios.post<RefreshTokenResponse>(
         `${API_BASE_URL}${API_ENDPOINTS.AUTH_REFRESH}`,

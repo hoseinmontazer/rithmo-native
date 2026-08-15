@@ -15,41 +15,12 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@hooks/useTheme';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, Badge, Icon, Button } from '@components/ui';
+import { medicationService } from '@api/services/medicationService';
+import type { UserMedication, MedicationLog, MedicationReminder, MedicationLogRequest } from '@types/medication.types';
 import type { WellnessStackParamList } from '@navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type Props = NativeStackScreenProps<WellnessStackParamList, 'Medications'>;
-
-interface UserMedication {
-  id: number;
-  medication: number;
-  medication_name: string;
-  custom_name: string;
-  dosage: string;
-  frequency: string;
-  start_date: string;
-  end_date: string | null;
-  notes: string;
-  is_active: boolean;
-}
-
-interface MedicationLog {
-  id: number;
-  user_medication: number;
-  date_taken: string;
-  dosage_taken: string;
-  effectiveness: number;
-  side_effects_experienced: string;
-  notes: string;
-}
-
-interface MedicationReminder {
-  id: number;
-  user_medication: number;
-  reminder_time: string;
-  is_active: boolean;
-  days_of_week: number[];
-}
 
 export default function MedicationsScreen() {
   const navigation = useNavigation<Props['navigation']>();
@@ -58,55 +29,32 @@ export default function MedicationsScreen() {
   const [refreshing, setRefreshing] = React.useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedMedication, setSelectedMedication] = useState<UserMedication | null>(null);
+  const [logTarget, setLogTarget] = useState<UserMedication | null>(null);
 
-  // Fetch user medications
+  // Fetch user medications — via the app's authenticated API client, not a
+  // bare fetch() with no host/auth header (which made this whole screen
+  // silently non-functional: every request failed and was swallowed by
+  // the catch blocks below).
   const { data: medications, isLoading: medicationsLoading, refetch: refetchMedications } = useQuery({
     queryKey: ['medications', 'my-medications'],
-    queryFn: async () => {
-      try {
-        const response = await fetch('/api/medications/my-medications/');
-        return response.json() as Promise<UserMedication[]>;
-      } catch {
-        return [];
-      }
-    },
+    queryFn: () => medicationService.listUserMedications(),
   });
 
   // Fetch medication logs
   const { data: logs, isLoading: logsLoading } = useQuery({
     queryKey: ['medications', 'logs'],
-    queryFn: async () => {
-      try {
-        const response = await fetch('/api/medications/logs/');
-        return response.json() as Promise<MedicationLog[]>;
-      } catch {
-        return [];
-      }
-    },
+    queryFn: () => medicationService.listLogs(),
   });
 
   // Fetch medication reminders
   const { data: reminders, isLoading: remindersLoading } = useQuery({
     queryKey: ['medications', 'reminders'],
-    queryFn: async () => {
-      try {
-        const response = await fetch('/api/medications/reminders/');
-        return response.json() as Promise<MedicationReminder[]>;
-      } catch {
-        return [];
-      }
-    },
+    queryFn: () => medicationService.listReminders(),
   });
 
   // Delete medication mutation
   const deleteMutation = useMutation({
-    mutationFn: async (medicationId: number) => {
-      const response = await fetch(`/api/medications/my-medications/${medicationId}/`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Failed to delete medication');
-      return response.json();
-    },
+    mutationFn: (medicationId: number) => medicationService.deleteUserMedication(medicationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['medications', 'my-medications'] });
       Alert.alert('Success', 'Medication deleted successfully');
@@ -118,17 +66,10 @@ export default function MedicationsScreen() {
 
   // Log medication mutation
   const logMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await fetch('/api/medications/logs/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Failed to log medication');
-      return response.json();
-    },
+    mutationFn: (data: MedicationLogRequest) => medicationService.createLog(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['medications', 'logs'] });
+      setLogTarget(null);
       Alert.alert('Success', 'Medication logged successfully');
     },
     onError: () => {
@@ -157,12 +98,20 @@ export default function MedicationsScreen() {
     );
   };
 
+  // Opens the effectiveness picker below rather than logging a hardcoded
+  // "effectiveness: 3, no notes" entry regardless of how the medication
+  // actually worked — every log entry used to be identical boilerplate.
   const handleLogMedication = (medication: UserMedication) => {
+    setLogTarget(medication);
+  };
+
+  const submitLog = (effectiveness: number) => {
+    if (!logTarget) {return;}
     logMutation.mutate({
-      user_medication: medication.id,
+      user_medication: logTarget.id,
       date_taken: new Date().toISOString(),
-      dosage_taken: medication.dosage,
-      effectiveness: 3,
+      dosage_taken: logTarget.dosage,
+      effectiveness,
       side_effects_experienced: '',
       notes: '',
     });
@@ -233,6 +182,7 @@ export default function MedicationsScreen() {
                 <View style={{ flexDirection: 'row', gap: spacing[2], marginTop: spacing[3] }}>
                   <TouchableOpacity
                     onPress={() => handleLogMedication(medication)}
+                    disabled={logMutation.isPending}
                     style={[
                       {
                         flex: 1,
@@ -240,6 +190,7 @@ export default function MedicationsScreen() {
                         borderRadius: borderRadius.lg,
                         paddingVertical: spacing[2],
                         alignItems: 'center',
+                        opacity: logMutation.isPending ? 0.6 : 1,
                       },
                     ]}
                   >
@@ -249,6 +200,7 @@ export default function MedicationsScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleDeleteMedication(medication.id)}
+                    disabled={deleteMutation.isPending}
                     style={[
                       {
                         flex: 1,
@@ -256,6 +208,7 @@ export default function MedicationsScreen() {
                         borderRadius: borderRadius.lg,
                         paddingVertical: spacing[2],
                         alignItems: 'center',
+                        opacity: deleteMutation.isPending ? 0.6 : 1,
                       },
                     ]}
                   >
@@ -264,6 +217,24 @@ export default function MedicationsScreen() {
                     </Text>
                   </TouchableOpacity>
                 </View>
+
+                {medication.potential_interactions && medication.potential_interactions.length > 0 && (
+                  <View
+                    style={{
+                      marginTop: spacing[3],
+                      padding: spacing[3],
+                      borderRadius: borderRadius.lg,
+                      backgroundColor: colors.warningBg,
+                    }}
+                  >
+                    <Text style={{ color: colors.textPrimary, fontSize: typography.xs, fontWeight: '700', marginBottom: spacing[1] }}>
+                      Potential interaction with {medication.potential_interactions[0].with_medication}
+                    </Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: typography.xs }}>
+                      {medication.potential_interactions[0].description}
+                    </Text>
+                  </View>
+                )}
               </View>
             </Card>
           ))
@@ -400,6 +371,45 @@ export default function MedicationsScreen() {
               </Text>
             </Card>
           </ScrollView>
+        </View>
+      </Modal>
+
+      {/* ── Log Effectiveness Modal ─────────────────────────────────────── */}
+      <Modal
+        visible={logTarget !== null}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setLogTarget(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: spacing[5] }}>
+          <View style={{ backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: spacing[5] }}>
+            <Text style={{ color: colors.textPrimary, fontSize: typography.lg, fontWeight: '600', marginBottom: spacing[1] }}>
+              How well did it work?
+            </Text>
+            <Text style={{ color: colors.textSecondary, fontSize: typography.sm, marginBottom: spacing[4] }}>
+              {logTarget?.custom_name || logTarget?.medication_name} · {logTarget?.dosage}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: spacing[2], marginBottom: spacing[4] }}>
+              {[1, 2, 3, 4, 5].map((score) => (
+                <TouchableOpacity
+                  key={score}
+                  onPress={() => submitLog(score)}
+                  disabled={logMutation.isPending}
+                  style={{
+                    flex: 1,
+                    paddingVertical: spacing[3],
+                    borderRadius: borderRadius.md,
+                    backgroundColor: colors.primaryLighter,
+                    alignItems: 'center',
+                    opacity: logMutation.isPending ? 0.6 : 1,
+                  }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: '700' }}>{score}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Button label="Cancel" variant="ghost" onPress={() => setLogTarget(null)} fullWidth />
+          </View>
         </View>
       </Modal>
     </ScrollView>

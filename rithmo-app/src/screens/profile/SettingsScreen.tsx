@@ -86,7 +86,7 @@ export default function SettingsScreen() {
     { label: 'System', value: 'system', emoji: '📱' },
   ];
 
-  if (isLoading) return <LoadingState fullScreen />;
+  if (isLoading) {return <LoadingState fullScreen />;}
 
   return (
     <ScrollView

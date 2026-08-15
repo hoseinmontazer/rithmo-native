@@ -105,18 +105,18 @@ export default function LoginScreen() {
 
   const validate = useCallback((): boolean => {
     const next: typeof errors = {};
-    if (!username.trim()) next.username = 'Username is required';
-    if (!password)        next.password = 'Password is required';
+    if (!username.trim()) {next.username = 'Username is required';}
+    if (!password)        {next.password = 'Password is required';}
     setErrors(next);
     return Object.keys(next).length === 0;
   }, [username, password]);
 
   const handleLogin = useCallback(async () => {
-    if (!validate()) return;
-    
+    if (!validate()) {return;}
+
     // Haptic feedback would go here if available
     setLoading(true);
-    
+
     try {
       await login({ username: username.trim(), password });
       // Success animation could be added here
@@ -128,7 +128,7 @@ export default function LoginScreen() {
         Animated.timing(slideAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
         Animated.timing(slideAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
       ]).start();
-      
+
       Alert.alert('Login Failed', extractErrorMessage(err));
     } finally {
       setLoading(false);

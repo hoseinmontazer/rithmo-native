@@ -50,7 +50,7 @@ export const CycleRing = memo(function CycleRing({
           },
         ]}
       />
-      
+
       {/* Progress ring - simplified for React Native without SVG */}
       <View
         style={[

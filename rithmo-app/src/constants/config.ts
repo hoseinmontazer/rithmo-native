@@ -35,8 +35,12 @@ export const API_ENDPOINTS = {
   PERIODS_WELLNESS_CORRELATION: '/api/periods/wellness_correlation/',
   PERIODS_SYMPTOM_PATTERNS: '/api/periods/symptom_patterns/',
 
-  // Ovulation
-  OVULATION: '/api/ovulation/',
+  // Analytics (newer endpoints)
+  ANALYTICS_CYCLE: '/api/analytics/cycle/',
+
+  // Ovulation — nested under analytics/, not a top-level router (there was
+  // never a bare "/api/ovulation/" route; this pointed at a 404).
+  OVULATION: '/api/analytics/ovulation/',
 
   // Wellness
   WELLNESS: '/api/wellness/',

@@ -2,12 +2,22 @@ export interface Period {
   id: number;
   start_date: string;
   end_date: string | null;
+  predicted_end_date?: string | null;
+  next_period_start_date?: string | null;
   symptoms: string;
   medication: string;
-  cycle_length: number;
-  period_duration: number;
+  cycle_length: number | null;
+  period_duration: number | null;
+  partner_name?: string | null;
+  partner_id?: number | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ActivePeriodError {
+  error: string;
+  active_period_id: number;
+  start_date: string;
 }
 
 export interface CreatePeriodRequest {

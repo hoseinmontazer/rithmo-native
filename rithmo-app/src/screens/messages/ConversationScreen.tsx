@@ -29,7 +29,7 @@ export default function ConversationScreen() {
 
   const handleSend = useCallback(async () => {
     const trimmed = text.trim();
-    if (!trimmed || sending) return;
+    if (!trimmed || sending) {return;}
     setText('');
     try {
       await sendMessage({ receiver: partnerId, message: trimmed });
@@ -47,8 +47,8 @@ export default function ConversationScreen() {
 
   const keyExtractor = useCallback((item: Message) => String(item.id), []);
 
-  if (isLoading) return <LoadingState fullScreen message="Loading conversation…" />;
-  if (isError)   return <ErrorState fullScreen error={error} onRetry={refetch} />;
+  if (isLoading) {return <LoadingState fullScreen message="Loading conversation…" />;}
+  if (isError)   {return <ErrorState fullScreen error={error} onRetry={refetch} />;}
 
   return (
     <KeyboardAvoidingView

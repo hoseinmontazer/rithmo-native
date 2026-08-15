@@ -19,7 +19,7 @@ export function useAISuggestion() {
       }
     },
     retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
+      if (error?.response?.status === 404) {return false;}
       return failureCount < 2;
     },
     staleTime: 30 * 60 * 1000, // suggestions are fresh for 30 min

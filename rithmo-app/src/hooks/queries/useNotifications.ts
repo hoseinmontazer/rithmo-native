@@ -41,7 +41,7 @@ export function useUnreadNotifications() {
       }
     },
     retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
+      if (error?.response?.status === 404) {return false;}
       return failureCount < 2;
     },
     refetchInterval: 60_000, // poll every minute
@@ -200,7 +200,7 @@ export function useUnreadMessages() {
       }
     },
     retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
+      if (error?.response?.status === 404) {return false;}
       return failureCount < 2;
     },
     refetchInterval: 30_000,

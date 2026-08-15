@@ -60,8 +60,8 @@ export default function WellnessDashboardScreen() {
 
   const keyExtractor = useCallback((item: WellnessLog) => String(item.id), []);
 
-  if (isLoading) return <LoadingState fullScreen message="Loading wellness logs…" />;
-  if (isError)   return <ErrorState fullScreen error={error} onRetry={refetch} />;
+  if (isLoading) {return <LoadingState fullScreen message="Loading wellness logs…" />;}
+  if (isError)   {return <ErrorState fullScreen error={error} onRetry={refetch} />;}
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>

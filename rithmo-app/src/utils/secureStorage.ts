@@ -19,7 +19,7 @@ export const secureStorage = {
 
   async getTokens(): Promise<StoredTokens | null> {
     const credentials = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE });
-    if (!credentials) return null;
+    if (!credentials) {return null;}
     try {
       return JSON.parse(credentials.password) as StoredTokens;
     } catch {

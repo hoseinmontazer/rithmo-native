@@ -31,9 +31,9 @@ export default function ChangePasswordScreen() {
 
   const validate = useCallback((): boolean => {
     const next: Partial<typeof form> = {};
-    if (!form.current_password)           next.current_password = 'Current password is required';
-    if (!form.new_password)               next.new_password     = 'New password is required';
-    if (form.new_password.length < 8)     next.new_password     = 'Minimum 8 characters';
+    if (!form.current_password)           {next.current_password = 'Current password is required';}
+    if (!form.new_password)               {next.new_password     = 'New password is required';}
+    if (form.new_password.length < 8)     {next.new_password     = 'Minimum 8 characters';}
     if (form.new_password !== form.re_new_password) {
       next.re_new_password = 'Passwords do not match';
     }
@@ -42,7 +42,7 @@ export default function ChangePasswordScreen() {
   }, [form]);
 
   const handleSubmit = useCallback(async () => {
-    if (!validate()) return;
+    if (!validate()) {return;}
     setLoading(true);
     try {
       await authService.changePassword({

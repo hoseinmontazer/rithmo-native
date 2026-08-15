@@ -26,7 +26,7 @@ export default function MessagesListScreen() {
 
   // Group messages by conversation partner
   const conversations = React.useMemo(() => {
-    if (!messages || !userId) return [];
+    if (!messages || !userId) {return [];}
     const map = new Map<string, Message>();
     messages.forEach((msg) => {
       const partnerId = msg.sender === userId ? msg.receiver : msg.sender;
@@ -45,7 +45,7 @@ export default function MessagesListScreen() {
         onPress={() => navigation.navigate('Conversation', { partnerId: item.partnerId, partnerName: `Partner ${item.partnerId.slice(0, 6)}` })}
         activeOpacity={0.7}
         accessibilityRole="button"
-        accessibilityLabel={`Conversation with partner`}
+        accessibilityLabel={'Conversation with partner'}
       >
         <Card style={{ marginBottom: spacing[3] }}>
           <View style={styles.row}>
@@ -79,8 +79,8 @@ export default function MessagesListScreen() {
 
   const keyExtractor = useCallback((item: { partnerId: string }) => item.partnerId, []);
 
-  if (isLoading) return <LoadingState fullScreen message="Loading messages…" />;
-  if (isError)   return <ErrorState fullScreen error={error} onRetry={refetch} />;
+  if (isLoading) {return <LoadingState fullScreen message="Loading messages…" />;}
+  if (isError)   {return <ErrorState fullScreen error={error} onRetry={refetch} />;}
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>

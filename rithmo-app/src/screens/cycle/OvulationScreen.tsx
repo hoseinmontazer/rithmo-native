@@ -9,9 +9,9 @@ export default function OvulationScreen() {
   const { colors, spacing, typography, borderRadius } = useTheme();
   const { data, isLoading, isError, error, refetch } = useLatestOvulation();
 
-  if (isLoading) return <LoadingState fullScreen message="Loading ovulation data…" />;
-  if (isError)   return <ErrorState fullScreen error={error} onRetry={refetch} />;
-  if (!data)     return null;
+  if (isLoading) {return <LoadingState fullScreen message="Loading ovulation data…" />;}
+  if (isError)   {return <ErrorState fullScreen error={error} onRetry={refetch} />;}
+  if (!data)     {return null;}
 
   const today = todayISO();
   const daysToOvulation = daysBetween(today, data.ovulation_date);

@@ -167,10 +167,10 @@ export default function CycleAnalysisScreen() {
     role: isMaleWithPartner ? 'partner' : undefined,
     enabled: true,
   });
-  
+
   // Fetch period history - use partner role for male users with partners
   const { data: periods, refetch: refetchPeriods } = usePeriods(isMaleWithPartner ? 'partner' : undefined);
-  
+
   const { data: insights, isLoading: iLoading, refetch: refetchI } = useCycleInsights();
   const { data: patterns, isLoading: pLoading, refetch: refetchP } = useSymptomPatterns();
 
@@ -181,43 +181,47 @@ export default function CycleAnalysisScreen() {
     setRefreshing(false);
   }, [refetchA, refetchI, refetchP, refetchPeriods]);
 
-  if (aLoading || iLoading || pLoading) return <LoadingState fullScreen message="Analysing cycle data…" />;
-  if (aError) return <ErrorState fullScreen error={aErr} onRetry={refetchA} />;
+  if (aLoading || iLoading || pLoading) {return <LoadingState fullScreen message="Analysing cycle data…" />;}
+  if (aError) {return <ErrorState fullScreen error={aErr} onRetry={refetchA} />;}
 
   // Extract data from API response matching the structure you provided
   const apiData = (analysis as any)?.data || analysis;
   const viewType = (analysis as any)?.view_type || 'self';
   const trackingMode = (apiData as any)?.tracking_mode;
   const isPartnerView = viewType === 'partner_tracking' || trackingMode === 'partner' || isMaleWithPartner;
-  
+
   // For partner view, use partner_info structure
   const partnerInfo = (apiData as any)?.partner_info;
   const supportTips = (apiData as any)?.support_tips || [];
-  
+
   // Get data from either partner_info or current_status
   const currentStatus = isPartnerView ? null : (apiData as any)?.current_status;
   const currentPhase = isPartnerView ? partnerInfo?.current_phase : currentStatus?.phase;
   const phaseDescription = currentStatus?.phase_description;
   const cycleDay = currentStatus?.cycle_day;
-  const avgCycle = isPartnerView 
+  const avgCycle = isPartnerView
     ? (partnerInfo?.average_cycle_length || 28)
-    : ((apiData as any)?.average_cycle || currentStatus?.cycle_length || 28);
-  const nextPeriodDate = isPartnerView 
-    ? partnerInfo?.next_period_date 
+    // Backend key is average_cycle_length, not average_cycle — this
+    // always fell through to the hardcoded 28 fallback before.
+    : ((apiData as any)?.average_cycle_length || 28);
+  const nextPeriodDate = isPartnerView
+    ? partnerInfo?.next_period_date
     : (apiData as any)?.next_predicted_date;
-  const daysUntilNext = isPartnerView 
-    ? partnerInfo?.days_until_period 
+  const daysUntilNext = isPartnerView
+    ? partnerInfo?.days_until_period
     : currentStatus?.days_until_next_period;
   const isOnPeriod = isPartnerView ? partnerInfo?.is_on_period : currentStatus?.is_on_period;
   const isFertileWindow = currentStatus?.is_fertile_window;
-  
-  // Regularity data (only for self view)
+
+  // Regularity data (only for self view). Backend keys are cycle_lengths
+  // and prediction_confidence — this used to read cycle_variations /
+  // prediction_reliability, neither of which the API returns.
   const regularityScore = isPartnerView ? partnerInfo?.cycle_regularity : ((apiData as any)?.regularity_score || 0);
-  const cycleVariations = (apiData as any)?.cycle_variations || [];
-  const predictionReliability = (apiData as any)?.prediction_reliability;
-  
+  const cycleVariations = (apiData as any)?.cycle_lengths || [];
+  const predictionReliability = (apiData as any)?.prediction_confidence;
+
   // Calculate average variation from cycle_variations array
-  const avgVariation = cycleVariations.length > 0 
+  const avgVariation = cycleVariations.length > 0
     ? Math.round(cycleVariations.reduce((sum: number, v: number) => sum + Math.abs(v), 0) / cycleVariations.length)
     : 0;
 
@@ -253,9 +257,10 @@ export default function CycleAnalysisScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
     >
-      {/* ── Quick Actions (only for female users) ──────────────────── */}
-      {!isMale && (
-        <View style={{ flexDirection: 'row', gap: spacing[3], marginBottom: spacing[5] }}>
+      {/* ── Quick Actions ─────────────────────────────────────────── */}
+      <View style={{ flexDirection: 'row', gap: spacing[3], marginBottom: spacing[5] }}>
+        {/* Log Period — female only */}
+        {!isMale && (
           <TouchableOpacity
             onPress={() => navigation.navigate('LogPeriod')}
             activeOpacity={0.8}
@@ -280,35 +285,125 @@ export default function CycleAnalysisScreen() {
               Log Period
             </Text>
           </TouchableOpacity>
+        )}
 
-          <TouchableOpacity
-            onPress={() => navigation.navigate('CycleTracker')}
-            activeOpacity={0.8}
-            style={{
-              flex: 1,
-              backgroundColor: colors.surface,
-              borderRadius: borderRadius.xl,
-              padding: spacing[4],
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: spacing[2],
-              borderWidth: 1,
-              borderColor: colors.border,
-              shadowColor: colors.shadowColor,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.06,
-              shadowRadius: 8,
-              elevation: 2,
-            }}
-          >
-            <Icon name="calendar-outline" size={20} color={colors.primary} />
-            <Text style={{ color: colors.primary, fontSize: typography.sm, fontWeight: '700' }}>
-              View History
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+        {/* View History — all users */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('CycleTracker')}
+          activeOpacity={0.8}
+          style={{
+            flex: 1,
+            backgroundColor: colors.surface,
+            borderRadius: borderRadius.xl,
+            padding: spacing[4],
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: spacing[2],
+            borderWidth: 1,
+            borderColor: colors.border,
+            shadowColor: colors.shadowColor,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.06,
+            shadowRadius: 8,
+            elevation: 2,
+          }}
+        >
+          <Icon name="calendar-outline" size={20} color={colors.primary} />
+          <Text style={{ color: colors.primary, fontSize: typography.sm, fontWeight: '700' }}>
+            View History
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Last Recorded Cycle (female users) ───────────────────── */}
+      {!isMale && periods && Array.isArray(periods) && periods.length > 0 && (() => {
+        const last = (periods as any[])[0];
+        return (
+          <Card elevated style={{ marginBottom: spacing[5] }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[2], marginBottom: spacing[3] }}>
+              <Text style={{ fontSize: 20 }}>🩸</Text>
+              <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700' }}>
+                Last Recorded Cycle
+              </Text>
+            </View>
+            <View style={styles.statsGrid}>
+              <View style={{
+                backgroundColor: colors.surfaceSecondary,
+                borderRadius: borderRadius.lg,
+                padding: spacing[3],
+                width: '47%',
+                marginBottom: spacing[3],
+              }}>
+                <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700' }}>
+                  {formatDate(last.start_date)}
+                </Text>
+                <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2 }}>
+                  Start date
+                </Text>
+              </View>
+              {last.period_duration > 0 && (
+                <View style={{
+                  backgroundColor: colors.surfaceSecondary,
+                  borderRadius: borderRadius.lg,
+                  padding: spacing[3],
+                  width: '47%',
+                  marginBottom: spacing[3],
+                }}>
+                  <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700' }}>
+                    {last.period_duration} days
+                  </Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2 }}>
+                    Duration
+                  </Text>
+                </View>
+              )}
+              {last.next_period_start_date && (
+                <View style={{
+                  backgroundColor: colors.primaryLighter,
+                  borderRadius: borderRadius.lg,
+                  padding: spacing[3],
+                  width: '47%',
+                  marginBottom: spacing[3],
+                }}>
+                  <Text style={{ color: colors.primary, fontSize: typography.base, fontWeight: '700' }}>
+                    {formatDate(last.next_period_start_date)}
+                  </Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2 }}>
+                    Next predicted
+                  </Text>
+                </View>
+              )}
+              {last.cycle_length && (
+                <View style={{
+                  backgroundColor: colors.surfaceSecondary,
+                  borderRadius: borderRadius.lg,
+                  padding: spacing[3],
+                  width: '47%',
+                  marginBottom: spacing[3],
+                }}>
+                  <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700' }}>
+                    {last.cycle_length} days
+                  </Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2 }}>
+                    Cycle length
+                  </Text>
+                </View>
+              )}
+            </View>
+            {last.symptoms ? (
+              <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: spacing[1] }}>
+                🩺 Symptoms: {last.symptoms}
+              </Text>
+            ) : null}
+            {last.medication ? (
+              <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 4 }}>
+                💊 Medication: {last.medication}
+              </Text>
+            ) : null}
+          </Card>
+        );
+      })()}
 
       {/* ── View Type Indicator (for partner view) ─────────────────── */}
       {isPartnerView && partnerInfo && (
@@ -341,9 +436,9 @@ export default function CycleAnalysisScreen() {
           )}
 
           {isPartnerView && isOnPeriod && (
-            <View style={{ 
-              backgroundColor: colors.menstrual + '15', 
-              padding: spacing[3], 
+            <View style={{
+              backgroundColor: colors.menstrual + '15',
+              padding: spacing[3],
               borderRadius: borderRadius.lg,
               marginBottom: spacing[4],
               borderLeftWidth: 3,
@@ -379,7 +474,7 @@ export default function CycleAnalysisScreen() {
             📅  Recent Periods
           </Text>
           {periods.slice(0, 3).map((period: any) => (
-            <View 
+            <View
               key={period.id}
               style={{
                 backgroundColor: colors.surfaceSecondary,
@@ -417,7 +512,7 @@ export default function CycleAnalysisScreen() {
           <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.xl, fontWeight: '800', marginBottom: spacing[4] }]}>
             📈  Cycle Regularity
           </Text>
-          
+
           {regularityScore !== null && regularityScore > 0 ? (
             <>
               {/* Regularity Score */}
@@ -473,21 +568,21 @@ export default function CycleAnalysisScreen() {
 
               {/* Regularity Stats */}
               <View style={styles.statsGrid}>
-                <StatBox 
-                  label="Avg Variation" 
-                  value={avgVariation > 0 ? `±${avgVariation}d` : 'N/A'} 
-                  colors={colors} 
-                  spacing={spacing} 
-                  typography={typography} 
-                  borderRadius={borderRadius} 
+                <StatBox
+                  label="Avg Variation"
+                  value={avgVariation > 0 ? `±${avgVariation}d` : 'N/A'}
+                  colors={colors}
+                  spacing={spacing}
+                  typography={typography}
+                  borderRadius={borderRadius}
                 />
-                <StatBox 
-                  label="Reliability" 
-                  value={predictionReliability ? `${Math.round(predictionReliability * 100)}%` : 'N/A'} 
-                  colors={colors} 
-                  spacing={spacing} 
-                  typography={typography} 
-                  borderRadius={borderRadius} 
+                <StatBox
+                  label="Reliability"
+                  value={predictionReliability ? `${Math.round(predictionReliability * 100)}%` : 'N/A'}
+                  colors={colors}
+                  spacing={spacing}
+                  typography={typography}
+                  borderRadius={borderRadius}
                 />
               </View>
 
@@ -563,18 +658,18 @@ export default function CycleAnalysisScreen() {
             Personalized insights based on cycle patterns
           </Text>
           {(insights as any).insights.map((insight: string, i: number) => (
-            <View 
-              key={i} 
+            <View
+              key={i}
               style={[
-                styles.insightRow, 
-                { 
+                styles.insightRow,
+                {
                   marginBottom: spacing[3],
                   backgroundColor: colors.surfaceSecondary,
                   padding: spacing[3],
                   borderRadius: borderRadius.lg,
                   borderLeftWidth: 3,
                   borderLeftColor: colors.primary,
-                }
+                },
               ]}
             >
               <Text style={{ color: colors.primary, marginRight: spacing[2], fontSize: 16 }}>💡</Text>
@@ -596,8 +691,8 @@ export default function CycleAnalysisScreen() {
             Ways to support your partner during their cycle
           </Text>
           {supportTips.map((tip: string, i: number) => (
-            <View 
-              key={i} 
+            <View
+              key={i}
               style={{
                 marginBottom: spacing[3],
                 backgroundColor: colors.primaryLighter,
@@ -669,9 +764,9 @@ export default function CycleAnalysisScreen() {
                   Personalized Recommendations
                 </Text>
               </View>
-              
+
               {getSmartRecommendations(currentPhase, isOnPeriod, isFertileWindow).map((rec, index) => (
-                <View 
+                <View
                   key={index}
                   style={{
                     flexDirection: 'row',

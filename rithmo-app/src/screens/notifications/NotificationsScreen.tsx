@@ -26,7 +26,7 @@ export default function NotificationsScreen() {
   }, [refetch]);
 
   const handlePress = useCallback((n: Notification) => {
-    if (!n.is_read) markRead(n.id);
+    if (!n.is_read) {markRead(n.id);}
   }, [markRead]);
 
   const renderItem = useCallback(
@@ -40,8 +40,8 @@ export default function NotificationsScreen() {
 
   const unreadCount = notifications?.filter((n) => !n.is_read).length ?? 0;
 
-  if (isLoading) return <LoadingState fullScreen message="Loading notifications…" />;
-  if (isError)   return <ErrorState fullScreen error={error} onRetry={refetch} />;
+  if (isLoading) {return <LoadingState fullScreen message="Loading notifications…" />;}
+  if (isError)   {return <ErrorState fullScreen error={error} onRetry={refetch} />;}
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>

@@ -11,6 +11,8 @@ import { useAuthStore } from '@store/authStore';
 import { useThemeStore } from '@store/themeStore';
 import { QUERY_STALE_TIME_MS, QUERY_CACHE_TIME_MS } from '@constants/config';
 import { ErrorBoundary } from '@components/ErrorBoundary';
+import { ToastProvider } from './src/context/ToastContext';
+import { ConfirmProvider } from './src/context/ConfirmContext';
 
 // ── React Query client ────────────────────────────────────────────────────────
 const queryClient = new QueryClient({
@@ -56,12 +58,16 @@ export default function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
-          <StatusBar
-            barStyle={isDark ? 'light-content' : 'dark-content'}
-            backgroundColor="transparent"
-            translucent
-          />
-          <RootNavigator />
+          <ToastProvider>
+            <ConfirmProvider>
+              <StatusBar
+                barStyle={isDark ? 'light-content' : 'dark-content'}
+                backgroundColor="transparent"
+                translucent
+              />
+              <RootNavigator />
+            </ConfirmProvider>
+          </ToastProvider>
         </SafeAreaProvider>
       </QueryClientProvider>
     </ErrorBoundary>

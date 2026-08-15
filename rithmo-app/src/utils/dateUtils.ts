@@ -7,8 +7,25 @@ export function formatDate(dateStr: string): string {
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+/**
+ * Format a Date as a YYYY-MM-DD calendar-date string using its LOCAL date
+ * components — not `.toISOString()`, which always normalizes to UTC.
+ *
+ * `date.toISOString().split('T')[0]` gives the UTC calendar date of the
+ * instant, which is a DIFFERENT day than the device's local calendar date
+ * for a large fraction of every day in any timezone west of UTC (and a
+ * smaller fraction east of it). Concretely: a user in US Pacific time
+ * (UTC-8) picking "today" after 4pm local is already "tomorrow" in UTC —
+ * every period/period-end date logged after that time each day would be
+ * silently recorded one calendar day later than the day the user actually
+ * picked. This is the single source every period/wellness date-string
+ * builder in the app should go through.
+ */
 export function formatDateISO(date: Date): string {
-  return date.toISOString().split('T')[0];
+  const year  = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day   = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export function todayISO(): string {

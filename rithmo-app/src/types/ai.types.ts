@@ -6,6 +6,14 @@ export interface AISuggestion {
   created_at: string;
   feedback?: boolean | null;
   corrected_label?: string;
+  // True when this response came from the rule-based or error-fallback
+  // path rather than the trained model — the UI should present these
+  // with less confidence-implying styling than a real model prediction.
+  fallback?: boolean;
+  // True when a deterministic safety threshold (e.g. severe pain) fired
+  // and produced this response before any model was consulted at all.
+  safety_override?: boolean;
+  model_version?: string;
 }
 
 export interface AISuggestionFeedbackRequest {

@@ -55,7 +55,7 @@ export default function PartnerManageScreen() {
   }, []);
 
   const handleAccept = useCallback(async () => {
-    if (!codeToAccept.trim()) return;
+    if (!codeToAccept.trim()) {return;}
     try {
       await acceptInvitation({ code_to_accept: codeToAccept.trim() });
       setCodeToAccept('');
@@ -76,7 +76,7 @@ export default function PartnerManageScreen() {
   }, [generateRemoveCode]);
 
   const handleConfirmRemove = useCallback(async () => {
-    if (!removeCode.trim()) return;
+    if (!removeCode.trim()) {return;}
     try {
       await removePartner({ remove_code: removeCode.trim() });
       setRemoveStep('idle');
@@ -87,7 +87,7 @@ export default function PartnerManageScreen() {
     }
   }, [removeCode, removePartner]);
 
-  if (profileLoading) return <LoadingState fullScreen />;
+  if (profileLoading) {return <LoadingState fullScreen />;}
 
   return (
     <ScrollView

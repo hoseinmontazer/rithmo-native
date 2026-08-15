@@ -30,6 +30,7 @@ export type HomeStackParamList = {
 export type CycleStackParamList = {
   CycleTracker:    undefined;
   PeriodDetail:    { periodId: number };
+  EditPeriod:      { periodId: number };
   LogPeriod:       undefined;
   CycleAnalysis:   undefined;
   OvulationDetail: undefined;

@@ -46,17 +46,17 @@ export default function RegisterScreen() {
 
   const validate = useCallback((): boolean => {
     const next: Partial<typeof form> = {};
-    if (!form.username.trim())              next.username    = 'Username is required';
-    if (!form.email.trim())                 next.email       = 'Email is required';
-    if (!form.password)                     next.password    = 'Password is required';
-    if (form.password.length < 8)           next.password    = 'Minimum 8 characters';
-    if (form.password !== form.re_password) next.re_password = 'Passwords do not match';
+    if (!form.username.trim())              {next.username    = 'Username is required';}
+    if (!form.email.trim())                 {next.email       = 'Email is required';}
+    if (!form.password)                     {next.password    = 'Password is required';}
+    if (form.password.length < 8)           {next.password    = 'Minimum 8 characters';}
+    if (form.password !== form.re_password) {next.re_password = 'Passwords do not match';}
     setErrors(next);
     return Object.keys(next).length === 0;
   }, [form]);
 
   const handleRegister = useCallback(async () => {
-    if (!validate()) return;
+    if (!validate()) {return;}
     setLoading(true);
     try {
       await authService.register(form);

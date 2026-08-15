@@ -68,7 +68,7 @@ export function useUserMedications() {
       }
     },
     retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
+      if (error?.response?.status === 404) {return false;}
       return failureCount < 2;
     },
   });

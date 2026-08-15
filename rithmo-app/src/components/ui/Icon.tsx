@@ -12,7 +12,7 @@ let VectorIcon: React.ComponentType<{
 }> | null = null;
 
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+
   VectorIcon = require('react-native-vector-icons/MaterialCommunityIcons').default;
 } catch {
   VectorIcon = null;
@@ -55,7 +55,7 @@ const ICON_FALLBACKS: Record<string, string> = {
   'check': '✓',
   'alert-circle-outline': '⚠️',
   'magnify': '🔍',
-  
+
   // Legacy Ionicons names (for backward compatibility)
   'person-outline': '👤',
   'person': '👤',
@@ -84,10 +84,10 @@ export const Icon = memo(function Icon({
   if (VectorIcon) {
     return <VectorIcon name={name} size={size} color={color} />;
   }
-  
+
   // Use mapped fallback or provided fallback
   const iconFallback = ICON_FALLBACKS[name] || fallback;
-  
+
   return (
     <Text style={{ fontSize: size, color, lineHeight: size * 1.2 }}>
       {iconFallback}

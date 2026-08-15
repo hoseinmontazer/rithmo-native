@@ -1,5 +1,6 @@
 import { apiClient } from '@api/client';
 import { API_ENDPOINTS } from '@constants/config';
+import { formatDateISO } from '@utils/dateUtils';
 import type {
   WellnessLog,
   WellnessAnalytics,
@@ -24,7 +25,7 @@ function unwrap<T>(r: { data: unknown }): T | null {
   const body = r.data;
 
   // No body at all
-  if (body === undefined || body === null) return null;
+  if (body === undefined || body === null) {return null;}
 
   // Wrapped envelope: { status, data }
   if (
@@ -49,8 +50,12 @@ export const wellnessService = {
       .then((r) => unwrap<WellnessLog[]>(r) ?? []),
 
   createOrUpdateLog: (data: CreateWellnessLogRequest) =>
+    // Sends this device's own local calendar date explicitly — the
+    // backend used to infer "today" itself from server/UTC time, so an
+    // entry logged in the evening in most timezones could silently land
+    // on the wrong calendar day from the user's point of view.
     apiClient
-      .post(API_ENDPOINTS.WELLNESS, data)
+      .post(API_ENDPOINTS.WELLNESS, { ...data, date: formatDateISO(new Date()) })
       .then((r) => unwrap<WellnessLog>(r)!),
 
   getLog: (id: number) =>

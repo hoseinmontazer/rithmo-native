@@ -39,30 +39,50 @@ const { width: W } = Dimensions.get('window');
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function confidenceLabel(c?: number): string {
-  if (!c) return '';
-  if (c >= 0.85) return 'High confidence';
-  if (c >= 0.6)  return 'Medium confidence';
+  if (!c) {return '';}
+  if (c >= 0.85) {return 'High confidence';}
+  if (c >= 0.6)  {return 'Medium confidence';}
   return 'Low confidence';
 }
 
 function confidenceColor(c: number, colors: any): string {
-  if (c >= 0.85) return colors.success;
-  if (c >= 0.6)  return colors.ovulationColor;
+  if (c >= 0.85) {return colors.success;}
+  if (c >= 0.6)  {return colors.ovulationColor;}
   return colors.error;
+}
+
+/** Small, persistent framing so AI output never reads as a diagnosis or a
+ * medical directive — this text didn't exist anywhere in the app before. */
+function AIDisclaimer() {
+  const { colors, spacing, typography } = useTheme();
+  return (
+    <Text
+      style={{
+        color: colors.textSecondary,
+        fontSize: typography.xs,
+        textAlign: 'center',
+        marginBottom: spacing[3],
+        lineHeight: 16,
+      }}
+    >
+      Informational wellness guidance based on your logged data — not a diagnosis or medical advice.
+      For anything urgent or persistent, please talk to a healthcare provider.
+    </Text>
+  );
 }
 
 function labelEmoji(label: string): string {
   const l = label.toLowerCase();
-  if (l.includes('sleep'))      return '😴';
-  if (l.includes('stress'))     return '🧘';
-  if (l.includes('exercise') || l.includes('activity')) return '🏃';
-  if (l.includes('nutrition') || l.includes('diet'))    return '🥗';
-  if (l.includes('mood'))       return '💆';
-  if (l.includes('cycle'))      return '🌙';
-  if (l.includes('ovulat'))     return '✨';
-  if (l.includes('water') || l.includes('hydrat'))      return '💧';
-  if (l.includes('energy'))     return '⚡';
-  if (l.includes('pain'))       return '💊';
+  if (l.includes('sleep'))      {return '😴';}
+  if (l.includes('stress'))     {return '🧘';}
+  if (l.includes('exercise') || l.includes('activity')) {return '🏃';}
+  if (l.includes('nutrition') || l.includes('diet'))    {return '🥗';}
+  if (l.includes('mood'))       {return '💆';}
+  if (l.includes('cycle'))      {return '🌙';}
+  if (l.includes('ovulat'))     {return '✨';}
+  if (l.includes('water') || l.includes('hydrat'))      {return '💧';}
+  if (l.includes('energy'))     {return '⚡';}
+  if (l.includes('pain'))       {return '💊';}
   return '🤖';
 }
 
@@ -73,7 +93,7 @@ function ModelStatusBadge() {
   const { colors, spacing, typography } = useTheme();
   const { data: status } = useAIModelStatus();
 
-  if (!status) return null;
+  if (!status) {return null;}
 
   const isReady = status.status === 'ready';
   const color   = isReady ? colors.success : colors.warning;
@@ -508,7 +528,7 @@ export default function AISuggestionsScreen() {
   }, [submitFeedback]);
 
   const handleNegativeSubmit = useCallback(async (correctedLabel: string, correctedText: string) => {
-    if (!pendingNegId) return;
+    if (!pendingNegId) {return;}
     try {
       await submitFeedback({
         id: pendingNegId,
@@ -538,8 +558,8 @@ export default function AISuggestionsScreen() {
     setPendingNegId(null);
   }, [pendingNegId, submitFeedback]);
 
-  if (cLoading || hLoading) return <LoadingState fullScreen message="Loading AI insights…" />;
-  if (cError) return <ErrorState fullScreen error={cErr} onRetry={refetch} />;
+  if (cLoading || hLoading) {return <LoadingState fullScreen message="Loading AI insights…" />;}
+  if (cError) {return <ErrorState fullScreen error={cErr} onRetry={refetch} />;}
 
   const historyList: AISuggestion[] = Array.isArray(history) ? history : [];
 
@@ -559,6 +579,29 @@ export default function AISuggestionsScreen() {
       >
         {/* ── Model status ─────────────────────────────────────────────── */}
         <ModelStatusBadge />
+        <AIDisclaimer />
+
+        {/* ── Urgent-care callout ──────────────────────────────────────── */}
+        {current?.safety_override && (
+          <View
+            style={{
+              backgroundColor: colors.error + '15',
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: colors.error + '40',
+              padding: spacing[4],
+              marginBottom: spacing[4],
+            }}
+          >
+            <Text style={{ color: colors.error, fontSize: typography.sm, fontWeight: '700', marginBottom: spacing[1] }}>
+              ⚠️ This may need professional attention
+            </Text>
+            <Text style={{ color: colors.textPrimary, fontSize: typography.xs, lineHeight: 18 }}>
+              Based on what you logged, we're showing a fixed safety message instead of a personalized
+              tip. If anything feels urgent, please contact a healthcare provider.
+            </Text>
+          </View>
+        )}
 
         {/* ── Today's insight hero ─────────────────────────────────────── */}
         {current ? (
@@ -578,7 +621,7 @@ export default function AISuggestionsScreen() {
             }}
           >
             {/* Gradient-like top bar */}
-            <View style={{ height: 4, backgroundColor: colors.primary }} />
+            <View style={{ height: 4, backgroundColor: current.safety_override ? colors.error : colors.primary }} />
 
             <View style={{ padding: spacing[5] }}>
               {/* Header */}
@@ -607,7 +650,7 @@ export default function AISuggestionsScreen() {
                       marginBottom: 3,
                     }}
                   >
-                    Today's AI Insight
+                    {current.fallback ? 'General Wellness Tip' : "Today's AI Insight"}
                   </Text>
                   <Text
                     style={{

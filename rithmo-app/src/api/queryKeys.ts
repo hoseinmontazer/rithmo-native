@@ -18,6 +18,7 @@ export const queryKeys = {
     cycleInsights: () => ['periods', 'cycleInsights'] as const,
     wellnessCorrelation: () => ['periods', 'wellnessCorrelation'] as const,
     symptomPatterns: () => ['periods', 'symptomPatterns'] as const,
+    analyticsCycle: (role?: 'partner', mode?: 'analysis') => ['periods', 'analyticsCycle', role ?? 'self', mode ?? 'full'] as const,
   },
   ovulation: {
     latest: () => ['ovulation', 'latest'] as const,

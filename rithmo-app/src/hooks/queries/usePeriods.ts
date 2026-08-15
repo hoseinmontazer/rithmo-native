@@ -70,7 +70,7 @@ export function useCycleAnalysis(roleOrOptions?: 'partner' | { role?: 'partner';
   // Handle both old and new API
   const role = typeof roleOrOptions === 'string' ? roleOrOptions : roleOrOptions?.role;
   const enabled = typeof roleOrOptions === 'object' ? roleOrOptions?.enabled ?? true : true;
-  
+
   return useQuery({
     queryKey: queryKeys.periods.cycleAnalysis(role),
     queryFn: async () => {
@@ -92,7 +92,7 @@ export function useCycleAnalysis(roleOrOptions?: 'partner' | { role?: 'partner';
     },
     retry: (failureCount, error: any) => {
       // Don't retry on 404 - it means no data exists
-      if (error?.response?.status === 404) return false;
+      if (error?.response?.status === 404) {return false;}
       return failureCount < 2;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -119,7 +119,7 @@ export function useCycleInsights() {
       }
     },
     retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
+      if (error?.response?.status === 404) {return false;}
       return failureCount < 2;
     },
   });
@@ -144,7 +144,7 @@ export function useSymptomPatterns() {
       }
     },
     retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
+      if (error?.response?.status === 404) {return false;}
       return failureCount < 2;
     },
   });
@@ -157,7 +157,12 @@ export function useLatestOvulation(options?: { enabled?: boolean }) {
     queryFn: async () => {
       try {
         const response = await periodService.getLatestOvulation();
-        return response.data;
+        // The backend wraps this as { status, data: { ovulation_date, ... } }
+        // — OvulationScreen reads fields straight off the returned value
+        // (data.ovulation_date, not data.data.ovulation_date), so unwrap
+        // here rather than at every call site.
+        const body = response.data as any;
+        return (body && typeof body === 'object' && 'data' in body) ? body.data : body;
       } catch (error: any) {
         // 404 means no ovulation data yet
         if (error?.response?.status === 404) {
@@ -167,9 +172,49 @@ export function useLatestOvulation(options?: { enabled?: boolean }) {
       }
     },
     retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
+      if (error?.response?.status === 404) {return false;}
       return failureCount < 2;
     },
+    enabled,
+  });
+}
+
+/**
+ * useAnalyticsCycle — fetches from /api/analytics/cycle/
+ * Returns partner_name/partner_id + insights + analysis for male users,
+ * and insights + analysis for female users.
+ */
+export function useAnalyticsCycle(options?: {
+  role?: 'partner';
+  mode?: 'analysis';
+  enabled?: boolean;
+}) {
+  const { role, mode, enabled = true } = options ?? {};
+  return useQuery({
+    queryKey: queryKeys.periods.analyticsCycle(role, mode),
+    queryFn: async () => {
+      try {
+        const response = await periodService.getAnalyticsCycle({ role, mode });
+        const apiData = response.data;
+        // Unwrap { status, data } if present
+        if (apiData && typeof apiData === 'object' && 'data' in apiData) {
+          return (apiData as any).data;
+        }
+        return apiData;
+      } catch (error: any) {
+        if (error?.response?.status === 403 || error?.response?.status === 404) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 403 || error?.response?.status === 404) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    staleTime: 5 * 60 * 1000,
     enabled,
   });
 }

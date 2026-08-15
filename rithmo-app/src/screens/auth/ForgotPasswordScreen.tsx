@@ -18,7 +18,7 @@ export default function ForgotPasswordScreen() {
   const [sent, setSent]       = useState(false);
 
   const handleSubmit = useCallback(async () => {
-    if (!email.trim()) return;
+    if (!email.trim()) {return;}
     setLoading(true);
     try {
       await authService.resetPassword({ email: email.trim() });

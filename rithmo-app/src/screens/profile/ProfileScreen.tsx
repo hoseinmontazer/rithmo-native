@@ -20,16 +20,16 @@ type Props = ProfileScreenProps<'Profile'>;
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function initials(first?: string, last?: string, username?: string) {
-  if (first && last) return `${first[0]}${last[0]}`.toUpperCase();
-  if (first)         return first[0].toUpperCase();
-  if (username)      return username[0].toUpperCase();
+  if (first && last) {return `${first[0]}${last[0]}`.toUpperCase();}
+  if (first)         {return first[0].toUpperCase();}
+  if (username)      {return username[0].toUpperCase();}
   return '?';
 }
 
 function sexLabel(sex?: string) {
-  if (sex === 'female') return '🌸 Female';
-  if (sex === 'male')   return '🌿 Male';
-  if (sex === 'other')  return '🌈 Other';
+  if (sex === 'female') {return '🌸 Female';}
+  if (sex === 'male')   {return '🌿 Male';}
+  if (sex === 'other')  {return '🌈 Other';}
   return '—';
 }
 
@@ -192,8 +192,8 @@ export default function ProfileScreen() {
     ]);
   }, [logout]);
 
-  if (isLoading) return <LoadingState fullScreen />;
-  if (isError)   return <ErrorState fullScreen error={error} onRetry={refetch} />;
+  if (isLoading) {return <LoadingState fullScreen />;}
+  if (isError)   {return <ErrorState fullScreen error={error} onRetry={refetch} />;}
 
   const hasPartner  = (profile?.partners?.length ?? 0) > 0;
   const isMale      = profile?.sex === 'male';
@@ -269,22 +269,25 @@ export default function ProfileScreen() {
         {/* Stats row */}
         <View style={{ flexDirection: 'row', gap: spacing[3], marginTop: spacing[5], width: '100%' }}>
           {!isMale && (
-            <>
-              <StatPill
-                iconSource={icons.menstruation}
-                label="Cycle"
-                value={`${profile?.cycle_length ?? 28}d`}
-                accent={colors.menstrual}
-              />
-              <StatPill
-                iconSource={icons.fertilization}
-                label="Period"
-                value={`${profile?.period_duration ?? 5}d`}
-                accent={colors.luteal}
-              />
-            </>
+            <StatPill
+              key="cycle"
+              iconSource={icons.menstruation}
+              label={profile?.preferred_cycle_length != null ? 'Cycle' : 'Avg Cycle'}
+              value={`${profile?.preferred_cycle_length ?? profile?.cycle_length ?? 28}d`}
+              accent={colors.menstrual}
+            />
+          )}
+          {!isMale && (
+            <StatPill
+              key="period"
+              iconSource={icons.fertilization}
+              label={profile?.preferred_period_duration != null ? 'Period' : 'Avg Period'}
+              value={`${profile?.preferred_period_duration ?? profile?.period_duration ?? 5}d`}
+              accent={colors.luteal}
+            />
           )}
           <StatPill
+            key="partners"
             iconSource={icons.collaborate}
             label="Partners"
             value={String(profile?.partners?.length ?? 0)}

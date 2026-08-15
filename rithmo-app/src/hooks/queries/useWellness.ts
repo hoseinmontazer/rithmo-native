@@ -72,7 +72,7 @@ export function useWellnessAnalytics(days: number = 30) {
       }
     },
     retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
+      if (error?.response?.status === 404) {return false;}
       return failureCount < 2;
     },
   });
@@ -93,7 +93,7 @@ export function useWellnessStreaks() {
       }
     },
     retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
+      if (error?.response?.status === 404) {return false;}
       return failureCount < 2;
     },
   });
@@ -114,7 +114,7 @@ export function useTodayWellnessLog() {
       }
     },
     retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false;
+      if (error?.response?.status === 404) {return false;}
       return failureCount < 2;
     },
   });

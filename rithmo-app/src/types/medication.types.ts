@@ -24,6 +24,13 @@ export interface MedicationDrug {
 
 export type MedicationDrugRequest = Omit<MedicationDrug, 'id'>;
 
+export interface MedicationInteractionWarning {
+  with_medication: string;
+  interaction_type: 'minor' | 'moderate' | 'major' | 'severe' | string;
+  description: string;
+  recommendation: string;
+}
+
 export interface UserMedication {
   id: number;
   medication: number;
@@ -35,9 +42,19 @@ export interface UserMedication {
   end_date: string | null;
   notes: string;
   is_active: boolean;
+  // Read-only fields computed by UserMedicationSerializer
+  medication_name?: string;
+  medication_details?: MedicationDrug;
+  logs_count?: number;
+  last_taken?: string | null;
+  potential_interactions?: MedicationInteractionWarning[];
+  created_at?: string;
 }
 
-export type UserMedicationRequest = Omit<UserMedication, 'id'>;
+export type UserMedicationRequest = Omit<
+  UserMedication,
+  'id' | 'medication_name' | 'medication_details' | 'logs_count' | 'last_taken' | 'potential_interactions' | 'created_at'
+>;
 
 export interface MedicationLog {
   id: number;

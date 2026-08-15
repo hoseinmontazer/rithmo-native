@@ -10,7 +10,7 @@ interface ThemeState {
 }
 
 function resolveIsDark(mode: ThemeMode): boolean {
-  if (mode === 'system') return Appearance.getColorScheme() === 'dark';
+  if (mode === 'system') {return Appearance.getColorScheme() === 'dark';}
   return mode === 'dark';
 }
 
