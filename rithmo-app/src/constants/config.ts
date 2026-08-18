@@ -81,6 +81,9 @@ export const API_ENDPOINTS = {
   USER_MEDICATIONS: '/api/medications/my-medications/',
   MEDICATION_LOGS: '/api/medications/logs/',
   MEDICATION_REMINDERS: '/api/medications/reminders/',
+  // Subscriptions
+  SUBSCRIPTION_STATUS: '/api/subscriptions/status/',
+  STRIPE_WEBHOOK:      '/api/subscriptions/webhook/',
 } as const;
 
 export const KEYCHAIN_SERVICE = 'com.rithmo.auth';
