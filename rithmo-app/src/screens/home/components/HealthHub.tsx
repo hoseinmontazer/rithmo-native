@@ -46,82 +46,79 @@ export const HealthHub = memo(function HealthHub({
         </Text>
       </View>
 
-      {/* Featured — Wellness Dashboard */}
+      {/* Featured — Wellness Dashboard (Purple) */}
       <TouchableOpacity
         onPress={onWellnessDashboard}
         activeOpacity={0.85}
         style={[styles.featuredCard, {
-          backgroundColor: colors.surface,
+          backgroundColor: palette.accentPurple, // Full bleed color
           shadowColor: colors.shadowColor,
           marginBottom: CARD_GAP,
         }]}
       >
-        <View style={{ height: 4, backgroundColor: colors.luteal }} />
         <View style={{ padding: spacing[5] }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flex: 1 }}>
-              <View style={[styles.iconBox, { backgroundColor: colors.luteal + '18', marginBottom: spacing[3] }]}>
+              <View style={[styles.iconBox, { backgroundColor: 'rgba(255,255,255,0.2)', marginBottom: spacing[3] }]}>
                 <AppIcon source={icons.wellness} size={32} />
               </View>
-              <Text style={{ color: colors.textPrimary, fontSize: typography.xl, fontWeight: '800', marginBottom: spacing[2] }}>
+              <Text style={{ color: '#FFFFFF', fontSize: typography.xl, fontWeight: '800', marginBottom: spacing[2] }}>
                 Wellness Dashboard
               </Text>
-              <Text style={{ color: colors.textSecondary, fontSize: typography.sm, lineHeight: 20 }}>
+              <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: typography.sm, lineHeight: 20 }}>
                 Track mood, sleep, energy, and stress patterns
               </Text>
             </View>
-            <Icon name="chevron-right" size={24} color={colors.textSecondary} />
+            <Icon name="chevron-right" size={24} color="#FFFFFF" />
           </View>
         </View>
       </TouchableOpacity>
 
       {/* Row 1 */}
       <View style={[styles.row, { gap: CARD_GAP, marginBottom: CARD_GAP }]}>
-        {/* Cycle Tracker / Analytics */}
+        {/* Cycle Tracker / Analytics (Pink) */}
         <TouchableOpacity
           onPress={onCycleTracker}
           activeOpacity={0.85}
-          style={[styles.gridCard, { backgroundColor: colors.surface, shadowColor: colors.shadowColor }]}
+          style={[styles.gridCard, { backgroundColor: palette.accentPink, shadowColor: colors.shadowColor }]}
         >
-          <View style={{ height: 3, backgroundColor: isCycleUser ? colors.menstrual : colors.ovulationColor }} />
           <View style={{ padding: spacing[4] }}>
             <View style={[styles.smallIconBox, {
-              backgroundColor: (isCycleUser ? colors.menstrual : colors.ovulationColor) + '18',
+              backgroundColor: 'rgba(255,255,255,0.2)',
               marginBottom: spacing[3],
             }]}>
               <AppIcon source={isCycleUser ? icons.menstruation : icons.search} size={26} />
             </View>
-            <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700', marginBottom: spacing[1] }} numberOfLines={1}>
+            <Text style={{ color: '#FFFFFF', fontSize: typography.base, fontWeight: '700', marginBottom: spacing[1] }} numberOfLines={1}>
               {isCycleUser ? 'Cycle Tracker' : 'Analytics'}
             </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: typography.xs, lineHeight: 16 }} numberOfLines={2}>
+            <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: typography.xs, lineHeight: 16 }} numberOfLines={2}>
               {isCycleUser ? 'Cycle analytics & insights' : 'Wellness patterns'}
             </Text>
           </View>
         </TouchableOpacity>
 
-        {/* Medications */}
+        {/* Medications (Blue) */}
         <TouchableOpacity
           onPress={onMedications}
           activeOpacity={0.85}
-          style={[styles.gridCard, { backgroundColor: colors.surface, shadowColor: colors.shadowColor }]}
+          style={[styles.gridCard, { backgroundColor: palette.accentBlue, shadowColor: colors.shadowColor }]}
         >
-          <View style={{ height: 3, backgroundColor: colors.primary }} />
           <View style={{ padding: spacing[4] }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <View style={[styles.smallIconBox, { backgroundColor: colors.primary + '18', marginBottom: spacing[3] }]}>
+              <View style={[styles.smallIconBox, { backgroundColor: 'rgba(255,255,255,0.2)', marginBottom: spacing[3] }]}>
                 <AppIcon source={icons.healthcare} size={26} />
               </View>
               {activeMeds > 0 && (
-                <View style={[styles.badge, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.badgeText}>{activeMeds > 99 ? '99+' : activeMeds}</Text>
+                <View style={[styles.badge, { backgroundColor: '#FFFFFF' }]}>
+                  <Text style={[styles.badgeText, { color: palette.accentBlue }]}>{activeMeds > 99 ? '99+' : activeMeds}</Text>
                 </View>
               )}
             </View>
-            <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700', marginBottom: spacing[1] }} numberOfLines={1}>
+            <Text style={{ color: '#FFFFFF', fontSize: typography.base, fontWeight: '700', marginBottom: spacing[1] }} numberOfLines={1}>
               Medications
             </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: typography.xs, lineHeight: 16 }} numberOfLines={2}>
+            <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: typography.xs, lineHeight: 16 }} numberOfLines={2}>
               Track meds & reminders
             </Text>
           </View>
@@ -130,48 +127,46 @@ export const HealthHub = memo(function HealthHub({
 
       {/* Row 2 */}
       <View style={[styles.row, { gap: CARD_GAP }]}>
-        {/* AI Insights */}
+        {/* AI Insights (Orange) */}
         <TouchableOpacity
           onPress={onAISuggestions}
           activeOpacity={0.85}
-          style={[styles.gridCard, { backgroundColor: colors.surface, shadowColor: colors.shadowColor }]}
+          style={[styles.gridCard, { backgroundColor: palette.accentOrange, shadowColor: colors.shadowColor }]}
         >
-          <View style={{ height: 3, backgroundColor: colors.luteal }} />
           <View style={{ padding: spacing[4] }}>
-            <View style={[styles.smallIconBox, { backgroundColor: colors.luteal + '18', marginBottom: spacing[3] }]}>
+            <View style={[styles.smallIconBox, { backgroundColor: 'rgba(255,255,255,0.2)', marginBottom: spacing[3] }]}>
               <AppIcon source={icons.robotWriting} size={26} />
             </View>
-            <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700', marginBottom: spacing[1] }} numberOfLines={1}>
+            <Text style={{ color: '#FFFFFF', fontSize: typography.base, fontWeight: '700', marginBottom: spacing[1] }} numberOfLines={1}>
               AI Insights
             </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: typography.xs, lineHeight: 16 }} numberOfLines={2}>
+            <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: typography.xs, lineHeight: 16 }} numberOfLines={2}>
               Personalized tips
             </Text>
           </View>
         </TouchableOpacity>
 
-        {/* Partner Messages */}
+        {/* Partner Messages (Green - Dark Text) */}
         <TouchableOpacity
           onPress={onMessages}
           activeOpacity={0.85}
-          style={[styles.gridCard, { backgroundColor: colors.surface, shadowColor: colors.shadowColor }]}
+          style={[styles.gridCard, { backgroundColor: palette.accentGreen, shadowColor: colors.shadowColor }]}
         >
-          <View style={{ height: 3, backgroundColor: colors.follicular }} />
           <View style={{ padding: spacing[4] }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <View style={[styles.smallIconBox, { backgroundColor: colors.follicular + '18', marginBottom: spacing[3] }]}>
+              <View style={[styles.smallIconBox, { backgroundColor: 'rgba(8,8,8,0.1)', marginBottom: spacing[3] }]}>
                 <AppIcon source={icons.chat} size={26} />
               </View>
               {msgCount > 0 && (
-                <View style={[styles.badge, { backgroundColor: colors.follicular }]}>
-                  <Text style={styles.badgeText}>{msgCount > 99 ? '99+' : msgCount}</Text>
+                <View style={[styles.badge, { backgroundColor: '#080808' }]}>
+                  <Text style={[styles.badgeText, { color: palette.accentGreen }]}>{msgCount > 99 ? '99+' : msgCount}</Text>
                 </View>
               )}
             </View>
-            <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700', marginBottom: spacing[1] }} numberOfLines={1}>
+            <Text style={{ color: '#080808', fontSize: typography.base, fontWeight: '700', marginBottom: spacing[1] }} numberOfLines={1}>
               Partner
             </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: typography.xs, lineHeight: 16 }} numberOfLines={2}>
+            <Text style={{ color: 'rgba(8,8,8,0.85)', fontSize: typography.xs, lineHeight: 16 }} numberOfLines={2}>
               Messages & insights
             </Text>
           </View>
@@ -183,17 +178,17 @@ export const HealthHub = memo(function HealthHub({
 
 const styles = StyleSheet.create({
   featuredCard: {
-    borderRadius: 24,
+    borderRadius: 8,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 13 },
     shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
+    shadowRadius: 13,
+    elevation: 6,
   },
   iconBox: {
     width: 56,
     height: 56,
-    borderRadius: 16,
+    borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -202,17 +197,17 @@ const styles = StyleSheet.create({
   },
   gridCard: {
     flex: 1,
-    borderRadius: 20,
+    borderRadius: 8,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 13 },
+    shadowOpacity: 0.08,
+    shadowRadius: 13,
+    elevation: 6,
   },
   smallIconBox: {
     width: 48,
     height: 48,
-    borderRadius: 14,
+    borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },

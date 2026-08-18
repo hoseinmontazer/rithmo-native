@@ -6,6 +6,10 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "start": "react-native start",
+    "build:apk": "./build-and-install.sh -r",
+    "build:debug": "./build-and-install.sh -d",
+    "install:phone": "./build-and-install.sh -r -i -l",
+    "install:debug": "./build-and-install.sh -d -i -l",
     "lint": "eslint src --ext .ts,.tsx",
     "type-check": "tsc --noEmit"
   },

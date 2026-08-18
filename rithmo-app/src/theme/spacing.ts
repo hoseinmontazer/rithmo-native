@@ -19,14 +19,17 @@ export const spacing = {
 } as const;
 
 export const borderRadius = {
-  xs:    6,
-  sm:    10,
-  md:    14,
-  lg:    18,
-  xl:    22,
-  '2xl': 28,
-  '3xl': 36,
-  full:  9999,
+  xs:      2,
+  sm:      4,     // Button & Badge standard (Tight 4px)
+  md:      8,     // Card standard
+  lg:      12,
+  xl:      16,
+  card:    8,     // Sylvan was 23, Webflow uses crisp 8px cards
+  control: 4,     // Sylvan was 23, Webflow uses strict 4px buttons
+  '2xl':   24,
+  '3xl':   32,
+  pill:    9999,
+  full:    9999,
 } as const;
 
 export const shadow = {
@@ -40,36 +43,36 @@ export const shadow = {
   sm: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
     elevation: 2,
   },
-  md: {
-    shadowColor: '#12332D',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.07,
-    shadowRadius: 14,
-    elevation: 4,
+  md: { // Level 2 Webflow shadow approximation
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 13 },
+    shadowOpacity: 0.08,
+    shadowRadius: 13,
+    elevation: 6,
   },
-  lg: {
-    shadowColor: '#12332D',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 22,
-    elevation: 8,
+  lg: { // Level 3 Webflow shadow approximation
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 30 },
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    elevation: 10,
   },
   brand: {
-    shadowColor: '#2FA084',
+    shadowColor: '#080808',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   soft: {
-    shadowColor: '#12332D',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.09,
+    shadowRadius: 7,
     elevation: 3,
   },
 } as const;

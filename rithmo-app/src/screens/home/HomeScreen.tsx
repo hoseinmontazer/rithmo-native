@@ -1,431 +1,356 @@
 /**
- * HomeScreen — Rithmo AI Wellness Companion
+ * HomeScreen — Rhythmo
  *
- * Pure orchestrator: fetches data, computes derived state,
- * and composes home-specific components.
+ * Product intent: cycle-pattern intelligence, not a dashboard of widgets.
+ *
+ * Hierarchy:
+ *   1. Header (name, date, notification)
+ *   2. CycleContextCard — What is my cycle doing right now?
+ *   3. TodayStateCard   — What did I feel today?
+ *   4. PatternCard      — What patterns has Rhythmo noticed? (data-state-aware)
+ *   5. Upcoming         — Next predicted event
+ *
+ * No gamification (streaks removed).
+ * No generic AI suggestions on home screen.
+ * No QuickActionsGrid duplicating the nav bar.
  */
 import React, { useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   ScrollView,
+  TouchableOpacity,
   StyleSheet,
   RefreshControl,
-  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { useAuth } from '@hooks/useAuth';
-import { useCycleAnalysis, useLatestOvulation, usePeriods } from '@hooks/queries/usePeriods';
-import { useUnreadNotifications, useUnreadMessages } from '@hooks/queries/useNotifications';
-import { useAISuggestion } from '@hooks/queries/useAI';
-import { useUserMedications } from '@hooks/queries/useMedications';
-import { useTodayWellnessLog, useWellnessStreaks, useWellnessAnalytics } from '@hooks/queries/useWellness';
-import { CelebrationAnimation } from '@components/ui';
+import {
+  useCycleAnalysis,
+  usePeriods,
+} from '@hooks/queries/usePeriods';
+import { useUnreadNotifications } from '@hooks/queries/useNotifications';
+import {
+  useTodayWellnessLog,
+  useWellnessLogs,
+} from '@hooks/queries/useWellness';
 import { useProfile } from '@hooks/queries/useProfile';
 import type { HomeScreenProps } from '@navigation/types';
-import {
-  WellnessWidget,
-  QuickActionsGrid,
-  StreakCards,
-  CycleCard,
-  QuickLogStrip,
-  AIInsightCard,
-  TodayWellness,
-  HealthHub,
-} from './components';
+import { CycleContextCard }  from './components/CycleContextCard';
+import { TodayStateCard }    from './components/TodayStateCard';
+import { PatternCard, deriveDataState } from './components/PatternCard';
+import type { WellnessLog } from '@types/wellness.types';
+import type { CycleAnalysis } from '@types/period.types';
 
 type Props = HomeScreenProps<'Home'>;
 
-const normalisePhase = (raw?: string): 'menstrual' | 'follicular' | 'ovulation' | 'luteal' => {
+const normalisePhase = (
+  raw?: string,
+): 'menstrual' | 'follicular' | 'ovulation' | 'luteal' => {
   const s = (raw ?? '').toLowerCase();
   if (s.includes('menstrual') || s.includes('period')) { return 'menstrual'; }
-  if (s.includes('ovulat')) { return 'ovulation'; }
-  if (s.includes('luteal')) { return 'luteal'; }
+  if (s.includes('ovulat'))                             { return 'ovulation'; }
+  if (s.includes('luteal'))                             { return 'luteal'; }
   return 'follicular';
+};
+
+// ── Upcoming section ──────────────────────────────────────────────────────────
+
+function UpcomingRow({
+  label,
+  date,
+  accent,
+}: { label: string; date: string | null; accent: string }) {
+  const { colors, typography } = useTheme();
+  if (!date) { return null; }
+  return (
+    <View style={[styles.upcomingRow, { backgroundColor: colors.surface }]}>
+      <View style={[styles.upcomingDot, { backgroundColor: accent }]} />
+      <Text style={[styles.upcomingLabel, { color: colors.textSecondary, fontSize: typography.sm }]}>
+        {label}
+      </Text>
+      <Text style={[styles.upcomingDate, { color: colors.textPrimary, fontSize: typography.sm }]}>
+        {date}
+      </Text>
+    </View>
+  );
 }
+
+// ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
   const navigation = useNavigation<Props['navigation']>();
   const { colors, spacing, typography } = useTheme();
-  const { user, partnerId } = useAuth();
+  const { user } = useAuth();
 
-  // ── profile ───────────────────────────────────────────────────────────────
-  const { data: profile, isLoading: profileLoading, refetch: refetchProfile } = useProfile();
-
-  const isCycleUser = useMemo(() => {
-    if (!profile) { return undefined; }
-    return profile.sex !== 'male';
-  }, [profile]);
-
+  // ── Profile ───────────────────────────────────────────────────────────────
+  const { data: profile, refetch: refetchProfile } = useProfile();
   const isMale = profile?.sex === 'male' || user?.sex === 'male';
-  const hasPartner = (profile?.partners?.length ?? 0) > 0 || Boolean(partnerId);
-  const isMaleWithPartner = isMale && hasPartner;
-  const shouldFetchOwnCycle = profile !== undefined && isCycleUser === true;
-  // Always fetch for male users — API returns partner data if linked, empty if not
-  const shouldFetchPartnerCycle = profile !== undefined && isMale;
+  const isCycleUser = profile ? profile.sex !== 'male' : true;
+  const shouldFetchCycle = profile !== undefined;
 
-  // ── data queries ──────────────────────────────────────────────────────────
+  // ── Data queries ──────────────────────────────────────────────────────────
   const {
     data: cycleData,
     isLoading: cycleLoading,
     refetch: refetchCycle,
     isError: cycleError,
-    error: cycleErrorObj,
   } = useCycleAnalysis({
     role: isMale ? 'partner' : undefined,
-    enabled: shouldFetchOwnCycle || shouldFetchPartnerCycle,
+    enabled: shouldFetchCycle,
   });
 
-  const { data: ovulation }     = useLatestOvulation({ enabled: shouldFetchOwnCycle });
-  // Raw period list — used as fallback for the cycle brief pill
-  const { data: periodsList }   = usePeriods(isMale ? 'partner' : undefined);
-  const { data: unreadNotifs }  = useUnreadNotifications();
-  const { data: unreadMsgs }    = useUnreadMessages();
-  const { data: aiSuggestion }  = useAISuggestion();
-  const { data: medications }   = useUserMedications();
-  const { data: todayWellness } = useTodayWellnessLog();
-  const { data: streaks }       = useWellnessStreaks();
-  const { data: wellnessAnalytics } = useWellnessAnalytics(7);
+  const { data: periodsList,    refetch: refetchPeriods }  = usePeriods(isMale ? 'partner' : undefined);
+  const { data: unreadNotifs }                             = useUnreadNotifications();
+  const { data: todayWellness,  refetch: refetchToday }    = useTodayWellnessLog();
+  const { data: allLogs,        refetch: refetchLogs }     = useWellnessLogs();
 
-  // ── local state ───────────────────────────────────────────────────────────
+  // ── Refresh ───────────────────────────────────────────────────────────────
   const [refreshing, setRefreshing] = React.useState(false);
-  const [showCelebration, setShowCelebration] = React.useState(false);
-  const [celebrationData, setCelebrationData] = React.useState({
-    title: '', message: '', type: 'success' as 'success' | 'milestone',
-  });
-
-  // ── derived: date ─────────────────────────────────────────────────────────
-  const todayDate = useMemo(() => new Date().toLocaleDateString('en-US', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-  }), []);
-
-  // ── derived: cycle ────────────────────────────────────────────────────────
-  // useCycleAnalysis already unwraps { status, data, view_type } → returns data directly
-  // For male users: cycleData = { gender, tracking_mode, partner_info, support_tips }
-  // For female users: cycleData = { current_status, average_cycle, regularity_score, ... }
-  const apiData = cycleData ?? null;
-  const partnerInfo = (apiData as any)?.partner_info ?? null;
-
-  // isPartnerView = male user AND the API returned partner_info
-  const isPartnerView = isMale && Boolean(partnerInfo);
-
-  const partnerDisplayName =
-    partnerInfo?.name ??
-    profile?.partners?.[0]?.username ??
-    'Partner';
-
-  const currentStatus = isPartnerView ? null : ((apiData as any)?.current_status ?? null);
-
-  const phase = isPartnerView
-    ? normalisePhase(partnerInfo?.current_phase)
-    : normalisePhase(currentStatus?.phase ?? (apiData as any)?.current_phase ?? '');
-
-  const phaseAccent = ({
-    menstrual: colors.menstrual,
-    follicular: colors.follicular,
-    ovulation: colors.ovulation,
-    luteal: colors.luteal,
-  } as const)[phase] ?? colors.primary;
-
-  const daysUntilPeriod = isPartnerView
-    ? (partnerInfo?.days_until_period ?? 0)
-    : (currentStatus?.days_until_next_period ?? 0);
-
-  const avgCycleLength = isPartnerView
-    ? (partnerInfo?.average_cycle_length ?? 28)
-    : ((apiData as any)?.average_cycle ?? currentStatus?.cycle_length ?? 28);
-
-  const ovulationDay = ovulation?.ovulation_date
-    ? new Date(ovulation.ovulation_date).getDate() : null;
-
-  const cycleDataNotFound = cycleError && (cycleErrorObj as any)?.response?.status === 404;
-  const cycleActualError  = cycleError && !cycleDataNotFound;
-
-  // For partner view: has data if partner_info exists with at least a phase or days
-  const hasPartnerCycleData = Boolean(
-    partnerInfo &&
-    (partnerInfo.current_phase || partnerInfo.days_until_period != null),
-  );
-  // For own cycle: has data if current_status exists
-  const hasCycleData = Boolean(
-    !cycleLoading &&
-    !cycleError &&
-    (isPartnerView ? hasPartnerCycleData : Boolean(currentStatus)),
-  );
-
-  // ── derived: cycle brief for WellnessWidget ──────────────────────────────
-  // Uses multiple data sources with fallbacks so the pill shows reliably.
-  const cycleBrief = useMemo(() => {
-    const latestPeriod = Array.isArray(periodsList) && periodsList.length > 0
-      ? (periodsList as any[])[0]
-      : null;
-
-    // ── Female / own cycle ──────────────────────────────────────────────────
-    if (!isMale) {
-      // Best case: full cycle analysis with current_status
-      if (!cycleError && currentStatus) {
-        return {
-          name: '',
-          phase,
-          daysUntilPeriod: currentStatus.days_until_next_period ?? null,
-          isOnPeriod: Boolean(currentStatus.is_on_period),
-          isOwn: true,
-        };
-      }
-      // Fallback: derive days from next_predicted_date or latest period record
-      const nextDate =
-        (apiData as any)?.next_predicted_date ??
-        latestPeriod?.next_period_start_date ??
-        null;
-      const daysFromDate = nextDate
-        ? Math.round((new Date(nextDate).getTime() - Date.now()) / 86_400_000)
-        : null;
-      if (nextDate || latestPeriod) {
-        return {
-          name: '',
-          phase: phase || 'follicular',
-          daysUntilPeriod: daysFromDate != null && daysFromDate >= 0 ? daysFromDate : null,
-          isOnPeriod: false,
-          isOwn: true,
-        };
-      }
-      return null;
-    }
-
-    // ── Male / partner cycle ────────────────────────────────────────────────
-    if (isMale) {
-      // Best case: partner_info from cycle_analysis has phase
-      if (!cycleError && partnerInfo?.current_phase) {
-        return {
-          name: partnerInfo.name ?? (apiData as any)?.partner_name ?? partnerDisplayName,
-          phase: normalisePhase(partnerInfo.current_phase),
-          daysUntilPeriod: partnerInfo.days_until_period ?? null,
-          isOnPeriod: Boolean(partnerInfo.is_on_period),
-          isOwn: false,
-        };
-      }
-      // Fallback: use latest partner period record for name + next date
-      const pName =
-        latestPeriod?.partner_name ??
-        (apiData as any)?.partner_name ??
-        (latestPeriod ? partnerDisplayName : null);
-      const pNext = latestPeriod?.next_period_start_date ?? null;
-      const pDays = pNext
-        ? Math.round((new Date(pNext).getTime() - Date.now()) / 86_400_000)
-        : null;
-      if (pName && latestPeriod) {
-        return {
-          name: pName,
-          phase: phase || 'follicular',
-          daysUntilPeriod: pDays != null && pDays >= 0 ? pDays : null,
-          isOnPeriod: false,
-          isOwn: false,
-        };
-      }
-      return null;
-    }
-
-    return null;
-  }, [
-    isMale, cycleError, currentStatus, apiData,
-    partnerInfo, partnerDisplayName, phase, periodsList,
-  ]);
-  const activeMeds  = (medications ?? []).filter((m: any) => m.is_active).length;
-  const notifCount  = unreadNotifs?.count ?? 0;
-  const msgCount    = unreadMsgs?.count ?? 0;
-
-  // ── derived: wellness ─────────────────────────────────────────────────────
-  const hasCompletedCheckIn = Boolean(todayWellness);
-  const currentStreak       = streaks?.current_streak ?? 0;
-  const longestStreak       = streaks?.longest_streak ?? 0;
-
-  React.useEffect(() => {
-    if (currentStreak > 0 && [7, 14, 30, 60, 90].includes(currentStreak)) {
-      setCelebrationData({
-        title: `${currentStreak} Day Streak! 🎉`,
-        message: 'Amazing consistency! Keep up the great work.',
-        type: 'milestone',
-      });
-      setShowCelebration(true);
-    }
-  }, [currentStreak]);
-
-  // ── navigation ────────────────────────────────────────────────────────────
-  const goTo = useCallback((tab: string, screen: string) => {
-    try { navigation.getParent()?.navigate(tab as any, { screen }); }
-    catch (e) { console.error('Navigation error:', e); }
-  }, [navigation]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      await Promise.all([
-        refetchProfile(),
-        ...(shouldFetchOwnCycle || shouldFetchPartnerCycle ? [refetchCycle()] : []),
-      ]);
-    } catch (e) { console.error('Refresh error:', e); }
+    await Promise.allSettled([
+      refetchProfile(),
+      refetchCycle(),
+      refetchPeriods(),
+      refetchToday(),
+      refetchLogs(),
+    ]);
     setRefreshing(false);
-  }, [refetchCycle, refetchProfile, shouldFetchOwnCycle, shouldFetchPartnerCycle]);
+  }, [refetchProfile, refetchCycle, refetchPeriods, refetchToday, refetchLogs]);
 
-  // ── loading guard ─────────────────────────────────────────────────────────
-  if (profileLoading && !profile && !refreshing) {
-    return (
-      <View style={[styles.root, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ color: colors.textSecondary, marginTop: spacing[4], fontSize: typography.sm }}>
-          Loading your dashboard...
-        </Text>
-      </View>
-    );
-  }
+  // ── Derived: cycle status ─────────────────────────────────────────────────
+  const cycleStatus = (cycleData as CycleAnalysis | undefined)?.current_status;
 
-  // Show cycle section for: female users (own cycle) OR male users with a partner
-  const showCycleContent = isCycleUser === true || isMaleWithPartner;
+  const phase = normalisePhase(cycleStatus?.phase);
+  const cycleDay: number | null = cycleStatus?.cycle_day ?? null;
+  const daysUntilPeriod: number | null = cycleStatus?.days_until_next_period ?? null;
+  const isOnPeriod: boolean = cycleStatus?.is_on_period ?? false;
+  const hasCycleData = Boolean(cycleData);
 
-  // ── render ────────────────────────────────────────────────────────────────
+  // ── Derived: data state for PatternCard ───────────────────────────────────
+  const periodCount = Array.isArray(periodsList) ? (periodsList as any[]).length : 0;
+  const logCount    = Array.isArray(allLogs)     ? (allLogs     as any[]).length : 0;
+  const dataState   = deriveDataState(periodCount, logCount);
+
+  // ── Derived: next predicted period date ───────────────────────────────────
+  const nextPeriodDate: string | null = useMemo(() => {
+    const raw = (cycleData as any)?.next_predicted_date;
+    if (!raw) { return null; }
+    try {
+      return new Date(raw).toLocaleDateString('fa-IR', { month: 'long', day: 'numeric' });
+    } catch { return null; }
+  }, [cycleData]);
+
+  // ── Navigation handlers ───────────────────────────────────────────────────
+  const goToQuickLog = useCallback(() => {
+    navigation.navigate('LogTab' as any, { screen: 'QuickLog' } as any);
+  }, [navigation]);
+
+  const goToCycle = useCallback(() => {
+    navigation.navigate('CycleTab' as any);
+  }, [navigation]);
+
+  const goToInsights = useCallback(() => {
+    navigation.navigate('InsightsTab' as any);
+  }, [navigation]);
+
+  const goToNotifications = useCallback(() => {
+    navigation.navigate('Notifications');
+  }, [navigation]);
+
+  const goToLogPeriod = useCallback(() => {
+    navigation.navigate('CycleTab' as any, { screen: 'LogPeriod' } as any);
+  }, [navigation]);
+
+  // ── Header date ───────────────────────────────────────────────────────────
+  const dateStr = useMemo(() =>
+    new Date().toLocaleDateString('fa-IR', {
+      weekday: 'long', month: 'long', day: 'numeric',
+    }),
+  []);
+
+  const userName = profile?.first_name || user?.username || '';
+  const unreadCount: number = (unreadNotifs as any)?.count ?? 0;
+
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+    <SafeAreaView
+      style={[styles.root, { backgroundColor: colors.background }]}
+      edges={['top', 'left', 'right']}
+    >
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={{ paddingBottom: spacing[12], flexGrow: 1 }}
+        contentContainerStyle={{ paddingHorizontal: spacing[5], paddingBottom: spacing[20] }}
         showsVerticalScrollIndicator={false}
-        nestedScrollEnabled
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
       >
-        {/* Wellness Widget */}
-        <View style={[styles.section, { paddingTop: spacing[4] }]}>
-          <WellnessWidget
-            userName={user?.first_name || profile?.first_name || user?.username}
-            currentStreak={currentStreak}
-            hasCompletedCheckIn={hasCompletedCheckIn}
-            date={todayDate}
-            notificationCount={notifCount}
-            onCheckInPress={() => goTo('WellnessTab', 'LogWellness')}
-            onAvatarPress={() => goTo('ProfileTab', 'Profile')}
-            onNotificationPress={() => navigation.navigate('Notifications')}
-            cycleBrief={cycleBrief}
-            onCycleBriefPress={() => goTo('CycleTab', 'CycleAnalysis')}
-          />
-        </View>
-
-        {/* Streak Progress */}
-        <View style={styles.section}>
-          <StreakCards
-            currentStreak={currentStreak}
-            longestStreak={longestStreak}
-            weeklyScore={wellnessAnalytics?.averages?.wellness_score ?? null}
-          />
-        </View>
-
-        {/* Cycle Card */}
-        {showCycleContent && (
-          <View style={styles.section}>
-            <CycleCard
-              isLoading={cycleLoading && !cycleData}
-              hasError={cycleActualError}
-              hasData={hasCycleData}
-              isPartnerView={Boolean(isPartnerView)}
-              partnerName={partnerDisplayName}
-              phase={phase}
-              phaseAccent={phaseAccent}
-              daysUntilPeriod={daysUntilPeriod}
-              avgCycleLength={avgCycleLength}
-              ovulationDay={ovulationDay}
-              isMale={isMale}
-              isMaleWithPartner={isMaleWithPartner}
-              onPress={() => goTo('CycleTab', 'CycleAnalysis')}
-              onRetry={onRefresh}
-              onSetupPartner={() => goTo('ProfileTab', 'PartnerManage')}
-              onStartTracking={() => goTo('CycleTab', 'LogPeriod')}
-            />
+        {/* ── Header ──────────────────────────────────────────────────── */}
+        <View style={[styles.header, { paddingTop: spacing[4], marginBottom: spacing[6] }]}>
+          <View>
+            <Text style={[styles.dateText, { color: colors.textTertiary, fontSize: typography.sm }]}>
+              {dateStr}
+            </Text>
+            {userName ? (
+              <Text style={[styles.greeting, { color: colors.textPrimary, fontSize: typography.xl }]}>
+                سلام، {userName}
+              </Text>
+            ) : (
+              <Text style={[styles.greeting, { color: colors.textPrimary, fontSize: typography.xl }]}>
+                ریتمو
+              </Text>
+            )}
           </View>
+
+          {/* Notification bell */}
+          <TouchableOpacity
+            onPress={goToNotifications}
+            style={[styles.bellBtn, {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            }]}
+            accessibilityLabel={`اعلان‌ها${unreadCount > 0 ? `, ${unreadCount} خوانده‌نشده` : ''}`}
+          >
+            <Icon name="bell-outline" size={20} color={colors.textSecondary} />
+            {unreadCount > 0 && (
+              <View style={[styles.unreadDot, { backgroundColor: colors.menstrual }]} />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Section label ────────────────────────────────────────────── */}
+        <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[2] }]}>
+          وضعیت سیکل
+        </Text>
+
+        {/* ── 1. Cycle Context Card ────────────────────────────────────── */}
+        <View style={{ marginBottom: spacing[4] }}>
+          <CycleContextCard
+            isLoading={cycleLoading}
+            hasData={hasCycleData}
+            hasError={cycleError}
+            cycleDay={cycleDay}
+            phase={phase}
+            daysUntilPeriod={daysUntilPeriod}
+            isOnPeriod={isOnPeriod}
+            onPress={goToCycle}
+            onRetry={refetchCycle}
+            onStartTracking={goToLogPeriod}
+          />
+        </View>
+
+        {/* ── Section label ────────────────────────────────────────────── */}
+        <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[2] }]}>
+          امروز
+        </Text>
+
+        {/* ── 2. Today's State Card ─────────────────────────────────────── */}
+        <View style={{ marginBottom: spacing[4] }}>
+          <TodayStateCard
+            log={todayWellness as WellnessLog | null}
+            isLoading={false}
+            onLogPress={goToQuickLog}
+          />
+        </View>
+
+        {/* ── Section label ────────────────────────────────────────────── */}
+        <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[2] }]}>
+          الگوهای من
+        </Text>
+
+        {/* ── 3. Pattern Card ───────────────────────────────────────────── */}
+        <View style={{ marginBottom: spacing[4] }}>
+          <PatternCard
+            dataState={dataState}
+            logCount={logCount}
+            periodCount={periodCount}
+            logs={(Array.isArray(allLogs) ? allLogs : []) as WellnessLog[]}
+            cycleAnalysis={cycleData as CycleAnalysis | null}
+            onInsightsPress={goToInsights}
+          />
+        </View>
+
+        {/* ── 4. Upcoming ───────────────────────────────────────────────── */}
+        {nextPeriodDate && (
+          <>
+            <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[2] }]}>
+              پیش‌بینی
+            </Text>
+            <View style={[styles.upcomingCard, { borderColor: colors.border, marginBottom: spacing[6] }]}>
+              <UpcomingRow
+                label="دوره بعدی"
+                date={nextPeriodDate}
+                accent={colors.menstrual}
+              />
+            </View>
+          </>
         )}
-
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <QuickActionsGrid
-            isMale={isMale}
-            hasCompletedCheckIn={hasCompletedCheckIn}
-            onLogWellness={() => goTo('WellnessTab', 'LogWellness')}
-            onLogPeriod={() => goTo('CycleTab', 'LogPeriod')}
-            onMoodComplete={() => {
-              setCelebrationData({ title: 'Check-in Complete!', message: 'Great job staying on track today.', type: 'success' });
-              setShowCelebration(true);
-            }}
-          />
-        </View>
-
-        {/* Quick Log Strip */}
-        <View style={styles.section}>
-          <QuickLogStrip
-            showCycleContent={showCycleContent}
-            onLogPeriod={() => goTo('CycleTab', 'LogPeriod')}
-            onLogWellness={() => goTo('WellnessTab', 'LogWellness')}
-            onMedications={() => goTo('WellnessTab', 'Medications')}
-            onAnalytics={() => goTo('CycleTab', 'CycleAnalysis')}
-            onMessages={() => goTo('MessagesTab', 'MessagesList')}
-          />
-        </View>
-
-        {/* AI Insight */}
-        {aiSuggestion && (
-          <View style={styles.section}>
-            <AIInsightCard
-              label={aiSuggestion.label}
-              text={aiSuggestion.response_text}
-              onPress={() => navigation.navigate('AISuggestions')}
-              onSeeAll={() => navigation.navigate('AISuggestions')}
-            />
-          </View>
-        )}
-
-        {/* Today's Wellness */}
-        <View style={styles.section}>
-          <TodayWellness
-            moodLevel={todayWellness?.mood_level}
-            wellnessScore={todayWellness?.wellness_score}
-            currentStreak={currentStreak}
-            totalLogs={streaks?.total_logs ?? 0}
-            onLogWellness={() => goTo('WellnessTab', 'LogWellness')}
-            onWellnessDashboard={() => goTo('WellnessTab', 'WellnessDashboard')}
-            onSeeAll={() => goTo('WellnessTab', 'LogWellness')}
-          />
-        </View>
-
-        {/* Health Hub */}
-        <View style={styles.section}>
-          <HealthHub
-            isCycleUser={isCycleUser}
-            activeMeds={activeMeds}
-            msgCount={msgCount}
-            onWellnessDashboard={() => goTo('WellnessTab', 'WellnessDashboard')}
-            onCycleTracker={() => goTo('CycleTab', 'CycleAnalysis')}
-            onMedications={() => goTo('WellnessTab', 'Medications')}
-            onAISuggestions={() => navigation.navigate('AISuggestions')}
-            onMessages={() => goTo('MessagesTab', 'MessagesList')}
-          />
-        </View>
-
       </ScrollView>
-
-      <CelebrationAnimation
-        visible={showCelebration}
-        onDismiss={() => setShowCelebration(false)}
-        title={celebrationData.title}
-        message={celebrationData.message}
-        type={celebrationData.type}
-      />
     </SafeAreaView>
   );
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  scroll: { flex: 1 },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
   },
+  dateText: { marginBottom: 2, opacity: 0.7 },
+  greeting: { fontWeight: '800', letterSpacing: -0.4 },
+  bellBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 4,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: 8,
+    right: 9,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
+  sectionLabel: {
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  upcomingCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  upcomingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  upcomingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  upcomingLabel: { flex: 1, fontWeight: '500' },
+  upcomingDate: { fontWeight: '700' },
 });
