@@ -1,115 +1,106 @@
 export const palette = {
-  // ── ColorHunt Palette: #EEEEEE #6FCF97 #2FA084 #1F6F5F ──────────────────
-  // Primary teal/green shades
-  teal50:   '#f0fdf9',
-  teal100:  '#d1fae5',
-  teal200:  '#a7f3d0',
-  teal300:  '#6FCF97',  // ColorHunt light green
-  teal400:  '#2FA084',  // ColorHunt medium teal
-  teal500:  '#1F6F5F',  // ColorHunt dark teal
-  teal600:  '#1a5d50',
-  teal700:  '#154b41',
+  // Base & Neutrals
+  canvas: '#FFFFFF',
+  primary: '#080808',
+  primaryHover: '#1f1f1f',
+  onPrimary: '#FFFFFF',
+  
+  ink: '#080808',
+  inkStrong: '#222222',
+  body: '#363636',
+  bodyMid: '#5A5A5A',
+  mute: '#898989',
+  muteSoft: '#ABABAB',
+  hairline: '#D8D8D8',
 
-  // Neutrals
-  grey50:   '#fffefd',
-  grey100:  '#faf9f6',
-  grey200:  '#F6F5F1',
-  grey300:  '#E7E3DA',
-  grey400:  '#C9C2B7',
-  grey500:  '#756F68',
-  grey600:  '#5E5852',
-  grey700:  '#3F3A35',
-  grey800:  '#2D2925',
-  grey900:  '#1F2F2B',
+  // 5-Stop Chromatic Category Palette
+  accentPurple: '#7A3DFF',
+  accentPink: '#ED52CB',
+  accentBlue: '#3B89FF',
+  accentBlueDeep: '#006ACC',
+  accentBlueInfo: '#146EF5',
+  accentOrange: '#FF6B00',
+  accentGreen: '#00D722',
+  accentYellow: '#FFAE13',
+  accentRed: '#EE1D36',
 
-  // Accent colors for phases
-  rose400:  '#fb7185',
-  rose500:  '#f43f5e',
-  rose600:  '#e11d48',
+  // Semantic mappings to palette for compatibility
+  rose500: '#EE1D36',
+  violet500: '#7A3DFF',
+  violet600: '#5c2ebd',
+  amber500: '#FFAE13',
+  blue400: '#3B89FF',
+  blue500: '#146EF5',
 
-  violet400: '#c084fc',
-  violet500: '#a855f7',
-  violet600: '#9333ea',
-
-  amber400: '#fbbf24',
-  amber500: '#f59e0b',
-  amber600: '#d97706',
-
-  // Semantic
-  green400: '#6FCF97',
-  green500: '#2FA084',
-  red400:   '#f87171',
-  red500:   '#ef4444',
-  blue400:  '#60a5fa',
-  blue500:  '#3b82f6',
-
-  white:    '#ffffff',
-  black:    '#000000',
+  white: '#ffffff',
+  black: '#000000',
 } as const;
 
 export const lightColors = {
-  // Backgrounds — light grey base
-  background:       palette.grey200,
-  backgroundAlt:    palette.grey100,
+  // Backgrounds
+  background:       palette.canvas,
+  backgroundAlt:    '#F5F5F5',
   surface:          palette.white,
-  surfaceSecondary: palette.grey50,
+  surfaceSecondary: '#FAFAFA',
   surfaceElevated:  palette.white,
-  overlay:          'rgba(31,111,95,0.45)',
+  surfaceDark:      palette.ink,
+  overlay:          'rgba(8, 8, 8, 0.4)',
 
   // Borders
-  border:           palette.grey300,
-  borderStrong:     palette.grey400,
-  divider:          palette.grey300,
+  border:           palette.hairline,
+  borderStrong:     palette.ink,
+  divider:          palette.hairline,
 
-  // Brand — teal/green
-  primary:          palette.teal400,  // #2FA084
-  primaryLight:     '#EAF4EF',
-  primaryLighter:   '#F4FAF7',
-  primaryDark:      palette.teal500,  // #1F6F5F
+  // Brand 
+  primary:          palette.primary,
+  primaryLight:     palette.muteSoft,
+  primaryLighter:   palette.hairline,
+  primaryDark:      palette.primaryHover,
 
-  // Accent — light green
-  accent:           palette.teal300,  // #6FCF97
-  accentLight:      '#EAF4EF',
-  accentLighter:    '#F4FAF7',
+  // Accent
+  accent:           palette.accentBlueDeep,
+  accentLight:      'rgba(0, 106, 204, 0.1)',
+  accentLighter:    'rgba(0, 106, 204, 0.05)',
 
-  // Wellness — same as primary
-  wellness:         palette.teal400,
-  wellnessLight:    palette.teal100,
-  wellnessLighter:  palette.teal50,
+  // Wellness
+  wellness:         palette.accentGreen,
+  wellnessLight:    'rgba(0, 215, 34, 0.1)',
+  wellnessLighter:  'rgba(0, 215, 34, 0.05)',
 
-  // Ovulation — amber
-  ovulationColor:   palette.amber500,
-  ovulationLight:   palette.amber400,
-  ovulationLighter: '#F4E8CC',
+  // Ovulation
+  ovulationColor:   palette.accentOrange,
+  ovulationLight:   'rgba(255, 107, 0, 0.1)',
+  ovulationLighter: 'rgba(255, 107, 0, 0.05)',
 
   // Text
-  textPrimary:      palette.grey900,
-  textSecondary:    palette.grey500,
-  textTertiary:     palette.grey500,
-  textDisabled:     palette.grey400,
-  textOnPrimary:    palette.white,
+  textPrimary:      palette.inkStrong,
+  textSecondary:    palette.bodyMid,
+  textTertiary:     palette.mute,
+  textDisabled:     palette.muteSoft,
+  textOnPrimary:    palette.onPrimary,
+  textOnDark:       palette.canvas,
 
   // Semantic
-  success:          palette.green500,
-  successBg:        '#EAF4EF',
-  warning:          palette.amber500,
-  warningBg:        '#F4E8CC',
-  error:            palette.red500,
-  errorBg:          '#fef2f2',
-  info:             palette.blue500,
-  infoBg:           '#E1EEF5',
+  success:          palette.accentGreen,
+  successBg:        'rgba(0, 215, 34, 0.1)',
+  warning:          palette.accentYellow,
+  warningBg:        'rgba(255, 174, 19, 0.1)',
+  error:            palette.accentRed,
+  errorBg:          'rgba(238, 29, 54, 0.1)',
+  info:             palette.accentBlueInfo,
+  infoBg:           'rgba(20, 110, 245, 0.1)',
 
-  // Cycle phases
-  menstrual:        palette.rose500,
-  menstrualBg:      '#F7E4DF',
-  follicular:       palette.teal300,  // #6FCF97
-  follicularBg:     '#F4FAF7',
-  ovulation:        palette.amber500,
-  ovulationBg:      '#F4E8CC',
-  luteal:           palette.violet500,
-  lutealBg:         '#faf5ff',
+  // Cycle phases mapped to Webflow 5-stop chromatic scale
+  menstrual:        palette.accentPink,
+  menstrualBg:      'rgba(237, 82, 203, 0.1)',
+  follicular:       palette.accentPurple,
+  follicularBg:     'rgba(122, 61, 255, 0.1)',
+  ovulation:        palette.accentOrange,
+  ovulationBg:      'rgba(255, 107, 0, 0.1)',
+  luteal:           palette.accentBlue,
+  lutealBg:         'rgba(59, 137, 255, 0.1)',
 
-  // Additional palette colors for circular UI
+  // Additional palette colors for compatibility
   violet500:        palette.violet500,
   violet600:        palette.violet600,
   rose500:          palette.rose500,
@@ -117,65 +108,66 @@ export const lightColors = {
   blue400:          palette.blue400,
   blue500:          palette.blue500,
 
-  shadowColor:      palette.grey900,
+  shadowColor:      '#000000',
   black:            palette.black,
 } as const;
 
 export const darkColors = {
-  // Backgrounds — dark grey base
-  background:       palette.grey900,
-  backgroundAlt:    palette.grey800,
-  surface:          palette.grey800,
-  surfaceSecondary: palette.grey700,
-  surfaceElevated:  palette.grey700,
-  overlay:          'rgba(0,0,0,0.7)',
+  // Backgrounds - High contrast dark mode
+  background:       palette.primary, // #080808
+  backgroundAlt:    '#121212',
+  surface:          '#1a1a1a',
+  surfaceSecondary: '#242424',
+  surfaceElevated:  '#2a2a2a',
+  surfaceDark:      palette.primaryHover,
+  overlay:          'rgba(0,0,0,0.8)',
 
-  border:           palette.grey700,
-  borderStrong:     palette.grey600,
-  divider:          palette.grey700,
+  border:           '#333333',
+  borderStrong:     '#555555',
+  divider:          '#333333',
 
-  primary:          palette.teal300,  // #6FCF97
-  primaryLight:     palette.teal600 + '40',
-  primaryLighter:   palette.teal600 + '20',
-  primaryDark:      palette.teal200,
+  primary:          palette.canvas, // White as primary action on dark mode
+  primaryLight:     '#CCCCCC',
+  primaryLighter:   '#AAAAAA',
+  primaryDark:      '#E5E5E5',
 
-  accent:           palette.teal300,
-  accentLight:      palette.teal600 + '40',
-  accentLighter:    palette.teal600 + '20',
+  accent:           palette.accentBlue,
+  accentLight:      'rgba(59, 137, 255, 0.2)',
+  accentLighter:    'rgba(59, 137, 255, 0.1)',
 
-  wellness:         palette.teal300,
-  wellnessLight:    palette.teal600 + '40',
-  wellnessLighter:  palette.teal600 + '20',
+  wellness:         palette.accentGreen,
+  wellnessLight:    'rgba(0, 215, 34, 0.2)',
+  wellnessLighter:  'rgba(0, 215, 34, 0.1)',
 
-  ovulationColor:   palette.amber400,
-  ovulationLight:   '#78350f40',
-  ovulationLighter: '#78350f20',
+  ovulationColor:   palette.accentOrange,
+  ovulationLight:   'rgba(255, 107, 0, 0.2)',
+  ovulationLighter: 'rgba(255, 107, 0, 0.1)',
 
-  textPrimary:      palette.grey50,
-  textSecondary:    palette.grey400,
-  textTertiary:     palette.grey500,
-  textDisabled:     palette.grey600,
-  textOnPrimary:    palette.white,
+  textPrimary:      '#FFFFFF',
+  textSecondary:    '#CCCCCC',
+  textTertiary:     '#999999',
+  textDisabled:     '#666666',
+  textOnPrimary:    palette.ink, // Black text on white primary button
+  textOnDark:       '#FFFFFF',
 
-  success:          palette.green400,
-  successBg:        '#052e16',
-  warning:          palette.amber400,
-  warningBg:        '#78350f30',
-  error:            palette.red400,
-  errorBg:          '#450a0a',
-  info:             palette.blue400,
-  infoBg:           '#1e3a8a30',
+  success:          palette.accentGreen,
+  successBg:        'rgba(0, 215, 34, 0.15)',
+  warning:          palette.accentYellow,
+  warningBg:        'rgba(255, 174, 19, 0.15)',
+  error:            palette.accentRed,
+  errorBg:          'rgba(238, 29, 54, 0.15)',
+  info:             palette.accentBlueInfo,
+  infoBg:           'rgba(20, 110, 245, 0.15)',
 
-  menstrual:        palette.rose400,
-  menstrualBg:      '#88133730',
-  follicular:       palette.teal300,
-  follicularBg:     palette.teal600 + '30',
-  ovulation:        palette.amber400,
-  ovulationBg:      '#78350f30',
-  luteal:           palette.violet400,
-  lutealBg:         '#581c8730',
+  menstrual:        palette.accentPink,
+  menstrualBg:      'rgba(237, 82, 203, 0.15)',
+  follicular:       palette.accentPurple,
+  follicularBg:     'rgba(122, 61, 255, 0.15)',
+  ovulation:        palette.accentOrange,
+  ovulationBg:      'rgba(255, 107, 0, 0.15)',
+  luteal:           palette.accentBlue,
+  lutealBg:         'rgba(59, 137, 255, 0.15)',
 
-  // Additional palette colors for circular UI
   violet500:        palette.violet500,
   violet600:        palette.violet600,
   rose500:          palette.rose500,
@@ -183,8 +175,9 @@ export const darkColors = {
   blue400:          palette.blue400,
   blue500:          palette.blue500,
 
-  shadowColor:      palette.black,
+  shadowColor:      '#000000',
   black:            palette.black,
 } as const;
+
 
 export type AppColors = typeof lightColors | typeof darkColors;

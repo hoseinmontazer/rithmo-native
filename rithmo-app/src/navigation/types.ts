@@ -14,8 +14,8 @@ export type AuthStackParamList = {
 export type MainTabParamList = {
   HomeTab:         undefined;
   CycleTab:        undefined;
-  WellnessTab:     undefined;
-  MessagesTab:     undefined;
+  LogTab:          undefined;
+  InsightsTab:     undefined;
   ProfileTab:      undefined;
 };
 
@@ -36,17 +36,17 @@ export type CycleStackParamList = {
   OvulationDetail: undefined;
 };
 
-// ── Wellness Stack ────────────────────────────────────────────────────────────
+// ── Wellness / Log Stack ──────────────────────────────────────────────────────
 export type WellnessStackParamList = {
+  QuickLog:          { logId?: number };
   WellnessDashboard: undefined;
-  LogWellness:       { logId?: number };
+  LogWellness:       { logId?: number };   // legacy full-form (keep for backward compat)
   Medications:       undefined;
 };
 
-// ── Messages Stack ────────────────────────────────────────────────────────────
-export type MessagesStackParamList = {
-  MessagesList:    undefined;
-  Conversation:    { partnerId: string; partnerName: string };
+// ── Insights Stack ────────────────────────────────────────────────────────────
+export type InsightsStackParamList = {
+  InsightsHome:    undefined;
 };
 
 // ── Profile Stack ─────────────────────────────────────────────────────────────
@@ -57,6 +57,11 @@ export type ProfileStackParamList = {
   Settings:        undefined;
   ChangePassword:  undefined;
   DeleteAccount:   undefined;
+};
+
+// ── Onboarding Stack ──────────────────────────────────────────────────────────
+export type OnboardingStackParamList = {
+  Onboarding: undefined;
 };
 
 // ── Screen prop helpers ───────────────────────────────────────────────────────
@@ -72,8 +77,8 @@ export type CycleScreenProps<T extends keyof CycleStackParamList> =
 export type WellnessScreenProps<T extends keyof WellnessStackParamList> =
   NativeStackScreenProps<WellnessStackParamList, T>;
 
-export type MessagesScreenProps<T extends keyof MessagesStackParamList> =
-  NativeStackScreenProps<MessagesStackParamList, T>;
+export type InsightsScreenProps<T extends keyof InsightsStackParamList> =
+  NativeStackScreenProps<InsightsStackParamList, T>;
 
 export type ProfileScreenProps<T extends keyof ProfileStackParamList> =
   NativeStackScreenProps<ProfileStackParamList, T>;

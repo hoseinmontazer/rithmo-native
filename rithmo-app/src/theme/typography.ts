@@ -1,29 +1,32 @@
 import { Platform } from 'react-native';
 
 export const typography = {
-  // Size scale
-  xs:    11,
-  sm:    13,
-  base:  15,
-  md:    16,
-  lg:    18,
-  xl:    20,
-  '2xl': 24,
-  '3xl': 30,
-  '4xl': 36,
-  '5xl': 44,
+  // Size scale mapped to Webflow system closely
+  xs:    12, // smaller labels
+  sm:    14, // button text, nav links
+  base:  16, // body-md
+  md:    18,
+  lg:    20,
+  xl:    24, // body-lg / display-sm
+  '2xl': 32, // display-md
+  '3xl': 40, 
+  '4xl': 44, // display-lg
+  '5xl': 48, // display-xxl start
+  
+  // Custom Webflow typography classes could be mapped here conceptually, 
+  // but we keep the same naming convention so we don't break existing components immediately.
 
   // Line heights
-  lineHeightTight:   1.2,
-  lineHeightSnug:    1.35,
-  lineHeightNormal:  1.5,
-  lineHeightRelaxed: 1.65,
+  lineHeightTight:   1.04,
+  lineHeightSnug:    1.2,
+  lineHeightNormal:  1.6,
+  lineHeightRelaxed: 1.8,
 
   // Letter spacing
-  trackingTight:  -0.4,
-  trackingNormal:  0,
-  trackingWide:    0.3,
-  trackingWidest:  1.2,
+  trackingTight:  -0.8,
+  trackingNormal: -0.16,
+  trackingWide:    0,
+  trackingWidest:  1.5, // eyebrow
 
   // Weights
   weightRegular:  '400' as const,

@@ -32,125 +32,12 @@ const MOOD_EMOJI: Record<string, string> = {
   neutral: '😐',
 };
 
-// Helper function to get phase-specific recommendations
-function getPhaseRecommendation(phase: string): string {
-  const recommendations: Record<string, string> = {
-    Menstrual: 'Focus on rest and self-care. Stay hydrated, use heat therapy for cramps, and prioritize gentle movement like yoga or walking.',
-    Follicular: 'Your energy is rising! This is a great time for new projects, intense workouts, and social activities. Take advantage of your increased motivation.',
-    Ovulation: 'Peak energy and confidence! Perfect for important meetings, challenging workouts, and social events. Your communication skills are at their best.',
-    Luteal: 'Energy may start to decline. Focus on completing projects, gentle exercise, and stress management. Prioritize self-care and adequate sleep.',
-  };
-  return recommendations[phase] || 'Track your symptoms to get personalized recommendations.';
-}
+// NOTE: Generic phase recommendations (getPhaseRecommendation, getSmartRecommendations)
+// were removed in Phase 1. They produced population-level advice identical for all users,
+// which conflicts with Rhythmo's product thesis of personal cycle-pattern intelligence.
+// Personalised observations are generated in PatternCard (home/components/PatternCard.tsx)
+// based on the user's own logged data — not generic wellness templates.
 
-// Helper function to get smart recommendations based on cycle status
-function getSmartRecommendations(
-  phase: string | undefined,
-  isOnPeriod: boolean | undefined,
-  isFertileWindow: boolean | undefined
-): Array<{ icon: string; title: string; description: string; color: string }> {
-  const recommendations = [];
-
-  if (isOnPeriod) {
-    recommendations.push({
-      icon: '💧',
-      title: 'Stay Hydrated',
-      description: 'Drink plenty of water to help reduce bloating and ease cramps during your period.',
-      color: '#4A90E2',
-    });
-    recommendations.push({
-      icon: '🧘‍♀️',
-      title: 'Gentle Movement',
-      description: 'Light yoga or stretching can help relieve menstrual discomfort and improve mood.',
-      color: '#9B59B6',
-    });
-    recommendations.push({
-      icon: '🌡️',
-      title: 'Heat Therapy',
-      description: 'Apply a heating pad to your lower abdomen to help ease cramps and muscle tension.',
-      color: '#E74C3C',
-    });
-  } else if (isFertileWindow) {
-    recommendations.push({
-      icon: '🎯',
-      title: 'Peak Fertility',
-      description: 'You\'re in your fertile window. If trying to conceive, this is the optimal time.',
-      color: '#27AE60',
-    });
-    recommendations.push({
-      icon: '💪',
-      title: 'High Energy',
-      description: 'Take advantage of increased energy levels for challenging workouts or important tasks.',
-      color: '#F39C12',
-    });
-    recommendations.push({
-      icon: '🗣️',
-      title: 'Communication Peak',
-      description: 'Your communication skills are enhanced. Great time for presentations or important conversations.',
-      color: '#3498DB',
-    });
-  } else if (phase === 'Follicular') {
-    recommendations.push({
-      icon: '🚀',
-      title: 'New Beginnings',
-      description: 'Rising energy makes this ideal for starting new projects or learning new skills.',
-      color: '#1ABC9C',
-    });
-    recommendations.push({
-      icon: '🏃‍♀️',
-      title: 'Intense Workouts',
-      description: 'Your body can handle more intense exercise. Try HIIT or strength training.',
-      color: '#E67E22',
-    });
-    recommendations.push({
-      icon: '👥',
-      title: 'Social Time',
-      description: 'Increased sociability makes this a great time for networking and social activities.',
-      color: '#9B59B6',
-    });
-  } else if (phase === 'Luteal') {
-    recommendations.push({
-      icon: '😴',
-      title: 'Prioritize Sleep',
-      description: 'Your body needs more rest. Aim for 7-9 hours of quality sleep each night.',
-      color: '#5DADE2',
-    });
-    recommendations.push({
-      icon: '🥗',
-      title: 'Balanced Nutrition',
-      description: 'Focus on complex carbs and protein to stabilize mood and energy levels.',
-      color: '#52BE80',
-    });
-    recommendations.push({
-      icon: '🧘',
-      title: 'Stress Management',
-      description: 'Practice mindfulness, meditation, or gentle yoga to manage PMS symptoms.',
-      color: '#AF7AC5',
-    });
-  } else {
-    // Default recommendations
-    recommendations.push({
-      icon: '📊',
-      title: 'Track Symptoms',
-      description: 'Log your daily symptoms to help our AI provide more personalized insights.',
-      color: '#3498DB',
-    });
-    recommendations.push({
-      icon: '💪',
-      title: 'Stay Active',
-      description: 'Regular exercise helps regulate your cycle and improve overall wellbeing.',
-      color: '#E67E22',
-    });
-    recommendations.push({
-      icon: '🥗',
-      title: 'Healthy Diet',
-      description: 'Maintain a balanced diet rich in nutrients to support hormonal health.',
-      color: '#27AE60',
-    });
-  }
-
-  return recommendations;
-}
 
 export default function CycleAnalysisScreen() {
   const navigation = useNavigation<CycleScreenProps<'CycleAnalysis'>['navigation']>();
@@ -240,13 +127,10 @@ export default function CycleAnalysisScreen() {
     luteal:     colors.luteal,
   } as any)[currentPhase] || colors.primary : colors.primary;
 
-  // Mock data for mood distribution (in real app, this would come from wellness API)
-  const moodDistribution = [
-    { mood: 'happy', count: 12, percentage: 35 },
-    { mood: 'calm', count: 10, percentage: 29 },
-    { mood: 'tired', count: 8, percentage: 24 },
-    { mood: 'irritable', count: 4, percentage: 12 },
-  ];
+  // moodDistribution is derived from real wellness logs (via InsightsHomeScreen)
+  // — not hardcoded here. Removed mock data that previously made the chart look
+  // populated even for brand-new users with zero logged days.
+
 
   return (
     <ScrollView
@@ -602,51 +486,7 @@ export default function CycleAnalysisScreen() {
         </Card>
       )}
 
-      {/* ── Recent Common Mood Distribution ─────────────────────────── */}
-      {moodDistribution.length > 0 && (
-        <Card elevated style={{ marginBottom: spacing[4] }}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.xl, fontWeight: '800', marginBottom: spacing[4] }]}>
-            😊  Mood Distribution
-          </Text>
-          <Text style={{ color: colors.textSecondary, fontSize: typography.sm, marginBottom: spacing[4] }}>
-            Your most common moods over the last 30 days
-          </Text>
 
-          {moodDistribution.map((item, index) => (
-            <View key={item.mood} style={{ marginBottom: spacing[3] }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing[2] }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[2] }}>
-                  <Text style={{ fontSize: 20 }}>{MOOD_EMOJI[item.mood] || '😐'}</Text>
-                  <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '600', textTransform: 'capitalize' }}>
-                    {item.mood}
-                  </Text>
-                </View>
-                <Text style={{ color: colors.textSecondary, fontSize: typography.sm }}>
-                  {item.count} days ({item.percentage}%)
-                </Text>
-              </View>
-              {/* Progress bar */}
-              <View
-                style={{
-                  height: 8,
-                  backgroundColor: colors.surfaceSecondary,
-                  borderRadius: 4,
-                  overflow: 'hidden',
-                }}
-              >
-                <View
-                  style={{
-                    height: '100%',
-                    width: `${item.percentage}%`,
-                    backgroundColor: index === 0 ? colors.primary : index === 1 ? colors.follicular : index === 2 ? colors.ovulationColor : colors.luteal,
-                    borderRadius: 4,
-                  }}
-                />
-              </View>
-            </View>
-          ))}
-        </Card>
-      )}
 
       {/* ── AI Period Insights ──────────────────────────────────────── */}
       {insights && (insights as any).insights && (insights as any).insights.length > 0 && (
@@ -713,105 +553,24 @@ export default function CycleAnalysisScreen() {
         </Card>
       )}
 
-      {/* ── AI-Powered Smart Recommendations ────────────────────────── */}
-      <Card elevated style={{ marginBottom: spacing[4] }}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.xl, fontWeight: '800', marginBottom: spacing[4] }]}>
-          🤖  AI-Powered Insights
-        </Text>
-        <Text style={{ color: colors.textSecondary, fontSize: typography.sm, marginBottom: spacing[4] }}>
-          Smart recommendations tailored to your current cycle phase
-        </Text>
 
-        {/* Recommendations based on current phase */}
-        {currentPhase && (
-          <View>
-            {/* Phase-specific recommendation */}
-            <View
-              style={{
-                backgroundColor: phaseAccent + '15',
-                padding: spacing[4],
-                borderRadius: borderRadius.lg,
-                marginBottom: spacing[3],
-                borderLeftWidth: 4,
-                borderLeftColor: phaseAccent,
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing[2] }}>
-                <Text style={{ fontSize: 24, marginRight: spacing[2] }}>
-                  {PHASE_EMOJI[currentPhase] || '•'}
-                </Text>
-                <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700' }}>
-                  {currentPhase} Phase Tips
-                </Text>
-              </View>
-              <Text style={{ color: colors.textPrimary, fontSize: typography.sm, lineHeight: 20 }}>
-                {getPhaseRecommendation(currentPhase)}
+      {/* ── Prediction confidence ─────────────────────────────────────── */}
+      {predictionReliability !== null && predictionReliability > 0 && (
+        <Card style={{ marginBottom: spacing[4] }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[3] }}>
+            <Text style={{ fontSize: 20 }}>📊</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '700' }}>
+                اطمینان پیش‌بینی
+              </Text>
+              <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2 }}>
+                بر اساس {Array.isArray(periods) ? (periods as any[]).length : '—'} سیکل ثبت‌شده —{' '}
+                {Math.round(predictionReliability * 100)}٪ اطمینان
               </Text>
             </View>
-
-            {/* General wellness recommendations */}
-            <View
-              style={{
-                backgroundColor: colors.surfaceSecondary,
-                padding: spacing[4],
-                borderRadius: borderRadius.lg,
-                marginBottom: spacing[3],
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing[3] }}>
-                <Text style={{ fontSize: 20, marginRight: spacing[2] }}>🎯</Text>
-                <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700' }}>
-                  Personalized Recommendations
-                </Text>
-              </View>
-
-              {getSmartRecommendations(currentPhase, isOnPeriod, isFertileWindow).map((rec, index) => (
-                <View
-                  key={index}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'flex-start',
-                    marginBottom: spacing[2],
-                    paddingBottom: index < 2 ? spacing[2] : 0,
-                    borderBottomWidth: index < 2 ? StyleSheet.hairlineWidth : 0,
-                    borderBottomColor: colors.border,
-                  }}
-                >
-                  <Text style={{ color: rec.color, marginRight: spacing[2], fontSize: 16 }}>
-                    {rec.icon}
-                  </Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '600', marginBottom: 2 }}>
-                      {rec.title}
-                    </Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: typography.xs, lineHeight: 18 }}>
-                      {rec.description}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-
-            {/* Cycle prediction confidence */}
-            {predictionReliability !== null && predictionReliability > 0 && (
-              <View
-                style={{
-                  backgroundColor: colors.primaryLighter,
-                  padding: spacing[3],
-                  borderRadius: borderRadius.lg,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                }}
-              >
-                <Text style={{ fontSize: 18, marginRight: spacing[2] }}>📊</Text>
-                <Text style={{ color: colors.primary, fontSize: typography.xs, flex: 1 }}>
-                  Our AI predictions are <Text style={{ fontWeight: '700' }}>{Math.round(predictionReliability * 100)}% confident</Text> based on your cycle history
-                </Text>
-              </View>
-            )}
           </View>
-        )}
-      </Card>
+        </Card>
+      )}
 
       {/* Symptom patterns */}
       {patterns && (patterns as any).patterns && (patterns as any).patterns.length > 0 && (

@@ -1,13 +1,21 @@
+/**
+ * MainNavigator — Bottom tab bar
+ *
+ * Tabs: Home | Cycle | Log | Patterns | Profile
+ *
+ * "Log" opens the QuickLog screen directly.
+ * "Patterns" is the Insights hub — data-state-aware in Phase 1,
+ *   populated with cross-cycle intelligence in Phase 2+.
+ */
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import type { MainTabParamList } from './types';
-import { HomeStack }       from './stacks/HomeStack';
-import { CycleStack }      from './stacks/CycleStack';
-import { WellnessStack }   from './stacks/WellnessStack';
-import { MessagesStack }   from './stacks/MessagesStack';
-import { PartnerAIStack }  from './stacks/PartnerAIStack';
-import { ProfileStack }    from './stacks/ProfileStack';
+import { HomeStack }     from './stacks/HomeStack';
+import { CycleStack }    from './stacks/CycleStack';
+import { WellnessStack } from './stacks/WellnessStack';
+import { InsightsStack } from './stacks/InsightsStack';
+import { ProfileStack }  from './stacks/ProfileStack';
 import { useUnreadNotifications } from '@hooks/queries/useNotifications';
 import { TabIcon } from '@components/ui';
 import { useTheme } from '@hooks/useTheme';
@@ -55,14 +63,25 @@ function TabItem({ source, label, focused, color, badge }: TabItemProps) {
   );
 }
 
+// ── Log tab centre button ─────────────────────────────────────────────────────
+
+function LogTabIcon({ focused, color }: { focused: boolean; color: string }) {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.logTabWrap, { backgroundColor: focused ? colors.primary : colors.primaryLight }]}>
+      <TabIcon source={icons.wellness} size={22} color={focused ? '#fff' : colors.primary} />
+    </View>
+  );
+}
+
 // ── Navigator ─────────────────────────────────────────────────────────────────
 
 export function MainNavigator() {
   const { data: unreadNotifs } = useUnreadNotifications();
   const { colors }             = useTheme();
 
-  const TAB_H  = Platform.OS === 'ios' ? 80 : 64;
-  const tabIconColor = colors.primary;
+  const TAB_H      = Platform.OS === 'ios' ? 80 : 64;
+  const tabColor   = colors.primary;
 
   return (
     <Tab.Navigator
@@ -82,11 +101,11 @@ export function MainNavigator() {
           shadowRadius:     12,
           elevation:        16,
         },
-        tabBarActiveTintColor:   tabIconColor,
-        tabBarInactiveTintColor: tabIconColor,
+        tabBarActiveTintColor:   tabColor,
+        tabBarInactiveTintColor: tabColor,
       }}
     >
-      {/* ── Home ─────────────────────────────────────────────────────── */}
+      {/* ── Home ──────────────────────────────────────────────────────── */}
       <Tab.Screen
         name="HomeTab"
         component={HomeStack}
@@ -94,7 +113,7 @@ export function MainNavigator() {
           tabBarIcon: ({ focused, color }) => (
             <TabItem
               source={icons.home}
-              label="Home"
+              label="خانه"
               focused={focused}
               color={color}
               badge={unreadNotifs?.count}
@@ -103,29 +122,7 @@ export function MainNavigator() {
         }}
       />
 
-      {/* ── Medications ──────────────────────────────────────────────── */}
-      <Tab.Screen
-        name="WellnessTab"
-        component={WellnessStack}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            navigation.navigate('WellnessTab', { screen: 'Medications' });
-          },
-        })}
-        options={{
-          tabBarIcon: ({ focused, color }) => (
-            <TabItem
-              source={icons.healthcare}
-              label="Medications"
-              focused={focused}
-              color={color}
-            />
-          ),
-        }}
-      />
-
-      {/* ── Stats (Cycle/Analytics) ──────────────────────────────────── */}
+      {/* ── Cycle ─────────────────────────────────────────────────────── */}
       <Tab.Screen
         name="CycleTab"
         component={CycleStack}
@@ -133,7 +130,7 @@ export function MainNavigator() {
           tabBarIcon: ({ focused, color }) => (
             <TabItem
               source={icons.search}
-              label="Stats"
+              label="سیکل"
               focused={focused}
               color={color}
             />
@@ -141,21 +138,30 @@ export function MainNavigator() {
         }}
       />
 
-      {/* ── Wellness ─────────────────────────────────────────────────── */}
+      {/* ── Log (centre action) ───────────────────────────────────────── */}
       <Tab.Screen
-        name="MessagesTab"
+        name="LogTab"
         component={WellnessStack}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            navigation.navigate('WellnessTab', { screen: 'WellnessDashboard' });
+            navigation.navigate('LogTab', { screen: 'QuickLog' });
           },
         })}
         options={{
+          tabBarIcon: ({ focused }) => <LogTabIcon focused={focused} color="" />,
+        }}
+      />
+
+      {/* ── Patterns / Insights ───────────────────────────────────────── */}
+      <Tab.Screen
+        name="InsightsTab"
+        component={InsightsStack}
+        options={{
           tabBarIcon: ({ focused, color }) => (
             <TabItem
-              source={icons.wellness}
-              label="Wellness"
+              source={icons.search}
+              label="الگوها"
               focused={focused}
               color={color}
             />
@@ -163,7 +169,7 @@ export function MainNavigator() {
         }}
       />
 
-      {/* ── Profile ──────────────────────────────────────────────────── */}
+      {/* ── Profile ───────────────────────────────────────────────────── */}
       <Tab.Screen
         name="ProfileTab"
         component={ProfileStack}
@@ -171,7 +177,7 @@ export function MainNavigator() {
           tabBarIcon: ({ focused, color }) => (
             <TabItem
               source={icons.profile}
-              label="Profile"
+              label="من"
               focused={focused}
               color={color}
             />
@@ -197,6 +203,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 30,
     position: 'relative',
+  },
+  logTabWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
   },
   badgeDot: {
     position: 'absolute',
