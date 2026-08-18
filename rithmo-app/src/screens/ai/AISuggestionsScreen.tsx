@@ -32,6 +32,8 @@ import {
 import { LoadingState, ErrorState, EmptyState } from '@components/ui';
 import { formatDate } from '@utils/dateUtils';
 import { extractErrorMessage } from '@utils/errorHandler';
+import { usePremiumStatus } from '@hooks/queries/useSubscription';
+import { PremiumGate } from '@components/PremiumGate';
 import type { AISuggestion } from '@types/ai.types';
 
 const { width: W } = Dimensions.get('window');
@@ -297,6 +299,21 @@ function HistoryCard({
           {item.response_text}
         </Text>
 
+        {/* Rationale */}
+        {!!item.rationale && (
+          <Text
+            style={{
+              color: colors.textSecondary,
+              fontSize: typography.xs,
+              lineHeight: 16,
+              marginTop: spacing[2],
+              fontStyle: 'italic',
+            }}
+          >
+            {item.rationale}
+          </Text>
+        )}
+
         {/* Feedback */}
         <FeedbackRow item={item} onFeedback={onFeedback} />
       </View>
@@ -486,6 +503,7 @@ function NegativeFeedbackModal({ visible, onClose, onSubmit, loading }: Feedback
 
 export default function AISuggestionsScreen() {
   const { colors, spacing, typography } = useTheme();
+  const { isPremium } = usePremiumStatus();
 
   const {
     data: current,
@@ -711,10 +729,25 @@ export default function AISuggestionsScreen() {
                     color: confidenceColor(current.confidence, colors),
                     fontSize: typography.xs,
                     fontWeight: '600',
-                    marginBottom: spacing[4],
+                    marginBottom: current.rationale ? spacing[1] : spacing[4],
                   }}
                 >
                   {confidenceLabel(current.confidence)}
+                </Text>
+              )}
+
+              {/* Rationale — feature-grounded "why" from the model */}
+              {!!current.rationale && (
+                <Text
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: typography.xs,
+                    lineHeight: 17,
+                    marginBottom: spacing[4],
+                    fontStyle: 'italic',
+                  }}
+                >
+                  {current.rationale}
                 </Text>
               )}
 
@@ -741,6 +774,14 @@ export default function AISuggestionsScreen() {
         {/* ── History ──────────────────────────────────────────────────── */}
         {historyList.length > 0 && (
           <>
+            {/* Premium upsell for free users — shown before history since
+                confidence and rationale are stripped server-side for free accounts. */}
+            {!isPremium && (
+              <View style={{ marginBottom: spacing[5] }}>
+                <PremiumGate featureName="AI confidence & rationale" />
+              </View>
+            )}
+
             <Text
               style={{
                 color: colors.textPrimary,

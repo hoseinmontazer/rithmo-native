@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Share,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@hooks/useTheme';
 import {
   useProfile,
@@ -19,8 +20,12 @@ import {
 } from '@hooks/queries/useProfile';
 import { Button, Input, Icon, LoadingState } from '@components/ui';
 import { extractErrorMessage } from '@utils/errorHandler';
+import type { ProfileScreenProps } from '@navigation/types';
+
+type Props = ProfileScreenProps<'PartnerManage'>;
 
 export default function PartnerManageScreen() {
+  const navigation = useNavigation<Props['navigation']>();
   const { colors, spacing, typography } = useTheme();
   const { data: profile, isLoading: profileLoading } = useProfile();
   const { data: invitation } = useInvitationCode();
@@ -179,6 +184,27 @@ export default function PartnerManageScreen() {
                   </View>
                 </View>
               ))}
+
+              {/* Open Messages button */}
+              <TouchableOpacity
+                onPress={() => navigation.navigate('PartnerMessages' as any)}
+                activeOpacity={0.8}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: spacing[2],
+                  paddingVertical: spacing[3],
+                  borderRadius: 12,
+                  backgroundColor: colors.primary,
+                  marginBottom: spacing[3],
+                }}
+              >
+                <Icon name="message-text-outline" size={18} color="#fff" />
+                <Text style={{ color: '#fff', fontSize: typography.sm, fontWeight: '700' }}>
+                  Open Messages
+                </Text>
+              </TouchableOpacity>
 
               {/* Remove flow */}
               {removeStep === 'idle' ? (

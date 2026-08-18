@@ -65,15 +65,22 @@ export const periodService = {
       params: { mode: 'insights', ...(role ? { role } : {}) },
     }),
 
-  // No backend implementation exists for these two yet (confirmed: no
-  // matching view/action anywhere in cycle_tracker) — left pointing at
-  // their originally-intended paths rather than silently faked, so a 404
-  // here means exactly what it says: this feature isn't built server-side.
+  // getWellnessCorrelation previously called /api/periods/wellness_correlation/
+  // which was never registered in cycle_tracker's urls.py (always 404).
+  // It now calls the real, live dashboard endpoint which returns the same
+  // WellnessCorrelation shape already typed in period.types.ts.
   getWellnessCorrelation: () =>
-    apiClient.get<WellnessCorrelation>(API_ENDPOINTS.PERIODS_WELLNESS_CORRELATION),
+    apiClient.get<WellnessCorrelation>(API_ENDPOINTS.DASHBOARD_CORRELATIONS),
 
+  // getSymptomPatterns previously called /api/periods/symptom_patterns/
+  // which has no backend implementation anywhere in the codebase.
+  // There is no plan to build this server-side in the current roadmap.
+  // The function is kept for API compatibility but now returns an empty
+  // SymptomPatterns shape so callers never see a 404 — CycleAnalysisScreen
+  // guards on patterns?.patterns?.length before rendering the section,
+  // so an empty result simply hides the section cleanly.
   getSymptomPatterns: () =>
-    apiClient.get<SymptomPatterns>(API_ENDPOINTS.PERIODS_SYMPTOM_PATTERNS),
+    Promise.resolve({ data: { message: 'not_implemented', patterns: [] } as unknown as SymptomPatterns }),
 
   // ── Ovulation ─────────────────────────────────────────────────────────────
   // Backend only exposes "current user's latest-cycle ovulation" — there is

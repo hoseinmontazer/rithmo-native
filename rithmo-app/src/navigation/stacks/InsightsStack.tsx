@@ -4,6 +4,7 @@ import type { InsightsStackParamList } from '@navigation/types';
 import { useTheme } from '@hooks/useTheme';
 
 const InsightsHomeScreen = React.lazy(() => import('@screens/insights/InsightsHomeScreen'));
+const DeepInsightsScreen = React.lazy(() => import('@screens/insights/DeepInsightsScreen'));
 
 const Stack = createNativeStackNavigator<InsightsStackParamList>();
 
@@ -24,6 +25,11 @@ export function InsightsStack() {
         name="InsightsHome"
         component={InsightsHomeScreen}
         options={{ title: 'الگوهای من', headerShown: false }}
+      />
+      <Stack.Screen
+        name="DeepInsights"
+        component={DeepInsightsScreen}
+        options={{ title: 'Deep Insights' }}
       />
     </Stack.Navigator>
   );

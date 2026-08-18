@@ -64,6 +64,9 @@ export const queryKeys = {
   },
   dashboard: {
     correlations: () => ['dashboard', 'correlations'] as const,
-    comparison: () => ['dashboard', 'comparison'] as const,
+    comparison:   () => ['dashboard', 'comparison']   as const,
+  },
+  subscription: {
+    status: () => ['subscription', 'status'] as const,
   },
 } as const;

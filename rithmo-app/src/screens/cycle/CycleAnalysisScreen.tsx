@@ -5,6 +5,10 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@hooks/useTheme';
 import { useCycleAnalysis, useCycleInsights, useSymptomPatterns, usePeriods } from '@hooks/queries/usePeriods';
+// NOTE: useSymptomPatterns is kept for the Symptom Patterns card below but the
+// underlying service now returns an empty-patterns stub (no backend endpoint
+// exists). The section is gated on patterns?.patterns?.length so it simply
+// hides when empty — no 404 is thrown.
 import { useProfile } from '@hooks/queries/useProfile';
 import { Card, LoadingState, ErrorState, Badge, Icon } from '@components/ui';
 import { formatDate } from '@utils/dateUtils';
@@ -59,16 +63,18 @@ export default function CycleAnalysisScreen() {
   const { data: periods, refetch: refetchPeriods } = usePeriods(isMaleWithPartner ? 'partner' : undefined);
 
   const { data: insights, isLoading: iLoading, refetch: refetchI } = useCycleInsights();
-  const { data: patterns, isLoading: pLoading, refetch: refetchP } = useSymptomPatterns();
+  // Symptom patterns: service now returns an empty stub (no backend endpoint).
+  // Not included in the loading / error gate — it resolves immediately.
+  const { data: patterns } = useSymptomPatterns();
 
   const [refreshing, setRefreshing] = React.useState(false);
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refetchA(), refetchI(), refetchP(), refetchPeriods()]);
+    await Promise.all([refetchA(), refetchI(), refetchPeriods()]);
     setRefreshing(false);
-  }, [refetchA, refetchI, refetchP, refetchPeriods]);
+  }, [refetchA, refetchI, refetchPeriods]);
 
-  if (aLoading || iLoading || pLoading) {return <LoadingState fullScreen message="Analysing cycle data…" />;}
+  if (aLoading || iLoading) {return <LoadingState fullScreen message="Analysing cycle data…" />;}
   if (aError) {return <ErrorState fullScreen error={aErr} onRetry={refetchA} />;}
 
   // Extract data from API response matching the structure you provided

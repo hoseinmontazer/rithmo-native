@@ -46,7 +46,8 @@ export type WellnessStackParamList = {
 
 // ── Insights Stack ────────────────────────────────────────────────────────────
 export type InsightsStackParamList = {
-  InsightsHome:    undefined;
+  InsightsHome:   undefined;
+  DeepInsights:   undefined;
 };
 
 // ── Profile Stack ─────────────────────────────────────────────────────────────
@@ -54,9 +55,17 @@ export type ProfileStackParamList = {
   Profile:         undefined;
   EditProfile:     undefined;
   PartnerManage:   undefined;
+  PartnerMessages: undefined;
   Settings:        undefined;
   ChangePassword:  undefined;
   DeleteAccount:   undefined;
+  Upgrade:         { featureName?: string };  // paywall — featureName shown in headline
+};
+
+// ── Messages Stack ────────────────────────────────────────────────────────────
+export type MessagesStackParamList = {
+  MessagesList: undefined;
+  Conversation: { partnerId: string; partnerName: string };
 };
 
 // ── Onboarding Stack ──────────────────────────────────────────────────────────
@@ -85,3 +94,6 @@ export type ProfileScreenProps<T extends keyof ProfileStackParamList> =
 
 export type MainTabScreenProps<T extends keyof MainTabParamList> =
   BottomTabScreenProps<MainTabParamList, T>;
+
+export type MessagesScreenProps<T extends keyof MessagesStackParamList> =
+  NativeStackScreenProps<MessagesStackParamList, T>;

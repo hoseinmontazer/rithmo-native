@@ -27,6 +27,9 @@ import { useWellnessLogs, useWellnessAnalytics } from '@hooks/queries/useWellnes
 import { deriveDataState, PatternCard } from '../home/components/PatternCard';
 import type { WellnessLog } from '@types/wellness.types';
 import type { CycleAnalysis } from '@types/period.types';
+import type { InsightsScreenProps } from '@navigation/types';
+
+type Props = InsightsScreenProps<'InsightsHome'>;
 
 // ── Section header ────────────────────────────────────────────────────────────
 
@@ -71,7 +74,7 @@ function AvgMetricRow({ label, value, max, color }: { label: string; value: numb
 
 export default function InsightsHomeScreen() {
   const { colors, spacing, typography } = useTheme();
-  const navigation = useNavigation();
+  const navigation = useNavigation<Props['navigation']>();
 
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -180,13 +183,41 @@ export default function InsightsHomeScreen() {
           </View>
         )}
 
-        {/* ── Phase 2 teaser ───────────────────────────────────────────── */}
-        <View style={[styles.teaserCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Icon name="clock-time-four-outline" size={20} color={colors.textTertiary} style={{ marginBottom: 8 }} />
-          <Text style={{ color: colors.textSecondary, fontSize: typography.sm, lineHeight: 20, textAlign: 'center' }}>
-            وقتی چند سیکل کامل شود، الگوهای تکرارشونده — مثل تغییر خلق در روز خاصی از سیکل — اینجا نمایش داده می‌شوند.
-          </Text>
-        </View>
+        {/* ── Deep Insights CTA ────────────────────────────────────────── */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('DeepInsights')}
+          activeOpacity={0.85}
+          style={[
+            styles.teaserCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.primary + '40',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Open Deep Insights"
+        >
+          <View style={{ flex: 1, paddingRight: spacing[3] }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[2], marginBottom: spacing[2] }}>
+              <View style={{ backgroundColor: colors.primaryLighter, borderRadius: 8, padding: 4 }}>
+                <Icon name="chart-bell-curve-cumulative" size={16} color={colors.primary} />
+              </View>
+              <Text style={{ color: colors.primary, fontSize: typography.xs, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                Premium
+              </Text>
+            </View>
+            <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700', marginBottom: 4 }}>
+              Deep Insights
+            </Text>
+            <Text style={{ color: colors.textSecondary, fontSize: typography.sm, lineHeight: 18 }}>
+              See how your sleep, stress, mood, and energy are actually connected — based on your own data.
+            </Text>
+          </View>
+          <Icon name="chevron-right" size={22} color={colors.primary} />
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
