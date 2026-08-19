@@ -19,6 +19,8 @@ import { useTheme } from '@hooks/useTheme';
 
 // ── Phase interpretation map ──────────────────────────────────────────────────
 // User-facing language: personal, non-medical, observational.
+// Keys cover every phase the backend can send (see CyclePhase).  'unknown'
+// is the deliberate fallback — the card never invents a follicular phase.
 
 const PHASE_CONTEXT: Record<string, {
   label: string;          // non-medical user-facing label
@@ -28,7 +30,7 @@ const PHASE_CONTEXT: Record<string, {
   menstrual: {
     label: 'روزهای دوره',
     accent: 'menstrual',
-    interpretation: 'معمولاً روزهایی برای استراحت و آرامش',
+    interpretation: 'معمولا‌ً روزهایی برای استراحت و آرامش',
   },
   follicular: {
     label: 'فاز فولیکولار',
@@ -45,6 +47,26 @@ const PHASE_CONTEXT: Record<string, {
     accent: 'luteal',
     interpretation: 'روزهای پایانی سیکل و افت تدریجی انرژی',
   },
+  expected: {
+    label: 'شروع دوره نزدیک است',
+    accent: 'info',
+    interpretation: 'دوره شما در روزهای خیلی نزدیک پیش‌بینی شده است',
+  },
+  late: {
+    label: 'دوره دیر شده',
+    accent: 'warning',
+    interpretation: 'چند روز از تاریخ پیش‌بینی شروع دوره گذشته است',
+  },
+  overdue: {
+    label: 'دوره با تأخیر زیاد',
+    accent: 'menstrual',
+    interpretation: 'چند روز از تاریخ پیش‌بینی شروع دوره گذشته است',
+  },
+  unknown: {
+    label: 'وضعیت سیکل',
+    accent: 'info',
+    interpretation: 'هنوز داده‌ای برای تحلیل ثبت نشده است',
+  },
 };
 
 interface CycleContextCardProps {
@@ -52,8 +74,9 @@ interface CycleContextCardProps {
   hasData: boolean;
   hasError: boolean;
   cycleDay: number | null;
-  phase: 'menstrual' | 'follicular' | 'ovulation' | 'luteal';
+  phase: string;
   daysUntilPeriod: number | null;
+  daysOverdue: number | null;
   isOnPeriod: boolean;
   onPress: () => void;
   onRetry: () => void;
@@ -67,16 +90,24 @@ export const CycleContextCard = memo(function CycleContextCard({
   cycleDay,
   phase,
   daysUntilPeriod,
+  daysOverdue,
   isOnPeriod,
   onPress,
   onRetry,
   onStartTracking,
 }: CycleContextCardProps) {
   const { colors, spacing, typography, borderRadius, shadow } = useTheme();
-  const ctx = PHASE_CONTEXT[phase] ?? PHASE_CONTEXT.follicular;
+  // 'unknown' fallback — never invent a follicular phase for missing data.
+  const ctx = PHASE_CONTEXT[phase] ?? PHASE_CONTEXT.unknown;
   const accent = (colors as any)[ctx.accent] ?? colors.primary;
   const accentBg = (colors as any)[`${ctx.accent}Bg`] ?? (accent + '15');
   const accentBorder = (colors as any)[`${ctx.accent}Border`] ?? (accent + '40');
+
+  // Late/overdue: the interpretation line carries the overdue count.
+  let interpretation = ctx.interpretation;
+  if ((phase === 'late' || phase === 'overdue') && daysOverdue != null) {
+    interpretation = `${daysOverdue} روز از تاریخ پیش‌بینی شروع دوره گذشته است`;
+  }
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -182,7 +213,7 @@ export const CycleContextCard = memo(function CycleContextCard({
             </View>
           ) : null}
 
-          <View style={styles.phaseRightCol}>
+          <View style={[styles.phaseRightCol, !cycleDay && styles.phaseRightColSolo]}>
             <View
               style={[
                 styles.phaseBadge,
@@ -199,13 +230,19 @@ export const CycleContextCard = memo(function CycleContextCard({
               </Text>
             </View>
 
-            {daysUntilPeriod != null && !isOnPeriod && (
+            {(phase === 'late' || phase === 'overdue') ? (
+              <Text style={[styles.daysUntil, { color: accent, fontSize: typography.bodySmall, fontWeight: '700' }]}>
+                {daysOverdue != null
+                  ? `${daysOverdue} روز از پیش‌بینی گذشته است`
+                  : 'دوره از تاریخ پیش‌بینی گذشته است'}
+              </Text>
+            ) : daysUntilPeriod != null && !isOnPeriod ? (
               <Text style={[styles.daysUntil, { color: colors.textSecondary, fontSize: typography.bodySmall }]}>
                 {daysUntilPeriod === 0
-                  ? 'دوره احتمالاً امروز شروع می‌شود'
+                  ? 'دوره احتمالا‌ً امروز شروع می‌شود'
                   : `${daysUntilPeriod} روز تا دوره بعدی`}
               </Text>
-            )}
+            ) : null}
 
             {isOnPeriod && (
               <Text style={[styles.daysUntil, { color: colors.menstrual, fontSize: typography.bodySmall, fontWeight: '700' }]}>
@@ -228,7 +265,7 @@ export const CycleContextCard = memo(function CycleContextCard({
           ]}
         >
           <Text style={[styles.interpretText, { color: accent, fontSize: typography.bodySmall }]}>
-            {ctx.interpretation}
+            {interpretation}
           </Text>
         </View>
       </View>
@@ -253,6 +290,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'flex-end',
     gap: 6,
+  },
+  phaseRightColSolo: {
+    alignItems: 'flex-start',
   },
   cycleDayNum: {
     fontWeight: '800',

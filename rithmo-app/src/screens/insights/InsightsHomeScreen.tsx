@@ -1,7 +1,8 @@
 /**
  * InsightsHomeScreen — الگوهای من
  *
- * Premium landing-system redesign.
+ * Rhythmo Design System Redesign.
+ * Calm, modern, editorial, typography-first intelligence hub.
  * Data-state aware — never fabricates insights.
  */
 import React, { useCallback } from 'react';
@@ -20,18 +21,12 @@ import { useTheme } from '@hooks/useTheme';
 import { usePeriods, useCycleAnalysis } from '@hooks/queries/usePeriods';
 import { useWellnessLogs, useWellnessAnalytics } from '@hooks/queries/useWellness';
 import { deriveDataState, PatternCard } from '../home/components/PatternCard';
+import { Card, Badge } from '@components/ui';
 import type { WellnessLog } from '@types/wellness.types';
 import type { CycleAnalysis } from '@types/period.types';
 import type { InsightsScreenProps } from '@navigation/types';
 
 type Props = InsightsScreenProps<'InsightsHome'>;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MetricDot
-// ─────────────────────────────────────────────────────────────────────────────
-function MetricDot({ color }: { color: string }) {
-  return <View style={[s.metricDot, { backgroundColor: color }]} />;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ProgressBar
@@ -40,7 +35,7 @@ function ProgressBar({
   value,
   max,
   color,
-  height = 3,
+  height = 4,
 }: {
   value: number;
   max: number;
@@ -48,20 +43,20 @@ function ProgressBar({
   height?: number;
 }) {
   const { colors } = useTheme();
-  const pct = Math.min(1, value / max);
+  const pct = Math.min(1, Math.max(0, value / max));
   return (
     <View
       style={[
-        s.progressTrack,
-        { height, borderRadius: height, backgroundColor: colors.border },
+        styles.progressTrack,
+        { height, borderRadius: height / 2, backgroundColor: colors.border },
       ]}
     >
       <View
         style={[
-          s.progressFill,
+          styles.progressFill,
           {
             width: `${pct * 100}%`,
-            borderRadius: height,
+            borderRadius: height / 2,
             backgroundColor: color,
           },
         ]}
@@ -71,22 +66,31 @@ function ProgressBar({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Eyebrow
+// SectionHeading
 // ─────────────────────────────────────────────────────────────────────────────
-function Eyebrow({ label, color }: { label: string; color?: string }) {
-  const { colors, typography } = useTheme();
+function SectionHeading({ title, sub }: { title: string; sub?: string }) {
+  const { colors, typography, spacing } = useTheme();
   return (
-    <Text
-      style={[
-        s.eyebrow,
-        {
-          color: color ?? colors.textTertiary,
-          fontSize: typography.xs,
-        },
-      ]}
-    >
-      {label}
-    </Text>
+    <View style={[styles.sectionHeading, { marginBottom: spacing[3] }]}>
+      <Text
+        style={[
+          styles.sectionHeadingTitle,
+          { color: colors.textPrimary, fontSize: typography.lg },
+        ]}
+      >
+        {title}
+      </Text>
+      {sub ? (
+        <Text
+          style={[
+            styles.sectionHeadingSub,
+            { color: colors.textSecondary, fontSize: typography.xs },
+          ]}
+        >
+          {sub}
+        </Text>
+      ) : null}
+    </View>
   );
 }
 
@@ -108,25 +112,27 @@ function StatTile({
   return (
     <View
       style={[
-        s.statTile,
+        styles.statTile,
         {
           borderRadius: borderRadius.md,
           borderColor: colors.border,
-          padding: spacing[4],
           backgroundColor: colors.surface,
+          padding: spacing[3],
         },
       ]}
     >
-      <View style={[s.statTileAccentBar, { backgroundColor: accent, marginBottom: spacing[3] }]} />
-      <Text style={[s.statTileValue, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
+      <View style={[styles.statTileAccentDot, { backgroundColor: accent }]} />
+      <Text style={[styles.statTileValue, { color: colors.textPrimary, fontSize: typography.xl }]}>
         {value}
+        {sub ? (
+          <Text style={[styles.statTileSub, { color: colors.textTertiary, fontSize: typography.xs }]}>
+            {' '}{sub}
+          </Text>
+        ) : null}
       </Text>
-      <Text style={[s.statTileLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
+      <Text style={[styles.statTileLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
         {label}
       </Text>
-      {sub && (
-        <Text style={[s.statTileSub, { color: colors.textTertiary }]}>{sub}</Text>
-      )}
     </View>
   );
 }
@@ -139,29 +145,31 @@ function AvgMetricRow({
   value,
   max,
   color,
-  emoji,
+  iconName,
 }: {
   label: string;
   value: number | null;
   max: number;
   color: string;
-  emoji: string;
+  iconName: string;
 }) {
   const { colors, typography, spacing } = useTheme();
   if (value === null) { return null; }
 
   return (
-    <View style={[s.avgRow, { marginBottom: spacing[4] }]}>
-      <View style={s.avgRowHeader}>
-        <View style={s.avgRowLeft}>
-          <MetricDot color={color} />
-          <Text style={[s.avgRowLabelText, { color: colors.textSecondary, fontSize: typography.sm }]}>
-            {emoji}  {label}
+    <View style={[styles.avgRow, { marginBottom: spacing[3] }]}>
+      <View style={styles.avgRowHeader}>
+        <View style={styles.avgRowLeft}>
+          <View style={[styles.metricIconWrap, { backgroundColor: color + '15' }]}>
+            <Icon name={iconName} size={14} color={color} />
+          </View>
+          <Text style={[styles.avgRowLabelText, { color: colors.textPrimary, fontSize: typography.sm }]}>
+            {label}
           </Text>
         </View>
-        <Text style={[s.avgRowValue, { color: colors.textPrimary, fontSize: typography.sm }]}>
+        <Text style={[styles.avgRowValue, { color: colors.textPrimary, fontSize: typography.sm }]}>
           {value.toFixed(1)}
-          <Text style={[s.avgRowValueMax, { color: colors.textTertiary }]}>
+          <Text style={[styles.avgRowValueMax, { color: colors.textTertiary, fontSize: typography.xs }]}>
             /{max}
           </Text>
         </Text>
@@ -172,39 +180,10 @@ function AvgMetricRow({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SectionHeading
-// ─────────────────────────────────────────────────────────────────────────────
-function SectionHeading({ title, sub }: { title: string; sub?: string }) {
-  const { colors, typography, spacing } = useTheme();
-  return (
-    <View style={[s.sectionHeading, { marginBottom: spacing[4] }]}>
-      <Text
-        style={[
-          s.sectionHeadingTitle,
-          { color: colors.textPrimary, fontSize: typography.lg },
-        ]}
-      >
-        {title}
-      </Text>
-      {sub && (
-        <Text
-          style={[
-            s.sectionHeadingSub,
-            { color: colors.textSecondary, fontSize: typography.sm },
-          ]}
-        >
-          {sub}
-        </Text>
-      )}
-    </View>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Main screen
 // ─────────────────────────────────────────────────────────────────────────────
 export default function InsightsHomeScreen() {
-  const { colors, spacing, typography, borderRadius } = useTheme();
+  const { colors, spacing, typography } = useTheme();
   const navigation = useNavigation<Props['navigation']>();
 
   const [refreshing, setRefreshing] = React.useState(false);
@@ -231,13 +210,16 @@ export default function InsightsHomeScreen() {
   const avg         = (analytics as Record<string, number | null> | undefined)?.averages as
     Record<string, number | null> | undefined;
 
-  const avgCycle = (cycleData as CycleAnalysis | undefined)?.average_cycle;
-  const regScore = (cycleData as CycleAnalysis | undefined)?.regularity_score;
+  // average_cycle_length is the current backend key; average_cycle is
+  // legacy (never sent by the current API) — keep as fallback only.
+  const cd = cycleData as CycleAnalysis | undefined;
+  const avgCycle = cd?.average_cycle_length ?? cd?.average_cycle ?? null;
+  const regScore = cd?.regularity_score;
 
   return (
-    <SafeAreaView style={[s.flex1, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.flex1, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       <ScrollView
-        contentContainerStyle={[s.scrollContent, { paddingHorizontal: spacing[5], paddingBottom: spacing[20] }]}
+        contentContainerStyle={[styles.scrollContent, { paddingHorizontal: spacing[4], paddingBottom: spacing[20] }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -249,21 +231,28 @@ export default function InsightsHomeScreen() {
         }
       >
         {/* ══ HERO HEADER ══════════════════════════════════════════════ */}
-        <View style={[s.heroSection, { paddingTop: spacing[6], marginBottom: spacing[8] }]}>
-          <Eyebrow label="ریتمو · الگوهای شخصی" />
+        <View style={[styles.heroSection, { paddingTop: spacing[4], marginBottom: spacing[6] }]}>
           <Text
             style={[
-              s.heroTitle,
+              styles.overLine,
+              { color: colors.textTertiary, fontSize: typography.xs },
+            ]}
+          >
+            ریتمو · الگوهای شخصی
+          </Text>
+          <Text
+            style={[
+              styles.heroTitle,
               { color: colors.textPrimary, fontSize: typography['2xl'] },
             ]}
           >
             الگوهای من
           </Text>
-          <Text style={[s.heroSub, { color: colors.textSecondary, fontSize: typography.sm }]}>
+          <Text style={[styles.heroSub, { color: colors.textSecondary, fontSize: typography.sm }]}>
             داده‌های واقعی تو — نه میانگین جمعیت
           </Text>
 
-          <View style={[s.statRow, { marginTop: spacing[5], gap: spacing[3] }]}>
+          <View style={[styles.statRow, { marginTop: spacing[4], gap: spacing[2] }]}>
             <StatTile label="روز ثبت"   value={String(logCount)}    accent={colors.follicular} />
             <StatTile label="سیکل کامل" value={String(periodCount)} accent={colors.menstrual} />
             {avgCycle != null && (
@@ -273,7 +262,7 @@ export default function InsightsHomeScreen() {
         </View>
 
         {/* ══ PATTERN STATUS CARD ══════════════════════════════════════ */}
-        <View style={[s.patternCardWrap, { marginBottom: spacing[8] }]}>
+        <View style={[styles.patternCardWrap, { marginBottom: spacing[6] }]}>
           <PatternCard
             dataState={dataState}
             logCount={logCount}
@@ -286,94 +275,59 @@ export default function InsightsHomeScreen() {
 
         {/* ══ 30-DAY AVERAGES ═══════════════════════════════════════════ */}
         {avg && logCount >= 5 && (
-          <View style={[s.section, { marginBottom: spacing[8] }]}>
+          <View style={[styles.section, { marginBottom: spacing[6] }]}>
             <SectionHeading
               title="میانگین ۳۰ روز"
               sub="اعداد شخصی تو — نه میانگین جمعیت"
             />
 
-            <View
-              style={[
-                s.avgCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderRadius: borderRadius.md,
-                  borderColor: colors.border,
-                  padding: spacing[5],
-                },
-              ]}
-            >
-              {/* Rainbow stripe */}
-              <View style={[s.rainbowStripe, { marginBottom: spacing[5] }]}>
-                {[colors.primary, colors.luteal, colors.ovulationColor, colors.menstrual, colors.follicular].map(
-                  (c, i) => (
-                    <View key={i} style={[s.rainbowSegment, { backgroundColor: c }]} />
-                  ),
-                )}
-              </View>
-
-              <AvgMetricRow label="خواب"   value={avg.sleep_hours  ?? null} max={10} color={colors.primary}         emoji="😴" />
-              <AvgMetricRow label="خلق"    value={avg.mood_level   ?? null} max={5}  color={colors.luteal}          emoji="💆" />
-              <AvgMetricRow label="انرژی"  value={avg.energy_level ?? null} max={10} color={colors.ovulationColor}  emoji="⚡" />
-              <AvgMetricRow label="درد"    value={avg.pain_level   ?? null} max={10} color={colors.menstrual}       emoji="💊" />
-              <AvgMetricRow label="استرس"  value={avg.stress_level ?? null} max={10} color={colors.follicular}      emoji="🧘" />
-            </View>
+            <Card elevated={false} style={{ padding: spacing[4] }}>
+              <AvgMetricRow label="خواب"   value={avg.sleep_hours  ?? null} max={10} color={colors.primary}         iconName="weather-night" />
+              <AvgMetricRow label="خلق"    value={avg.mood_level   ?? null} max={5}  color={colors.luteal}          iconName="emoticon-outline" />
+              <AvgMetricRow label="انرژی"  value={avg.energy_level ?? null} max={10} color={colors.ovulation}       iconName="lightning-bolt-outline" />
+              <AvgMetricRow label="درد"    value={avg.pain_level   ?? null} max={10} color={colors.menstrual}       iconName="pill" />
+              <AvgMetricRow label="استرس"  value={avg.stress_level ?? null} max={10} color={colors.follicular}      iconName="meditation" />
+            </Card>
           </View>
         )}
 
         {/* ══ CYCLE REGULARITY ══════════════════════════════════════════ */}
         {periodCount >= 2 && (
-          <View style={[s.section, { marginBottom: spacing[8] }]}>
+          <View style={[styles.section, { marginBottom: spacing[6] }]}>
             <SectionHeading title="انتظام سیکل" sub="بر اساس سیکل‌های ثبت‌شده" />
 
-            <View style={[s.tileRow, { gap: spacing[3] }]}>
+            <View style={[styles.tileRow, { gap: spacing[3] }]}>
               {/* Avg length tile */}
-              <View
-                style={[
-                  s.regularityTile,
-                  {
-                    backgroundColor: colors.surface,
-                    borderRadius: borderRadius.md,
-                    borderColor: colors.border,
-                    padding: spacing[4],
-                  },
-                ]}
-              >
-                <Eyebrow label="متوسط" color={colors.luteal} />
-                <Text style={[s.regularityValue, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
+              <Card elevated={false} style={[styles.regularityTile, { padding: spacing[4] }]}>
+                <Text style={[styles.overLine, { color: colors.luteal, fontSize: typography.xs, marginBottom: spacing[1] }]}>
+                  متوسط
+                </Text>
+                <Text style={[styles.regularityValue, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
                   {avgCycle ? Math.round(avgCycle) : '—'}
                 </Text>
-                <Text style={[s.regularityLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
+                <Text style={[styles.regularityLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
                   روز / سیکل
                 </Text>
-              </View>
+              </Card>
 
               {/* Regularity score tile */}
-              <View
-                style={[
-                  s.regularityTile,
-                  {
-                    backgroundColor: colors.surface,
-                    borderRadius: borderRadius.md,
-                    borderColor: colors.border,
-                    padding: spacing[4],
-                  },
-                ]}
-              >
-                <Eyebrow label="انتظام" color={colors.follicular} />
-                <Text style={[s.regularityValue, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
+              <Card elevated={false} style={[styles.regularityTile, { padding: spacing[4] }]}>
+                <Text style={[styles.overLine, { color: colors.follicular, fontSize: typography.xs, marginBottom: spacing[1] }]}>
+                  انتظام
+                </Text>
+                <Text style={[styles.regularityValue, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
                   {regScore != null ? `${Math.round(regScore * 100)}` : '—'}
                   {regScore != null && (
-                    <Text style={[s.regularityPct, { color: colors.textSecondary, fontSize: typography.lg }]}>
+                    <Text style={[styles.regularityPct, { color: colors.textSecondary, fontSize: typography.base }]}>
                       ٪
                     </Text>
                   )}
                 </Text>
-                <Text style={[s.regularityLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
+                <Text style={[styles.regularityLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
                   امتیاز انتظام
                 </Text>
                 {regScore != null && (
-                  <View style={[s.regBarWrap, { marginTop: spacing[3] }]}>
+                  <View style={{ marginTop: spacing[2] }}>
                     <ProgressBar
                       value={regScore}
                       max={1}
@@ -384,11 +338,11 @@ export default function InsightsHomeScreen() {
                           ? colors.warning
                           : colors.error
                       }
-                      height={3}
+                      height={4}
                     />
                   </View>
                 )}
-              </View>
+              </Card>
             </View>
           </View>
         )}
@@ -396,46 +350,39 @@ export default function InsightsHomeScreen() {
         {/* ══ DEEP INSIGHTS CTA ═════════════════════════════════════════ */}
         <TouchableOpacity
           onPress={() => navigation.navigate('DeepInsights')}
-          activeOpacity={0.88}
+          activeOpacity={0.85}
           accessibilityRole="button"
           accessibilityLabel="Open Deep Insights"
         >
-          <View
+          <Card
+            elevated={false}
             style={[
-              s.ctaCard,
+              styles.ctaCard,
               {
-                backgroundColor: colors.surfaceDark,
-                borderRadius: borderRadius.md,
+                backgroundColor: colors.surfaceSecondary,
+                borderColor: colors.primary + '30',
+                padding: spacing[4],
               },
             ]}
           >
-            {/* Decorative orbs */}
-            <View style={[s.ctaOrbTopRight, { backgroundColor: colors.follicular + '25' }]} />
-            <View style={[s.ctaOrbBottomLeft, { backgroundColor: colors.menstrual + '15' }]} />
-
-            {/* Premium badge */}
-            <View style={[s.ctaBadgeRow, { marginBottom: spacing[4] }]}>
-              <View style={[s.ctaBadge, { backgroundColor: colors.follicular + '30' }]}>
-                <Text style={[s.ctaBadgeText, { color: colors.follicular }]}>✦ Premium</Text>
-              </View>
+            <View style={styles.ctaHeaderRow}>
+              <Badge label="✦ Premium" variant="primary" />
+              <Icon name="arrow-left" size={18} color={colors.primary} />
             </View>
 
-            <Text style={[s.ctaTitle, { color: colors.textOnDark, fontSize: typography.xl }]}>
+            <Text style={[styles.ctaTitle, { color: colors.textPrimary, fontSize: typography.lg, marginTop: spacing[2] }]}>
               Deep Insights
             </Text>
-            <Text style={[s.ctaBody, { marginBottom: spacing[5] }]}>
-              ببین خواب، استرس، خلق، و انرژی‌ات چطور با هم در ارتباط‌اند — بر اساس داده‌های خودت.
+            <Text style={[styles.ctaBody, { color: colors.textSecondary, fontSize: typography.sm, marginTop: spacing[1] }]}>
+              ببین خواب، استرس، خلق و انرژی‌ات چطور با هم در ارتباط‌اند — بر اساس داده‌های خودت.
             </Text>
 
-            <View style={s.ctaFooter}>
-              <Text style={[s.ctaFooterLabel, { color: colors.textOnDark, fontSize: typography.sm }]}>
+            <View style={[styles.ctaFooter, { marginTop: spacing[3] }]}>
+              <Text style={[styles.ctaFooterLabel, { color: colors.primary, fontSize: typography.sm }]}>
                 مشاهده تحلیل عمیق
               </Text>
-              <View style={s.ctaArrowCircle}>
-                <Icon name="arrow-right" size={18} color={colors.textOnDark} />
-              </View>
             </View>
-          </View>
+          </Card>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -445,137 +392,138 @@ export default function InsightsHomeScreen() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Styles
 // ─────────────────────────────────────────────────────────────────────────────
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   flex1: { flex: 1 },
   scrollContent: {},
 
-  // MetricDot
-  metricDot: { width: 8, height: 8, borderRadius: 4 },
-
-  // ProgressBar
-  progressTrack: { overflow: 'hidden' },
-  progressFill:  { height: '100%' },
-
-  // Eyebrow
-  eyebrow: {
+  overLine: {
     fontWeight: '700',
-    letterSpacing: 1.2,
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
-    marginBottom: 6,
+    marginBottom: 4,
   },
 
-  // StatTile
+  progressTrack: {
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+  },
+
   statTile: {
     flex: 1,
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
   },
-  statTileAccentBar: { width: 28, height: 3, borderRadius: 2 },
-  statTileValue:     { fontWeight: '900', letterSpacing: -1, lineHeight: 34 },
-  statTileLabel:     { fontWeight: '600', marginTop: 2 },
-  statTileSub:       { fontSize: 11, marginTop: 2 },
-
-  // AvgMetricRow
-  avgRow:          {},
-  avgRowHeader:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  avgRowLeft:      { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  avgRowLabelText: { fontWeight: '500' },
-  avgRowValue:     { fontWeight: '800', fontVariant: ['tabular-nums'] },
-  avgRowValueMax:  { fontWeight: '500', fontSize: 11 },
-
-  // SectionHeading
-  sectionHeading:      {},
-  sectionHeadingTitle: { fontWeight: '800', letterSpacing: -0.4 },
-  sectionHeadingSub:   { marginTop: 3, lineHeight: 20 },
-
-  // Hero header
-  heroSection: {},
-  heroTitle:   { fontWeight: '900', letterSpacing: -1, lineHeight: 38, marginBottom: 8 },
-  heroSub:     { lineHeight: 20 },
-  statRow:     { flexDirection: 'row' },
-
-  // PatternCard wrapper
-  patternCardWrap: {},
-
-  // Section wrapper
-  section: {},
-
-  // Avg card
-  avgCard: {
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 5,
+  statTileAccentDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginBottom: 6,
   },
-  rainbowStripe:   { flexDirection: 'row', gap: 3 },
-  rainbowSegment:  { flex: 1, height: 2, borderRadius: 1 },
-
-  // Regularity
-  tileRow:         { flexDirection: 'row' },
-  regularityTile:  {
-    flex: 1,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  regularityValue: { fontWeight: '900', letterSpacing: -1 },
-  regularityPct:   { fontWeight: '700' },
-  regularityLabel: { fontWeight: '600', marginTop: 2 },
-  regBarWrap:      {},
-
-  // Deep Insights CTA card
-  ctaCard: {
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 5,
-    padding: 20,
-  },
-  ctaOrbTopRight: {
-    position: 'absolute',
-    top: -32,
-    right: -32,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  ctaOrbBottomLeft: {
-    position: 'absolute',
-    bottom: -20,
-    left: -20,
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-  },
-  ctaBadgeRow:  { flexDirection: 'row', alignItems: 'center' },
-  ctaBadge:     { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  ctaBadgeText: {
-    fontSize: 10,
+  statTileValue: {
     fontWeight: '800',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    letterSpacing: -0.5,
   },
-  ctaTitle: { fontWeight: '900', letterSpacing: -0.5, marginBottom: 8 },
-  ctaBody:  { color: '#AAAAAA', fontSize: 14, lineHeight: 20 },
-  ctaFooter:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  ctaFooterLabel: { fontWeight: '700' },
-  ctaArrowCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+  statTileLabel: {
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  statTileSub: {
+    fontWeight: '500',
+  },
+
+  avgRow: {},
+  avgRowHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  avgRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  metricIconWrap: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avgRowLabelText: {
+    fontWeight: '600',
+  },
+  avgRowValue: {
+    fontWeight: '700',
+  },
+  avgRowValueMax: {
+    fontWeight: '500',
+  },
+
+  sectionHeading: {},
+  sectionHeadingTitle: {
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  sectionHeadingSub: {
+    marginTop: 2,
+    lineHeight: 18,
+  },
+
+  heroSection: {},
+  heroTitle: {
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  heroSub: {
+    lineHeight: 20,
+  },
+  statRow: {
+    flexDirection: 'row',
+  },
+
+  patternCardWrap: {},
+  section: {},
+
+  tileRow: {
+    flexDirection: 'row',
+  },
+  regularityTile: {
+    flex: 1,
+  },
+  regularityValue: {
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  regularityPct: {
+    fontWeight: '600',
+  },
+  regularityLabel: {
+    fontWeight: '500',
+    marginTop: 2,
+  },
+
+  ctaCard: {
+    borderWidth: 1,
+  },
+  ctaHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ctaTitle: {
+    fontWeight: '700',
+  },
+  ctaBody: {
+    lineHeight: 20,
+  },
+  ctaFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ctaFooterLabel: {
+    fontWeight: '700',
   },
 });

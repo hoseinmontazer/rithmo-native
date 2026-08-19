@@ -1,8 +1,22 @@
+/**
+ * LogWellnessScreen — ثبت کامل وضعیت سلامت
+ *
+ * Rhythmo Design System Redesign.
+ * Full 13-metric comprehensive logging form organized into calm, logical sections.
+ * Preserves all backend fields, scales, clamping, and pre-filling logic.
+ */
 import React, { useState, useCallback, useEffect } from 'react';
 import {
-  View, Text, ScrollView, KeyboardAvoidingView,
-  Platform, StyleSheet, Alert,
+  View,
+  Text,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Alert,
+  TouchableOpacity,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
@@ -16,78 +30,20 @@ type Props = WellnessScreenProps<'LogWellness'>;
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
-// Custom draggable slider using PanResponder
-function CustomSlider({
-  value,
-  min,
-  max,
-  onChange,
-  color,
-  step = 1,
-}: {
+// ── Slider metric component ───────────────────────────────────────────────────
+
+interface SliderMetricProps {
+  icon: string;
+  label: string;
   value: number;
   min: number;
   max: number;
   onChange: (v: number) => void;
-  color: string;
+  iconColor: string;
+  unit?: string;
   step?: number;
-}) {
-  const { colors, borderRadius } = useTheme();
-  const [sliderWidth, setSliderWidth] = useState(0);
-
-  const handleLayout = (event: any) => {
-    setSliderWidth(event.nativeEvent.layout.width);
-  };
-
-  const handleTouch = (event: any) => {
-    if (sliderWidth === 0) {return;}
-
-    const locationX = event.nativeEvent.locationX;
-    const percentage = Math.max(0, Math.min(1, locationX / sliderWidth));
-    const rawValue = min + percentage * (max - min);
-    const newValue = Math.round(rawValue / step) * step;
-
-    // Clamp to min/max
-    const clampedValue = Math.max(min, Math.min(max, newValue));
-    onChange(clampedValue);
-  };
-
-  const percentage = ((value - min) / (max - min)) * 100;
-
-  return (
-    <View
-      style={[styles.sliderTrack, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.full }]}
-      onStartShouldSetResponder={() => true}
-      onResponderGrant={handleTouch}
-      onResponderMove={handleTouch}
-      onLayout={handleLayout}
-    >
-      <View
-        style={[
-          styles.sliderFill,
-          {
-            width: `${percentage}%`,
-            backgroundColor: color,
-            borderRadius: borderRadius.full,
-          },
-        ]}
-      />
-      <View
-        style={[
-          styles.sliderThumb,
-          {
-            left: `${percentage}%`,
-            backgroundColor: color,
-            borderRadius: borderRadius.full,
-            marginLeft: -10,
-          },
-        ]}
-      />
-    </View>
-  );
 }
 
-// Draggable slider metric
 function SliderMetric({
   icon,
   label,
@@ -98,57 +54,133 @@ function SliderMetric({
   iconColor,
   unit,
   step = 1,
-}: {
-  icon: string;
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (v: number) => void;
-  iconColor: string;
-  unit?: string;
-  step?: number;
-}) {
+}: SliderMetricProps) {
   const { colors, spacing, typography, borderRadius } = useTheme();
+  const [trackWidth, setTrackWidth] = useState(0);
+
+  const handleTouch = (event: any) => {
+    if (trackWidth === 0) {return;}
+    const locationX = event.nativeEvent.locationX;
+    const percentage = Math.max(0, Math.min(1, locationX / trackWidth));
+    const rawValue = min + percentage * (max - min);
+    const newValue = Math.round(rawValue / step) * step;
+    onChange(Math.max(min, Math.min(max, newValue)));
+  };
+
+  const handleDecrement = () => {
+    onChange(Math.max(min, value - step));
+  };
+
+  const handleIncrement = () => {
+    onChange(Math.min(max, value + step));
+  };
+
+  const percentage = max > min ? ((value - min) / (max - min)) * 100 : 0;
 
   return (
     <View style={{ marginBottom: spacing[4] }}>
-      <View style={styles.sliderHeader}>
-        <View style={[styles.iconBadge, { backgroundColor: iconColor + '15', borderRadius: borderRadius.md }]}>
-          <Icon name={icon} size={20} color={iconColor} />
-        </View>
-        <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '600', flex: 1, marginLeft: spacing[2] }}>
-          {label}
-        </Text>
-        <View style={[styles.valueBadge, { backgroundColor: iconColor + '20', borderRadius: borderRadius.full, paddingHorizontal: spacing[3], paddingVertical: spacing[1] }]}>
-          <Text style={{ color: iconColor, fontSize: typography.base, fontWeight: '700' }}>
-            {value}{unit ? ` ${unit}` : ''}
+      <View style={styles.metricHeaderRow}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+          <View style={[styles.metricIconWrap, { backgroundColor: iconColor + '18', borderRadius: borderRadius.sm }]}>
+            <Icon name={icon} size={18} color={iconColor} />
+          </View>
+          <Text style={[styles.metricLabelText, { color: colors.textPrimary, fontSize: typography.sm, marginLeft: spacing[2] }]}>
+            {label}
           </Text>
         </View>
+
+        {/* Value badge + quick stepper */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <TouchableOpacity
+            onPress={handleDecrement}
+            disabled={value <= min}
+            style={[
+              styles.stepBtn,
+              {
+                backgroundColor: colors.surfaceSecondary,
+                borderColor: colors.border,
+                borderRadius: borderRadius.sm,
+                opacity: value <= min ? 0.3 : 1,
+              },
+            ]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Icon name="minus" size={14} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <View style={[styles.metricValueBadge, { backgroundColor: iconColor + '18', borderRadius: borderRadius.md }]}>
+            <Text style={[styles.metricValueText, { color: iconColor, fontSize: typography.sm }]}>
+              {value}{unit ? ` ${unit}` : ''}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={handleIncrement}
+            disabled={value >= max}
+            style={[
+              styles.stepBtn,
+              {
+                backgroundColor: colors.surfaceSecondary,
+                borderColor: colors.border,
+                borderRadius: borderRadius.sm,
+                opacity: value >= max ? 0.3 : 1,
+              },
+            ]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Icon name="plus" size={14} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
       </View>
-      <CustomSlider
-        value={value}
-        min={min}
-        max={max}
-        step={step}
-        onChange={onChange}
-        color={iconColor}
-      />
-      <View style={styles.sliderLabels}>
-        <Text style={{ color: colors.textSecondary, fontSize: typography.xs }}>
-          {min}{unit ? ` ${unit}` : ''}
+
+      {/* Interactive slider track */}
+      <View
+        style={[styles.sliderTrack, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.pill }]}
+        onStartShouldSetResponder={() => true}
+        onResponderGrant={handleTouch}
+        onResponderMove={handleTouch}
+        onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
+      >
+        <View
+          style={[
+            styles.sliderFill,
+            {
+              width: `${percentage}%`,
+              backgroundColor: iconColor,
+              borderRadius: borderRadius.pill,
+            },
+          ]}
+        />
+        <View
+          style={[
+            styles.sliderThumb,
+            {
+              left: `${percentage}%`,
+              backgroundColor: iconColor,
+              borderRadius: borderRadius.pill,
+              borderColor: colors.surface,
+            },
+          ]}
+        />
+      </View>
+
+      <View style={styles.rangeLabelsRow}>
+        <Text style={[styles.rangeLabelText, { color: colors.textTertiary, fontSize: typography.xs }]}>
+          {min}
         </Text>
-        <Text style={{ color: colors.textSecondary, fontSize: typography.xs }}>
-          {max}{unit ? ` ${unit}` : ''}
+        <Text style={[styles.rangeLabelText, { color: colors.textTertiary, fontSize: typography.xs }]}>
+          {max}
         </Text>
       </View>
     </View>
   );
 }
 
+// ── Main screen ───────────────────────────────────────────────────────────────
+
 export default function LogWellnessScreen() {
   const navigation = useNavigation<Props['navigation']>();
-  const route      = useRoute<Props['route']>();
+  const route = useRoute<Props['route']>();
   const { colors, spacing, typography, borderRadius } = useTheme();
 
   const logId = route.params?.logId;
@@ -156,49 +188,43 @@ export default function LogWellnessScreen() {
   const { mutateAsync: saveLog, isPending } = useCreateOrUpdateWellnessLog();
 
   const [form, setForm] = useState({
-    stress_level:      5,
-    sleep_hours:       7,
-    mood_level:        3,
-    energy_level:      5,
-    pain_level:        0,
-    exercise_minutes:  0,
+    stress_level: 5,
+    sleep_hours: 7,
+    mood_level: 3,
+    energy_level: 5,
+    pain_level: 0,
+    exercise_minutes: 0,
     nutrition_quality: 3,
-    caffeine_intake:   1,
-    alcohol_intake:    0,
-    smoking:           0,
-    anxiety_level:     3,
-    focus_level:       5,
-    notes:             '',
+    caffeine_intake: 1,
+    alcohol_intake: 0,
+    smoking: 0,
+    anxiety_level: 3,
+    focus_level: 5,
+    notes: '',
   });
 
-  // Pre-fill if editing. Clamped to each slider's own range — a value the
-  // server returns outside that range (e.g. from a direct API call, an
-  // older app version with different bounds, or a future change to the
-  // scale) used to flow straight into slider state unclamped, which could
-  // render a thumb/fill outside its 0-100% track. User-driven changes were
-  // already clamped in CustomSlider.handleTouch; this makes prefill match.
   useEffect(() => {
     if (existing) {
       setForm({
-        stress_level:      clamp(existing.stress_level, 1, 10),
-        sleep_hours:       clamp(existing.sleep_hours, 0, 12),
-        mood_level:        clamp(existing.mood_level, 1, 5),
-        energy_level:      clamp(existing.energy_level, 1, 10),
-        pain_level:        clamp(existing.pain_level, 0, 10),
-        exercise_minutes:  clamp(existing.exercise_minutes, 0, 180),
-        nutrition_quality: clamp(existing.nutrition_quality, 1, 5),
-        caffeine_intake:   clamp(existing.caffeine_intake, 0, 10),
-        alcohol_intake:    clamp(existing.alcohol_intake, 0, 10),
-        smoking:           clamp(existing.smoking, 0, 20),
-        anxiety_level:     clamp(existing.anxiety_level, 1, 10),
-        focus_level:       clamp(existing.focus_level, 1, 10),
-        notes:             existing.notes,
+        stress_level: clamp(existing.stress_level ?? 5, 1, 10),
+        sleep_hours: clamp(existing.sleep_hours ?? 7, 0, 12),
+        mood_level: clamp(existing.mood_level ?? 3, 1, 5),
+        energy_level: clamp(existing.energy_level ?? 5, 1, 10),
+        pain_level: clamp(existing.pain_level ?? 0, 0, 10),
+        exercise_minutes: clamp(existing.exercise_minutes ?? 0, 0, 180),
+        nutrition_quality: clamp(existing.nutrition_quality ?? 3, 1, 5),
+        caffeine_intake: clamp(existing.caffeine_intake ?? 0, 0, 10),
+        alcohol_intake: clamp(existing.alcohol_intake ?? 0, 0, 10),
+        smoking: clamp(existing.smoking ?? 0, 0, 20),
+        anxiety_level: clamp(existing.anxiety_level ?? 3, 1, 10),
+        focus_level: clamp(existing.focus_level ?? 5, 1, 10),
+        notes: existing.notes ?? '',
       });
     }
   }, [existing]);
 
   const set = useCallback(<K extends keyof typeof form>(key: K, value: typeof form[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm(prev => ({ ...prev, [key]: value }));
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -206,232 +232,320 @@ export default function LogWellnessScreen() {
       await saveLog(form);
       navigation.goBack();
     } catch (err) {
-      Alert.alert('Error', extractErrorMessage(err));
+      Alert.alert('خطا', extractErrorMessage(err));
     }
   }, [form, saveLog, navigation]);
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.flex, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={{ padding: spacing[5] }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+      <KeyboardAvoidingView
+        style={styles.root}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Text style={[styles.pageTitle, { color: colors.textPrimary, fontSize: typography.xl, fontWeight: '700', marginBottom: spacing[1] }]}>
-          {logId ? 'Edit Wellness Log' : 'How are you today?'}
-        </Text>
-        <Text style={{ color: colors.textSecondary, fontSize: typography.sm, marginBottom: spacing[5] }}>
-          Drag the sliders to track your wellness
-        </Text>
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: spacing[4], paddingBottom: spacing[12] }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ── Header ──────────────────────────────────────────────── */}
+          <View style={[styles.headerSection, { paddingTop: spacing[2], marginBottom: spacing[4] }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.overline, { color: colors.textTertiary, fontSize: typography.xs }]}>
+                ریتمو · ثبت کامل
+              </Text>
+              <Text style={[styles.pageTitle, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
+                {logId ? 'ویرایش گزارش سلامت' : 'ثبت کامل وضعیت امروز'}
+              </Text>
+              <Text style={[styles.subtitle, { color: colors.textSecondary, fontSize: typography.sm }]}>
+                تنظیم دقیق ابعاد سلامت، انرژی و سبک زندگی
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={[
+                styles.closeBtn,
+                {
+                  backgroundColor: colors.surfaceSecondary,
+                  borderColor: colors.border,
+                  borderRadius: borderRadius.md,
+                },
+              ]}
+              accessibilityLabel="بستن"
+            >
+              <Icon name="close" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
 
-        {/* Mental Health */}
-        <Card style={{ marginBottom: spacing[4], padding: spacing[4] }}>
-          <View style={styles.sectionHeader}>
-            <Icon name="brain" size={24} color="#FF6B6B" />
-            <Text style={{ color: colors.textPrimary, fontSize: typography.lg, fontWeight: '700', marginLeft: spacing[2] }}>
-              Mental Health
-            </Text>
-          </View>
-          <View style={{ marginTop: spacing[4] }}>
-            <SliderMetric
-              icon="emoticon-sad-outline"
-              label="Stress Level"
-              value={form.stress_level}
-              min={1}
-              max={10}
-              onChange={(v) => set('stress_level', Math.round(v))}
-              iconColor="#FF6B6B"
-            />
-            <SliderMetric
-              icon="emoticon-happy-outline"
-              label="Mood"
-              value={form.mood_level}
-              min={1}
-              max={5}
-              onChange={(v) => set('mood_level', Math.round(v))}
-              iconColor="#FFD93D"
-            />
-            <SliderMetric
-              icon="heart-pulse"
-              label="Anxiety Level"
-              value={form.anxiety_level}
-              min={1}
-              max={10}
-              onChange={(v) => set('anxiety_level', Math.round(v))}
-              iconColor="#A8DADC"
-            />
-            <SliderMetric
-              icon="target"
-              label="Focus Level"
-              value={form.focus_level}
-              min={1}
-              max={10}
-              onChange={(v) => set('focus_level', Math.round(v))}
-              iconColor="#457B9D"
-            />
-          </View>
-        </Card>
+          {/* ── Section 1: Mental Wellness ───────────────────────────── */}
+          <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+            <View style={styles.sectionHeader}>
+              <Icon name="brain" size={20} color={colors.luteal} />
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, marginLeft: spacing[2] }]}>
+                سلامت روان و خلق
+              </Text>
+            </View>
 
-        {/* Physical Health */}
-        <Card style={{ marginBottom: spacing[4], padding: spacing[4] }}>
-          <View style={styles.sectionHeader}>
-            <Icon name="arm-flex" size={24} color="#F4A261" />
-            <Text style={{ color: colors.textPrimary, fontSize: typography.lg, fontWeight: '700', marginLeft: spacing[2] }}>
-              Physical Health
-            </Text>
-          </View>
-          <View style={{ marginTop: spacing[4] }}>
-            <SliderMetric
-              icon="lightning-bolt"
-              label="Energy Level"
-              value={form.energy_level}
-              min={1}
-              max={10}
-              onChange={(v) => set('energy_level', Math.round(v))}
-              iconColor="#F4A261"
-            />
-            <SliderMetric
-              icon="bandage"
-              label="Pain Level"
-              value={form.pain_level}
-              min={0}
-              max={10}
-              onChange={(v) => set('pain_level', Math.round(v))}
-              iconColor="#E76F51"
-            />
-            <SliderMetric
-              icon="run"
-              label="Exercise"
-              value={form.exercise_minutes}
-              min={0}
-              max={180}
-              step={5}
-              onChange={(v) => set('exercise_minutes', Math.round(v))}
-              iconColor="#2A9D8F"
-              unit="min"
-            />
-            <SliderMetric
-              icon="food-apple"
-              label="Nutrition Quality"
-              value={form.nutrition_quality}
-              min={1}
-              max={5}
-              onChange={(v) => set('nutrition_quality', Math.round(v))}
-              iconColor="#6A994E"
-            />
-          </View>
-        </Card>
+            <View style={{ marginTop: spacing[3] }}>
+              <SliderMetric
+                icon="emoticon-outline"
+                label="میزان خلق"
+                value={form.mood_level}
+                min={1}
+                max={5}
+                onChange={(v) => set('mood_level', Math.round(v))}
+                iconColor={colors.luteal}
+              />
+              <SliderMetric
+                icon="meditation"
+                label="سطح استرس"
+                value={form.stress_level}
+                min={1}
+                max={10}
+                onChange={(v) => set('stress_level', Math.round(v))}
+                iconColor={colors.menstrual}
+              />
+              <SliderMetric
+                icon="heart-pulse"
+                label="سطح اضطراب"
+                value={form.anxiety_level}
+                min={1}
+                max={10}
+                onChange={(v) => set('anxiety_level', Math.round(v))}
+                iconColor="#E76F51"
+              />
+              <SliderMetric
+                icon="target"
+                label="میزان تمرکز"
+                value={form.focus_level}
+                min={1}
+                max={10}
+                onChange={(v) => set('focus_level', Math.round(v))}
+                iconColor={colors.primary}
+              />
+            </View>
+          </Card>
 
-        {/* Lifestyle */}
-        <Card style={{ marginBottom: spacing[4], padding: spacing[4] }}>
-          <View style={styles.sectionHeader}>
-            <Icon name="home-heart" size={24} color="#9D4EDD" />
-            <Text style={{ color: colors.textPrimary, fontSize: typography.lg, fontWeight: '700', marginLeft: spacing[2] }}>
-              Lifestyle
-            </Text>
-          </View>
-          <View style={{ marginTop: spacing[4] }}>
-            <SliderMetric
-              icon="sleep"
-              label="Sleep"
-              value={form.sleep_hours}
-              min={0}
-              max={12}
-              step={0.5}
-              onChange={(v) => set('sleep_hours', Math.round(v * 2) / 2)}
-              iconColor="#9D4EDD"
-              unit="hrs"
-            />
-            <SliderMetric
-              icon="coffee"
-              label="Caffeine"
-              value={form.caffeine_intake}
-              min={0}
-              max={10}
-              onChange={(v) => set('caffeine_intake', Math.round(v))}
-              iconColor="#8B4513"
-              unit="cups"
-            />
-            <SliderMetric
-              icon="glass-wine"
-              label="Alcohol"
-              value={form.alcohol_intake}
-              min={0}
-              max={10}
-              onChange={(v) => set('alcohol_intake', Math.round(v))}
-              iconColor="#C77DFF"
-              unit="units"
-            />
-            <SliderMetric
-              icon="smoking"
-              label="Smoking"
-              value={form.smoking}
-              min={0}
-              max={20}
-              onChange={(v) => set('smoking', Math.round(v))}
-              iconColor="#6C757D"
-              unit="cigs"
-            />
-          </View>
-        </Card>
+          {/* ── Section 2: Physical Health ───────────────────────────── */}
+          <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+            <View style={styles.sectionHeader}>
+              <Icon name="arm-flex" size={20} color={colors.ovulation} />
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, marginLeft: spacing[2] }]}>
+                وضعیت جسمانی
+              </Text>
+            </View>
 
-        {/* Notes */}
-        <Card style={{ marginBottom: spacing[5], padding: spacing[4] }}>
-          <View style={styles.sectionHeader}>
-            <Icon name="note-text" size={24} color={colors.primary} />
-            <Text style={{ color: colors.textPrimary, fontSize: typography.lg, fontWeight: '700', marginLeft: spacing[2] }}>
-              Notes
-            </Text>
-          </View>
-          <Input
-            placeholder="How are you feeling today? Any observations…"
-            value={form.notes}
-            onChangeText={(v) => set('notes', v)}
-            multiline
-            numberOfLines={4}
-            style={{ minHeight: 80, textAlignVertical: 'top', marginTop: spacing[3] }}
+            <View style={{ marginTop: spacing[3] }}>
+              <SliderMetric
+                icon="lightning-bolt-outline"
+                label="سطح انرژی"
+                value={form.energy_level}
+                min={1}
+                max={10}
+                onChange={(v) => set('energy_level', Math.round(v))}
+                iconColor={colors.ovulation}
+              />
+              <SliderMetric
+                icon="bandage"
+                label="میزان درد"
+                value={form.pain_level}
+                min={0}
+                max={10}
+                onChange={(v) => set('pain_level', Math.round(v))}
+                iconColor={colors.menstrual}
+              />
+              <SliderMetric
+                icon="run"
+                label="فعالیت بدنی"
+                value={form.exercise_minutes}
+                min={0}
+                max={180}
+                step={5}
+                onChange={(v) => set('exercise_minutes', Math.round(v))}
+                iconColor="#2A9D8F"
+                unit="دقیقه"
+              />
+              <SliderMetric
+                icon="food-apple-outline"
+                label="کیفیت تغذیه"
+                value={form.nutrition_quality}
+                min={1}
+                max={5}
+                onChange={(v) => set('nutrition_quality', Math.round(v))}
+                iconColor="#6A994E"
+              />
+            </View>
+          </Card>
+
+          {/* ── Section 3: Lifestyle & Sleep ─────────────────────────── */}
+          <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+            <View style={styles.sectionHeader}>
+              <Icon name="weather-night" size={20} color={colors.primary} />
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, marginLeft: spacing[2] }]}>
+                خواب و سبک زندگی
+              </Text>
+            </View>
+
+            <View style={{ marginTop: spacing[3] }}>
+              <SliderMetric
+                icon="sleep"
+                label="مدت خواب"
+                value={form.sleep_hours}
+                min={0}
+                max={12}
+                step={0.5}
+                onChange={(v) => set('sleep_hours', Math.round(v * 2) / 2)}
+                iconColor={colors.primary}
+                unit="ساعت"
+              />
+              <SliderMetric
+                icon="coffee-outline"
+                label="مصرف کافئین"
+                value={form.caffeine_intake}
+                min={0}
+                max={10}
+                onChange={(v) => set('caffeine_intake', Math.round(v))}
+                iconColor="#8B4513"
+                unit="فنجان"
+              />
+              <SliderMetric
+                icon="glass-cocktail"
+                label="مصرف الکل"
+                value={form.alcohol_intake}
+                min={0}
+                max={10}
+                onChange={(v) => set('alcohol_intake', Math.round(v))}
+                iconColor="#C77DFF"
+                unit="واحد"
+              />
+              <SliderMetric
+                icon="smoking"
+                label="مصرف دخانیات"
+                value={form.smoking}
+                min={0}
+                max={20}
+                onChange={(v) => set('smoking', Math.round(v))}
+                iconColor="#6C757D"
+                unit="نخ"
+              />
+            </View>
+          </Card>
+
+          {/* ── Section 4: Notes ─────────────────────────────────────── */}
+          <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+            <View style={styles.sectionHeader}>
+              <Icon name="note-text-outline" size={20} color={colors.primary} />
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, marginLeft: spacing[2] }]}>
+                یادداشت شخصی
+              </Text>
+            </View>
+            <Input
+              placeholder="هر نکته‌ای در مورد احساسات یا علائم امروزت..."
+              value={form.notes}
+              onChangeText={(v) => set('notes', v)}
+              multiline
+              numberOfLines={3}
+              style={{ minHeight: 80, textAlignVertical: 'top', marginTop: spacing[3] }}
+            />
+          </Card>
+
+          {/* ── Action Buttons ────────────────────────────────────────── */}
+          <Button
+            label={isPending ? 'در حال ذخیره...' : 'ذخیره گزارش سلامت'}
+            onPress={handleSave}
+            loading={isPending}
+            disabled={isPending}
+            fullWidth
+            size="lg"
           />
-        </Card>
-
-        <Button label="Save Log" onPress={handleSave} loading={isPending} fullWidth size="lg" />
-        <Button label="Cancel"   onPress={() => navigation.goBack()} variant="ghost" fullWidth style={{ marginTop: spacing[3] }} />
-
-        <View style={{ height: spacing[8] }} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <Button
+            label="انصراف"
+            onPress={() => navigation.goBack()}
+            variant="ghost"
+            fullWidth
+            style={{ marginTop: spacing[2] }}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  pageTitle: {},
+  root: { flex: 1 },
+
+  headerSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  overline: {
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  pageTitle: {
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  sliderHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
+  sectionTitle: {
+    fontWeight: '700',
   },
-  iconBadge: {
-    width: 32,
-    height: 32,
+
+  metricHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  metricIconWrap: {
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  valueBadge: {
-    minWidth: 50,
+  metricLabelText: {
+    fontWeight: '600',
+  },
+  metricValueBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 44,
     alignItems: 'center',
   },
+  metricValueText: {
+    fontWeight: '700',
+  },
+  stepBtn: {
+    width: 26,
+    height: 26,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   sliderTrack: {
-    height: 8,
+    height: 6,
     width: '100%',
     position: 'relative',
-    marginVertical: 8,
+    marginVertical: 6,
   },
   sliderFill: {
     height: '100%',
@@ -440,19 +554,18 @@ const styles = StyleSheet.create({
     top: 0,
   },
   sliderThumb: {
-    width: 20,
-    height: 20,
+    width: 18,
+    height: 18,
     position: 'absolute',
     top: -6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    borderWidth: 2,
+    marginLeft: -9,
   },
-  sliderLabels: {
+  rangeLabelsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 4,
+  },
+  rangeLabelText: {
+    fontWeight: '500',
   },
 });

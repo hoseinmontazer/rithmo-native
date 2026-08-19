@@ -16,6 +16,13 @@ export default function OvulationScreen() {
   const today = todayISO();
   const daysToOvulation = daysBetween(today, data.ovulation_date);
   const isInFertileWindow = today >= data.fertile_window_start && today <= data.fertile_window_end;
+  // Confidence contract: a number in [0, 1] + a separate label.  The bar
+  // and the % only render when the value is a real finite number — a bad
+  // payload can never produce a "NaN%" on screen.
+  const confidencePct =
+    typeof data.confidence === 'number' && Number.isFinite(data.confidence)
+      ? Math.round(data.confidence * 100)
+      : null;
 
   return (
     <ScrollView
@@ -51,11 +58,11 @@ export default function OvulationScreen() {
         <View style={[styles.confidenceRow, { marginTop: spacing[5], width: '100%' }]}>
           <Text style={{ color: colors.textSecondary, fontSize: typography.sm }}>Confidence</Text>
           <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '600' }}>
-            {Math.round(data.confidence * 100)}%
+            {confidencePct != null ? `${confidencePct}%` : (data.confidence_label ?? '—')}
           </Text>
         </View>
         <View style={[styles.track, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.full, height: 8, marginTop: spacing[1] }]}>
-          <View style={[styles.fill, { width: `${data.confidence * 100}%`, backgroundColor: colors.success, borderRadius: borderRadius.full, height: 8 }]} />
+          <View style={[styles.fill, { width: confidencePct != null ? `${confidencePct}%` : '0%', backgroundColor: colors.success, borderRadius: borderRadius.full, height: 8 }]} />
         </View>
       </Card>
 

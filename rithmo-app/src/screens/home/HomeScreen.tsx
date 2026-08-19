@@ -39,22 +39,31 @@ import {
 } from '@hooks/queries/useWellness';
 import { useProfile } from '@hooks/queries/useProfile';
 import type { HomeScreenProps } from '@navigation/types';
+import type { CycleAnalysis, CyclePhase } from '@types/period.types';
 import { CycleContextCard }  from './components/CycleContextCard';
 import { TodayStateCard }    from './components/TodayStateCard';
 import { PatternCard, deriveDataState } from './components/PatternCard';
 import type { WellnessLog } from '@types/wellness.types';
-import type { CycleAnalysis } from '@types/period.types';
 
 type Props = HomeScreenProps<'Home'>;
 
-const normalisePhase = (
-  raw?: string,
-): 'menstrual' | 'follicular' | 'ovulation' | 'luteal' => {
+/**
+ * Map the backend's current_status.phase (source of truth) onto the
+ * display phases.  IMPORTANT: the fallback is 'unknown', never
+ * 'follicular' — when the backend reports nothing (no data, no partner,
+ * or an unexpected value) the UI must show a no-data state, not invent a
+ * phase.
+ */
+const normalisePhase = (raw?: string): CyclePhase => {
   const s = (raw ?? '').toLowerCase();
   if (s.includes('menstrual') || s.includes('period')) { return 'menstrual'; }
   if (s.includes('ovulat'))                             { return 'ovulation'; }
   if (s.includes('luteal'))                             { return 'luteal'; }
-  return 'follicular';
+  if (s.includes('follicular'))                         { return 'follicular'; }
+  if (s === 'expected')                                 { return 'expected'; }
+  if (s === 'late')                                     { return 'late'; }
+  if (s === 'overdue')                                  { return 'overdue'; }
+  return 'unknown';
 };
 
 // ── Upcoming section ──────────────────────────────────────────────────────────
@@ -128,8 +137,11 @@ export default function HomeScreen() {
   const phase = normalisePhase(cycleStatus?.phase);
   const cycleDay: number | null = cycleStatus?.cycle_day ?? null;
   const daysUntilPeriod: number | null = cycleStatus?.days_until_next_period ?? null;
+  const daysOverdue: number | null = cycleStatus?.days_overdue ?? null;
   const isOnPeriod: boolean = cycleStatus?.is_on_period ?? false;
-  const hasCycleData = Boolean(cycleData);
+  // A 0-period user still gets a 200 response — the honest no-data signal
+  // is phase === 'unknown', not the absence of a response body.
+  const hasCycleData = phase !== 'unknown';
 
   // ── Derived: data state for PatternCard ───────────────────────────────────
   const periodCount = Array.isArray(periodsList) ? (periodsList as any[]).length : 0;
@@ -160,6 +172,10 @@ export default function HomeScreen() {
 
   const goToNotifications = useCallback(() => {
     navigation.navigate('Notifications');
+  }, [navigation]);
+
+  const goToWellnessDashboard = useCallback(() => {
+    navigation.navigate('LogTab' as any, { screen: 'WellnessDashboard' } as any);
   }, [navigation]);
 
   const goToLogPeriod = useCallback(() => {
@@ -241,6 +257,7 @@ export default function HomeScreen() {
             cycleDay={cycleDay}
             phase={phase}
             daysUntilPeriod={daysUntilPeriod}
+            daysOverdue={daysOverdue}
             isOnPeriod={isOnPeriod}
             onPress={goToCycle}
             onRetry={refetchCycle}
@@ -249,9 +266,16 @@ export default function HomeScreen() {
         </View>
 
         {/* ── Section label ────────────────────────────────────────────── */}
-        <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.label, marginBottom: spacing[2] }]}>
-          امروز
-        </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing[2] }}>
+          <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.label }]}>
+            امروز
+          </Text>
+          <TouchableOpacity onPress={goToWellnessDashboard} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="مشاهده تاریخچه سلامت">
+            <Text style={{ color: colors.primary, fontSize: typography.caption, fontWeight: '600' }}>
+              تاریخچه سلامت
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* ── 2. Today's State Card ─────────────────────────────────────── */}
         <View style={{ marginBottom: spacing[4] }}>

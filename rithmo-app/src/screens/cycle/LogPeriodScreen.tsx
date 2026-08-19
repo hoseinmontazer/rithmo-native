@@ -13,13 +13,12 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@hooks/useTheme';
-import { Button, Icon, AppIcon } from '@components/ui';
+import { Button, Icon } from '@components/ui';
 import type { CycleStackParamList } from '@navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCreatePeriod, usePatchPeriod } from '@hooks/queries/usePeriods';
 import { useToast } from '../../context/ToastContext';
 import { formatDateISO } from '@utils/dateUtils';
-import icons from '../../assets/icons';
 
 interface ActivePeriodError {
   error: string;
@@ -29,12 +28,27 @@ interface ActivePeriodError {
 
 type Props = NativeStackScreenProps<CycleStackParamList, 'LogPeriod'>;
 
-// ── Symptom chips ─────────────────────────────────────────────────────────────
-const COMMON_SYMPTOMS = ['cramps', 'headache', 'fatigue', 'bloating', 'mood swings', 'backache', 'nausea', 'insomnia'];
-const COMMON_MEDS     = ['ibuprofen', 'paracetamol', 'heating pad', 'aspirin', 'naproxen'];
+const COMMON_SYMPTOMS = [
+  'cramps',
+  'headache',
+  'fatigue',
+  'bloating',
+  'mood swings',
+  'backache',
+  'nausea',
+  'insomnia',
+];
 
-// ── Date picker sheet ─────────────────────────────────────────────────────────
-function DateSheet({
+const COMMON_MEDS = [
+  'ibuprofen',
+  'paracetamol',
+  'heating pad',
+  'aspirin',
+  'naproxen',
+];
+
+// ── Custom Date Picker Sheet ──────────────────────────────────────────────────
+function CustomDatePickerSheet({
   visible,
   selected,
   onClose,
@@ -45,102 +59,95 @@ function DateSheet({
   onClose: () => void;
   onSelect: (d: Date) => void;
 }) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, borderRadius } = useTheme();
   const [cur, setCur] = useState(selected);
   const today = new Date();
 
-  const dates: Date[] = Array.from({ length: 60 }, (_, i) => {
+  const dates: Date[] = Array.from({ length: 45 }, (_, i) => {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
     return d;
   });
 
   const fmt = (d: Date) =>
-    d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
   const isToday = (d: Date) => d.toDateString() === today.toDateString();
-  const isSel   = (d: Date) => d.toDateString() === cur.toDateString();
+  const isSel = (d: Date) => d.toDateString() === cur.toDateString();
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-        <View
-          style={{
-            backgroundColor: colors.surface,
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            maxHeight: '72%',
-          }}
-        >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalBackdrop}>
+        <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={onClose} />
+        <View style={[styles.modalSheet, { backgroundColor: colors.surface, borderRadius: borderRadius.xl }]}>
           {/* Handle */}
-          <View style={{ alignItems: 'center', paddingTop: 12, paddingBottom: 4 }}>
-            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+          <View style={styles.modalHandleWrapper}>
+            <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
           </View>
 
-          {/* Title row */}
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingHorizontal: spacing[5],
-              paddingVertical: spacing[4],
-              borderBottomWidth: StyleSheet.hairlineWidth,
-              borderBottomColor: colors.border,
-            }}
-          >
-            <Text style={{ color: colors.textPrimary, fontSize: typography.lg, fontWeight: '700' }}>
-              When did it start?
+          {/* Title */}
+          <View style={[styles.modalHeaderRow, { borderBottomColor: colors.border, padding: spacing[4] }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary, fontSize: typography.base }]}>
+              Select Start Date
             </Text>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Icon name="close" size={22} color={colors.textSecondary} />
+              <Icon name="close" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          {/* Dates */}
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {dates.map((d, i) => (
-              <TouchableOpacity
-                key={i}
-                onPress={() => setCur(d)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  paddingHorizontal: spacing[5],
-                  paddingVertical: spacing[4],
-                  backgroundColor: isSel(d) ? colors.menstrual + '12' : 'transparent',
-                  borderLeftWidth: isSel(d) ? 3 : 0,
-                  borderLeftColor: colors.menstrual,
-                }}
-              >
-                <View>
-                  <Text
-                    style={{
-                      color: isSel(d) ? colors.menstrual : colors.textPrimary,
-                      fontSize: typography.base,
-                      fontWeight: isSel(d) ? '700' : '400',
-                    }}
-                  >
-                    {fmt(d)}
-                  </Text>
-                  {isToday(d) && (
-                    <Text style={{ color: colors.menstrual, fontSize: typography.xs, marginTop: 2, fontWeight: '600' }}>
-                      Today
+          {/* List */}
+          <ScrollView style={styles.dateListScroll} showsVerticalScrollIndicator={false}>
+            {dates.map((d, i) => {
+              const sel = isSel(d);
+              return (
+                <TouchableOpacity
+                  key={i}
+                  onPress={() => setCur(d)}
+                  style={[
+                    styles.dateOptionRow,
+                    {
+                      paddingHorizontal: spacing[4],
+                      paddingVertical: spacing[3],
+                      backgroundColor: sel ? colors.menstrual + '12' : 'transparent',
+                      borderLeftWidth: sel ? 3 : 0,
+                      borderLeftColor: colors.menstrual,
+                    },
+                  ]}
+                >
+                  <View>
+                    <Text
+                      style={[
+                        styles.dateOptionText,
+                        {
+                          color: sel ? colors.menstrual : colors.textPrimary,
+                          fontSize: typography.sm,
+                          fontWeight: sel ? '700' : '400',
+                        },
+                      ]}
+                    >
+                      {fmt(d)}
                     </Text>
-                  )}
-                </View>
-                {isSel(d) && <Icon name="check-circle" size={22} color={colors.menstrual} />}
-              </TouchableOpacity>
-            ))}
+                    {isToday(d) && (
+                      <Text style={[styles.todayTagText, { color: colors.menstrual, fontSize: typography.xs }]}>
+                        Today
+                      </Text>
+                    )}
+                  </View>
+                  {sel && <Icon name="check-circle" size={20} color={colors.menstrual} />}
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
 
-          {/* Confirm */}
-          <View style={{ padding: spacing[5], borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }}>
+          {/* Action */}
+          <View style={[styles.modalActionFooter, { borderTopColor: colors.border, padding: spacing[4] }]}>
             <Button
-              label="Confirm Date"
-              onPress={() => { onSelect(cur); onClose(); }}
-              size="lg"
+              label="Select This Date"
+              onPress={() => {
+                onSelect(cur);
+                onClose();
+              }}
+              size="md"
               fullWidth
             />
           </View>
@@ -150,7 +157,7 @@ function DateSheet({
   );
 }
 
-// ── End Period Sheet ──────────────────────────────────────────────────────────
+// ── End Active Period Sheet ──────────────────────────────────────────────────
 function EndPeriodSheet({
   visible,
   activePeriodStartDate,
@@ -161,33 +168,34 @@ function EndPeriodSheet({
   visible: boolean;
   activePeriodStartDate: string;
   onClose: () => void;
-  onConfirm: (endDate: string) => void;  // end + start new
-  onEndOnly: (endDate: string) => void;  // just end, no new period
+  onConfirm: (endDate: string) => void;
+  onEndOnly: (endDate: string) => void;
 }) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, borderRadius } = useTheme();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const startDate = new Date(activePeriodStartDate);
+  const startDate = new Date(activePeriodStartDate || today);
   startDate.setHours(0, 0, 0, 0);
 
-  // Minimum 3 days after start
+  // Minimum end date: the start date itself (a 1-day period is valid —
+  // end_date is inclusive, so start == end means one day of bleeding).
   const minEnd = new Date(startDate);
-  minEnd.setDate(startDate.getDate() + 3);
 
   const defaultEnd = today >= minEnd ? today : minEnd;
   const [endDate, setEndDate] = useState(defaultEnd);
-  const [listOpen, setListOpen] = useState(false);
 
   React.useEffect(() => {
     if (visible) {
-      const d = today >= minEnd ? new Date(today) : new Date(minEnd);
-      setEndDate(d);
-      setListOpen(false);
+      const t = new Date();
+      t.setHours(0, 0, 0, 0);
+      const s = new Date(activePeriodStartDate || t);
+      s.setHours(0, 0, 0, 0);
+      const m = new Date(s);
+      setEndDate(t >= m ? new Date(t) : new Date(m));
     }
-  }, [visible]);
+  }, [visible, activePeriodStartDate]);
 
-  // Valid dates: minEnd → today (reversed, today first)
   const validDates: Date[] = [];
   if (today >= minEnd) {
     const c = new Date(minEnd);
@@ -203,283 +211,112 @@ function EndPeriodSheet({
   const fmt = (d: Date) =>
     d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
-  const fmtFull = (d: Date) =>
-    d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-
-  const isToday = (d: Date) => d.toDateString() === today.toDateString();
-  const isSel   = (d: Date) => d.toDateString() === endDate.toDateString();
-
   return (
-    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-        {/* Backdrop tap closes */}
-        <TouchableOpacity
-          style={StyleSheet.absoluteFillObject}
-          activeOpacity={1}
-          onPress={onClose}
-        />
-
-        <View
-          style={{
-            backgroundColor: colors.surface,
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            maxHeight: '85%',
-          }}
-        >
-          {/* Handle */}
-          <View style={{ alignItems: 'center', paddingTop: 12 }}>
-            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.modalBackdrop}>
+        <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={onClose} />
+        <View style={[styles.endPeriodSheet, { backgroundColor: colors.surface, borderRadius: borderRadius.xl }]}>
+          {/* Header */}
+          <View style={[styles.endPeriodHeader, { padding: spacing[4], borderBottomColor: colors.border }]}>
+            <View>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary, fontSize: typography.base }]}>
+                Previous Period is Active
+              </Text>
+              <Text style={[styles.modalSubtitle, { color: colors.textSecondary, fontSize: typography.xs, marginTop: 2 }]}>
+                Started {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Icon name="close" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
           </View>
 
-          <ScrollView
-            bounces={false}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={{ padding: spacing[5] }}>
-              {/* Header */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[3], marginBottom: spacing[4] }}>
-                <View
-                  style={{
-                    width: 48, height: 48, borderRadius: 14,
-                    backgroundColor: colors.menstrual + '18',
-                    alignItems: 'center', justifyContent: 'center',
-                  }}
-                >
-                  <AppIcon source={icons.menstruation} size={28} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.textPrimary, fontSize: typography.lg, fontWeight: '800' }}>
-                    End Active Period
-                  </Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: typography.sm, marginTop: 2 }}>
-                    Started {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Info banner */}
-              <View
-                style={{
-                  backgroundColor: colors.primaryLighter,
-                  borderRadius: 12, padding: spacing[3],
-                  flexDirection: 'row', alignItems: 'flex-start',
-                  gap: spacing[2], marginBottom: spacing[5],
-                }}
-              >
-                <Icon name="information-outline" size={18} color={colors.primary} />
-                <Text style={{ color: colors.primary, fontSize: typography.xs, flex: 1, lineHeight: 18 }}>
-                  End date must be at least 3 days after the start date.
-                  {noValidDates
-                    ? ' Your period started recently — please wait until ' + fmt(minEnd) + '.'
-                    : ' Earliest: ' + fmt(minEnd) + '.'}
-                </Text>
-              </View>
-
-              {/* END DATE selector */}
-              <Text style={{
-                color: colors.textSecondary, fontSize: typography.xs,
-                fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase',
-                marginBottom: spacing[2],
-              }}>
-                END DATE
+          <View style={{ padding: spacing[4] }}>
+            {/* Context Note */}
+            <View style={[styles.endPeriodNote, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md, padding: spacing[3], marginBottom: spacing[4] }]}>
+              <Icon name="information-outline" size={16} color={colors.primary} />
+              <Text style={[styles.endPeriodNoteText, { color: colors.textSecondary, fontSize: typography.xs }]}>
+                {noValidDates
+                  ? `Period started recently. Earliest allowable end date is ${fmt(minEnd)}.`
+                  : `Please specify the end date for your previous period (minimum 1 day duration).`}
               </Text>
-
-              {noValidDates ? (
-                /* Period started too recently */
-                <View
-                  style={{
-                    backgroundColor: colors.surfaceSecondary,
-                    borderRadius: 14, padding: spacing[4],
-                    borderWidth: 1, borderColor: colors.border,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Text style={{ color: colors.textSecondary, fontSize: typography.sm, textAlign: 'center' }}>
-                    No valid end dates yet.{'\n'}Period must run at least 3 days.
-                  </Text>
-                </View>
-              ) : (
-                <>
-                  {/* Selected date row — tap to expand list */}
-                  <TouchableOpacity
-                    onPress={() => setListOpen(o => !o)}
-                    activeOpacity={0.8}
-                    style={{
-                      flexDirection: 'row', alignItems: 'center',
-                      justifyContent: 'space-between',
-                      backgroundColor: colors.surfaceSecondary,
-                      borderRadius: 14, padding: spacing[4],
-                      borderWidth: 1, borderColor: colors.primary + '60',
-                    }}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[3] }}>
-                      <Icon name="calendar" size={20} color={colors.primary} />
-                      <View>
-                        <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700' }}>
-                          {fmt(endDate)}
-                        </Text>
-                        {isToday(endDate) && (
-                          <Text style={{ color: colors.primary, fontSize: typography.xs, fontWeight: '600', marginTop: 1 }}>
-                            Today
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                    <Icon
-                      name={listOpen ? 'chevron-up' : 'chevron-down'}
-                      size={20}
-                      color={colors.textTertiary}
-                    />
-                  </TouchableOpacity>
-
-                  {/* Inline date list */}
-                  {listOpen && (
-                    <View
-                      style={{
-                        backgroundColor: colors.surface,
-                        borderRadius: 14, marginTop: spacing[2],
-                        borderWidth: 1, borderColor: colors.border,
-                        overflow: 'hidden',
-                        maxHeight: 220,
-                      }}
-                    >
-                      <ScrollView
-                        nestedScrollEnabled
-                        showsVerticalScrollIndicator={false}
-                      >
-                        {validDates.map((d, i) => {
-                          const sel     = isSel(d);
-                          const todayD  = isToday(d);
-                          return (
-                            <TouchableOpacity
-                              key={i}
-                              onPress={() => { setEndDate(d); setListOpen(false); }}
-                              activeOpacity={0.75}
-                              style={{
-                                flexDirection: 'row', alignItems: 'center',
-                                justifyContent: 'space-between',
-                                paddingHorizontal: spacing[4],
-                                paddingVertical: spacing[3],
-                                backgroundColor: sel ? colors.primary + '12' : 'transparent',
-                                borderLeftWidth: sel ? 3 : 0,
-                                borderLeftColor: colors.primary,
-                                borderBottomWidth: i < validDates.length - 1 ? StyleSheet.hairlineWidth : 0,
-                                borderBottomColor: colors.border,
-                              }}
-                            >
-                              <View>
-                                <Text style={{
-                                  color: sel ? colors.primary : colors.textPrimary,
-                                  fontSize: typography.sm,
-                                  fontWeight: sel ? '700' : '400',
-                                }}>
-                                  {fmtFull(d)}
-                                </Text>
-                                {todayD && (
-                                  <Text style={{ color: colors.primary, fontSize: typography.xs, fontWeight: '600', marginTop: 1 }}>
-                                    Today
-                                  </Text>
-                                )}
-                              </View>
-                              {sel && <Icon name="check-circle" size={20} color={colors.primary} />}
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </ScrollView>
-                    </View>
-                  )}
-                </>
-              )}
-
-              {/* Buttons */}
-              <View style={{ gap: spacing[3], marginTop: spacing[6], paddingBottom: spacing[2] }}>
-                {/* End & Start New — only available if valid dates exist */}
-                <TouchableOpacity
-                  onPress={() => !noValidDates && onConfirm(formatDateISO(endDate))}
-                  activeOpacity={noValidDates ? 0.4 : 0.8}
-                  style={{
-                    height: 52, borderRadius: 14,
-                    alignItems: 'center', justifyContent: 'center',
-                    backgroundColor: noValidDates ? colors.primary + '30' : colors.primary,
-                    flexDirection: 'row', gap: spacing[2],
-                  }}
-                >
-                  <Icon name="refresh" size={18} color={noValidDates ? colors.primary + '80' : '#fff'} />
-                  <Text style={{
-                    color: noValidDates ? colors.primary + '80' : '#fff',
-                    fontSize: typography.base, fontWeight: '700',
-                  }}>
-                    End & Start New Period
-                  </Text>
-                </TouchableOpacity>
-
-                {/* End period only — always available */}
-                <TouchableOpacity
-                  onPress={() => {
-                    // For "end only", if no valid dates yet we use the minimum possible
-                    const d = noValidDates ? minEnd : endDate;
-                    if (noValidDates) {
-                      // Can't end yet — show info
-                      return;
-                    }
-                    onEndOnly(formatDateISO(d));
-                  }}
-                  activeOpacity={noValidDates ? 0.4 : 0.8}
-                  style={{
-                    height: 52, borderRadius: 14,
-                    alignItems: 'center', justifyContent: 'center',
-                    backgroundColor: colors.surfaceSecondary,
-                    borderWidth: 1,
-                    borderColor: noValidDates ? colors.border + '60' : colors.border,
-                    flexDirection: 'row', gap: spacing[2],
-                  }}
-                >
-                  <Icon
-                    name="check-circle-outline"
-                    size={18}
-                    color={noValidDates ? colors.textTertiary : colors.textPrimary}
-                  />
-                  <Text style={{
-                    color: noValidDates ? colors.textTertiary : colors.textPrimary,
-                    fontSize: typography.base, fontWeight: '600',
-                  }}>
-                    {noValidDates ? 'End Period (not available yet)' : 'Just End This Period'}
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Cancel */}
-                <TouchableOpacity
-                  onPress={onClose}
-                  activeOpacity={0.8}
-                  style={{
-                    height: 44, borderRadius: 14,
-                    alignItems: 'center', justifyContent: 'center',
-                  }}
-                >
-                  <Text style={{ color: colors.textSecondary, fontSize: typography.sm, fontWeight: '600' }}>
-                    Keep Period Active
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </View>
-          </ScrollView>
+
+            {/* Date choices */}
+            {!noValidDates && (
+              <View style={{ marginBottom: spacing[4] }}>
+                <Text style={[styles.fieldSectionLabel, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[2] }]}>
+                  END DATE
+                </Text>
+                <View style={styles.quickDatesRow}>
+                  {validDates.slice(0, 3).map((d, i) => {
+                    const isSel = d.toDateString() === endDate.toDateString();
+                    return (
+                      <TouchableOpacity
+                        key={i}
+                        onPress={() => setEndDate(d)}
+                        style={[
+                          styles.datePillBtn,
+                          {
+                            backgroundColor: isSel ? colors.menstrual + '18' : colors.surfaceSecondary,
+                            borderColor: isSel ? colors.menstrual : colors.border,
+                            borderRadius: borderRadius.md,
+                            padding: spacing[2],
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.datePillText, { color: isSel ? colors.menstrual : colors.textPrimary, fontSize: typography.xs, fontWeight: isSel ? '700' : '400' }]}>
+                          {fmt(d)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
+            {/* Actions */}
+            <View style={{ gap: spacing[2] }}>
+              <Button
+                label={noValidDates ? 'Keep Period Active' : 'End & Start New Period'}
+                onPress={() => {
+                  if (noValidDates) {
+                    onClose();
+                  } else {
+                    onConfirm(formatDateISO(endDate));
+                  }
+                }}
+                size="md"
+                fullWidth
+              />
+
+              {!noValidDates && (
+                <Button
+                  label="Just End Previous Period"
+                  onPress={() => onEndOnly(formatDateISO(endDate))}
+                  variant="outline"
+                  size="md"
+                  fullWidth
+                />
+              )}
+            </View>
+          </View>
         </View>
       </View>
     </Modal>
   );
 }
 
+// ── Main Screen ───────────────────────────────────────────────────────────────
 export default function LogPeriodScreen() {
   const navigation = useNavigation<Props['navigation']>();
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, borderRadius } = useTheme();
 
-  const [startDate, setStartDate]   = useState(new Date());
-  const [showPicker, setShowPicker] = useState(false);
-  const [symptoms, setSymptoms]     = useState<string[]>([]);
+  const [startDate, setStartDate] = useState(new Date());
+  const [showCustomPicker, setShowCustomPicker] = useState(false);
+  const [symptoms, setSymptoms] = useState<string[]>([]);
   const [medication, setMedication] = useState<string[]>([]);
-  const [symptomsText, setSymptomsText]     = useState('');
+  const [symptomsText, setSymptomsText] = useState('');
   const [medicationText, setMedicationText] = useState('');
 
   // Active period conflict state
@@ -490,18 +327,16 @@ export default function LogPeriodScreen() {
   }>({ visible: false, activePeriodId: 0, activePeriodStartDate: '' });
 
   const createMutation = useCreatePeriod();
-  const patchMutation  = usePatchPeriod();
-  const toast   = useToast();
+  const patchMutation = usePatchPeriod();
+  const toast = useToast();
 
-  // Toggle chip helper
   const toggleChip = (list: string[], setList: (v: string[]) => void, val: string) => {
     setList(list.includes(val) ? list.filter(x => x !== val) : [...list, val]);
   };
 
-  // Combine chip selections + free text
   const buildField = (chips: string[], text: string) => {
     const extra = text.trim() ? text.split(',').map(s => s.trim()).filter(Boolean) : [];
-    const all   = [...new Set([...chips, ...extra])];
+    const all = [...new Set([...chips, ...extra])];
     return all.length ? all.join(',') : undefined;
   };
 
@@ -509,25 +344,24 @@ export default function LogPeriodScreen() {
     createMutation.mutate(
       {
         start_date: formatDateISO(startDate),
-        symptoms:   buildField(symptoms, symptomsText),
+        symptoms: buildField(symptoms, symptomsText),
         medication: buildField(medication, medicationText),
       },
       {
         onSuccess: () => {
-          toast.success('Period Logged', 'Your period has been saved.');
+          toast.success('Period Logged', 'Your cycle entry has been recorded.');
           navigation.goBack();
         },
         onError: (error: any) => {
           const data = error?.response?.data as ActivePeriodError | undefined;
           if (data?.active_period_id) {
-            // Show the end period sheet with date picker
             setEndPeriodSheet({
               visible: true,
               activePeriodId: data.active_period_id,
               activePeriodStartDate: data.start_date,
             });
           } else {
-            toast.error('Failed to Log', data?.error || 'Please try again.');
+            toast.error('Failed to Log', data?.error || 'Please check your inputs.');
           }
         },
       },
@@ -543,12 +377,12 @@ export default function LogPeriodScreen() {
           createMutation.mutate(
             {
               start_date: formatDateISO(startDate),
-              symptoms:   buildField(symptoms, symptomsText),
+              symptoms: buildField(symptoms, symptomsText),
               medication: buildField(medication, medicationText),
             },
             {
               onSuccess: () => {
-                toast.success('Period Logged', 'Previous period ended and new one started.');
+                toast.success('Period Logged', 'Previous period ended and new one recorded.');
                 navigation.goBack();
               },
               onError: () => toast.error('Error', 'Could not create new period.'),
@@ -556,340 +390,469 @@ export default function LogPeriodScreen() {
           );
         },
         onError: (err: any) => {
-          const msg = err?.response?.data?.end_date?.[0] || err?.response?.data?.error || 'Could not end active period.';
+          const msg =
+            err?.response?.data?.end_date?.[0] ||
+            err?.response?.data?.error ||
+            'Could not end active period.';
           toast.error('Error', msg);
         },
       },
     );
   };
 
-  // Just end the active period, don't start a new one
   const handleEndOnly = (endDate: string) => {
     setEndPeriodSheet(s => ({ ...s, visible: false }));
     patchMutation.mutate(
       { id: endPeriodSheet.activePeriodId, data: { end_date: endDate } },
       {
         onSuccess: () => {
-          toast.success('Period Ended', 'Your active period has been ended.');
+          toast.success('Period Ended', 'Active period closed successfully.');
           navigation.goBack();
         },
         onError: (err: any) => {
-          const msg = err?.response?.data?.end_date?.[0] || err?.response?.data?.error || 'Could not end active period.';
+          const msg =
+            err?.response?.data?.end_date?.[0] ||
+            err?.response?.data?.error ||
+            'Could not end active period.';
           toast.error('Error', msg);
         },
       },
     );
   };
 
-  const fmtDate = (d: Date) =>
-    d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  const twoDaysAgo = new Date();
+  twoDaysAgo.setDate(today.getDate() - 2);
+
+  const isToday = startDate.toDateString() === today.toDateString();
+  const isYesterday = startDate.toDateString() === yesterday.toDateString();
+  const isTwoDaysAgo = startDate.toDateString() === twoDaysAgo.toDateString();
+  const isCustom = !isToday && !isYesterday && !isTwoDaysAgo;
 
   const busy = createMutation.isPending || patchMutation.isPending;
 
   return (
-    <View style={{ flex: 1 }}>
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['bottom']}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: spacing[10] }}
+          contentContainerStyle={{
+            paddingHorizontal: spacing[4],
+            paddingTop: spacing[4],
+            paddingBottom: spacing[10],
+          }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ── Hero banner ────────────────────────────────────────── */}
-          <View
-            style={{
-              backgroundColor: colors.surface,
-              paddingHorizontal: spacing[5],
-              paddingTop: spacing[6],
-              paddingBottom: spacing[6],
-              borderBottomWidth: StyleSheet.hairlineWidth,
-              borderBottomColor: colors.border,
-            }}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[4] }}>
-              {/* Period icon — matches home page HubCard style */}
-              <View
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 16,
-                  backgroundColor: colors.menstrual + '18',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <AppIcon source={icons.menstruation} size={32} />
-              </View>
-
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    color: colors.textPrimary,
-                    fontSize: typography.xl,
-                    fontWeight: '800',
-                    letterSpacing: -0.3,
-                  }}
-                >
-                  Log Period
-                </Text>
-                <Text
-                  style={{
-                    color: colors.textSecondary,
-                    fontSize: typography.sm,
-                    marginTop: spacing[1],
-                  }}
-                >
-                  Track the start of your cycle
-                </Text>
-              </View>
-            </View>
-
-            {/* Accent bar at bottom — matches HubCard top stripe */}
-            <View
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 3,
-                backgroundColor: colors.menstrual,
-              }}
-            />
+          {/* Header Introduction */}
+          <View style={{ marginBottom: spacing[4] }}>
+            <Text style={[styles.headerSubtitle, { color: colors.textSecondary, fontSize: typography.sm }]}>
+              Record the start date of your menstrual cycle.
+            </Text>
           </View>
 
-          <View style={{ paddingHorizontal: spacing[5], paddingTop: spacing[6] }}>
-
-            {/* ── Start Date ─────────────────────────────────────── */}
-            <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
+          {/* ── 1. Start Date Selector ─────────────────────────────── */}
+          <View style={{ marginBottom: spacing[5] }}>
+            <Text style={[styles.fieldSectionLabel, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[2] }]}>
               START DATE
             </Text>
+
+            {/* Quick Relative Pills */}
+            <View style={styles.quickDatesRow}>
+              <TouchableOpacity
+                onPress={() => setStartDate(today)}
+                style={[
+                  styles.quickDateTab,
+                  {
+                    backgroundColor: isToday ? colors.menstrual + '18' : colors.surfaceSecondary,
+                    borderColor: isToday ? colors.menstrual : colors.border,
+                    borderRadius: borderRadius.md,
+                    padding: spacing[3],
+                  },
+                ]}
+              >
+                <Text style={[styles.quickDateLabel, { color: isToday ? colors.menstrual : colors.textPrimary, fontSize: typography.sm, fontWeight: isToday ? '700' : '500' }]}>
+                  Today
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setStartDate(yesterday)}
+                style={[
+                  styles.quickDateTab,
+                  {
+                    backgroundColor: isYesterday ? colors.menstrual + '18' : colors.surfaceSecondary,
+                    borderColor: isYesterday ? colors.menstrual : colors.border,
+                    borderRadius: borderRadius.md,
+                    padding: spacing[3],
+                  },
+                ]}
+              >
+                <Text style={[styles.quickDateLabel, { color: isYesterday ? colors.menstrual : colors.textPrimary, fontSize: typography.sm, fontWeight: isYesterday ? '700' : '500' }]}>
+                  Yesterday
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setStartDate(twoDaysAgo)}
+                style={[
+                  styles.quickDateTab,
+                  {
+                    backgroundColor: isTwoDaysAgo ? colors.menstrual + '18' : colors.surfaceSecondary,
+                    borderColor: isTwoDaysAgo ? colors.menstrual : colors.border,
+                    borderRadius: borderRadius.md,
+                    padding: spacing[3],
+                  },
+                ]}
+              >
+                <Text style={[styles.quickDateLabel, { color: isTwoDaysAgo ? colors.menstrual : colors.textPrimary, fontSize: typography.sm, fontWeight: isTwoDaysAgo ? '700' : '500' }]}>
+                  2 Days Ago
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Custom Date Trigger Row */}
             <TouchableOpacity
-              onPress={() => setShowPicker(true)}
+              onPress={() => setShowCustomPicker(true)}
               activeOpacity={0.8}
               style={[
-                styles.datePicker,
+                styles.customDateTrigger,
                 {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
+                  backgroundColor: isCustom ? colors.menstrual + '12' : colors.surfaceSecondary,
+                  borderColor: isCustom ? colors.menstrual : colors.border,
+                  borderRadius: borderRadius.md,
+                  padding: spacing[3],
+                  marginTop: spacing[2],
                 },
               ]}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[3] }}>
-                <View
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 13,
-                    backgroundColor: colors.menstrual + '18',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Icon name="calendar" size={22} color={colors.menstrual} />
-                </View>
-                <View>
-                  <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700' }}>
-                    {fmtDate(startDate)}
-                  </Text>
-                  <Text style={{ color: colors.textTertiary, fontSize: typography.xs, marginTop: 2 }}>
-                    Tap to change
-                  </Text>
-                </View>
+              <View style={styles.customDateLeft}>
+                <Icon name="calendar-range" size={18} color={isCustom ? colors.menstrual : colors.textSecondary} />
+                <Text style={[styles.customDateLabel, { color: isCustom ? colors.menstrual : colors.textPrimary, fontSize: typography.sm, fontWeight: isCustom ? '700' : '500' }]}>
+                  {isCustom
+                    ? startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+                    : 'Choose another date…'}
+                </Text>
               </View>
-              <Icon name="chevron-right" size={20} color={colors.textTertiary} />
+              <Icon name="chevron-right" size={18} color={colors.textTertiary} />
             </TouchableOpacity>
 
-            <DateSheet
-              visible={showPicker}
+            <CustomDatePickerSheet
+              visible={showCustomPicker}
               selected={startDate}
-              onClose={() => setShowPicker(false)}
+              onClose={() => setShowCustomPicker(false)}
               onSelect={setStartDate}
             />
+          </View>
 
-            {/* ── Symptoms ───────────────────────────────────────── */}
-            <View style={{ marginTop: spacing[6] }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing[3] }}>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
-                  SYMPTOMS
-                </Text>
-                <Text style={{ color: colors.textTertiary, fontSize: typography.xs }}>Optional</Text>
-              </View>
+          {/* ── 2. Symptoms Selection ─────────────────────────────── */}
+          <View style={{ marginBottom: spacing[5] }}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={[styles.fieldSectionLabel, { color: colors.textTertiary, fontSize: typography.xs }]}>
+                SYMPTOMS
+              </Text>
+              <Text style={[styles.optionalTag, { color: colors.textTertiary, fontSize: typography.xs }]}>
+                Optional
+              </Text>
+            </View>
 
-              {/* Quick chips */}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2], marginBottom: spacing[3] }}>
-                {COMMON_SYMPTOMS.map(s => {
-                  const active = symptoms.includes(s);
-                  return (
-                    <TouchableOpacity
-                      key={s}
-                      onPress={() => toggleChip(symptoms, setSymptoms, s)}
-                      activeOpacity={0.75}
-                      style={{
-                        paddingHorizontal: spacing[3],
-                        paddingVertical: spacing[2],
-                        borderRadius: 20,
-                        borderWidth: 1.5,
+            <View style={styles.chipsWrap}>
+              {COMMON_SYMPTOMS.map(s => {
+                const active = symptoms.includes(s);
+                return (
+                  <TouchableOpacity
+                    key={s}
+                    onPress={() => toggleChip(symptoms, setSymptoms, s)}
+                    activeOpacity={0.75}
+                    style={[
+                      styles.chipItem,
+                      {
+                        backgroundColor: active ? colors.menstrual + '18' : colors.surfaceSecondary,
                         borderColor: active ? colors.menstrual : colors.border,
-                        backgroundColor: active ? colors.menstrual + '15' : colors.surface,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: active ? colors.menstrual : colors.textSecondary,
-                          fontSize: typography.sm,
-                          fontWeight: active ? '700' : '400',
-                        }}
-                      >
-                        {s}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* Free text */}
-              <TextInput
-                style={[
-                  styles.textArea,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                    color: colors.textPrimary,
-                    fontSize: typography.sm,
-                  },
-                ]}
-                placeholder="Other symptoms..."
-                placeholderTextColor={colors.textTertiary}
-                value={symptomsText}
-                onChangeText={setSymptomsText}
-                multiline
-                numberOfLines={2}
-              />
-            </View>
-
-            {/* ── Medication ─────────────────────────────────────── */}
-            <View style={{ marginTop: spacing[6] }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing[3] }}>
-                <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
-                  MEDICATION
-                </Text>
-                <Text style={{ color: colors.textTertiary, fontSize: typography.xs }}>Optional</Text>
-              </View>
-
-              {/* Quick chips */}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2], marginBottom: spacing[3] }}>
-                {COMMON_MEDS.map(m => {
-                  const active = medication.includes(m);
-                  return (
-                    <TouchableOpacity
-                      key={m}
-                      onPress={() => toggleChip(medication, setMedication, m)}
-                      activeOpacity={0.75}
-                      style={{
+                        borderRadius: borderRadius.pill,
                         paddingHorizontal: spacing[3],
                         paddingVertical: spacing[2],
-                        borderRadius: 20,
-                        borderWidth: 1.5,
-                        borderColor: active ? colors.primary : colors.border,
-                        backgroundColor: active ? colors.primary + '15' : colors.surface,
-                      }}
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        {
+                          color: active ? colors.menstrual : colors.textSecondary,
+                          fontSize: typography.xs,
+                          fontWeight: active ? '700' : '500',
+                          textTransform: 'capitalize',
+                        },
+                      ]}
                     >
-                      <Text
-                        style={{
+                      {s}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TextInput
+              style={[
+                styles.textInputArea,
+                {
+                  backgroundColor: colors.surfaceSecondary,
+                  borderColor: colors.border,
+                  borderRadius: borderRadius.md,
+                  color: colors.textPrimary,
+                  fontSize: typography.sm,
+                  padding: spacing[3],
+                  marginTop: spacing[2],
+                },
+              ]}
+              placeholder="Other symptoms (e.g. fatigue, nausea)..."
+              placeholderTextColor={colors.textTertiary}
+              value={symptomsText}
+              onChangeText={setSymptomsText}
+              multiline
+              numberOfLines={2}
+            />
+          </View>
+
+          {/* ── 3. Medication Selection ───────────────────────────── */}
+          <View style={{ marginBottom: spacing[6] }}>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={[styles.fieldSectionLabel, { color: colors.textTertiary, fontSize: typography.xs }]}>
+                MEDICATION
+              </Text>
+              <Text style={[styles.optionalTag, { color: colors.textTertiary, fontSize: typography.xs }]}>
+                Optional
+              </Text>
+            </View>
+
+            <View style={styles.chipsWrap}>
+              {COMMON_MEDS.map(m => {
+                const active = medication.includes(m);
+                return (
+                  <TouchableOpacity
+                    key={m}
+                    onPress={() => toggleChip(medication, setMedication, m)}
+                    activeOpacity={0.75}
+                    style={[
+                      styles.chipItem,
+                      {
+                        backgroundColor: active ? colors.primary + '18' : colors.surfaceSecondary,
+                        borderColor: active ? colors.primary : colors.border,
+                        borderRadius: borderRadius.pill,
+                        paddingHorizontal: spacing[3],
+                        paddingVertical: spacing[2],
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        {
                           color: active ? colors.primary : colors.textSecondary,
-                          fontSize: typography.sm,
-                          fontWeight: active ? '700' : '400',
-                        }}
-                      >
-                        {m}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* Free text */}
-              <TextInput
-                style={[
-                  styles.textArea,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                    color: colors.textPrimary,
-                    fontSize: typography.sm,
-                  },
-                ]}
-                placeholder="Other medications..."
-                placeholderTextColor={colors.textTertiary}
-                value={medicationText}
-                onChangeText={setMedicationText}
-                multiline
-                numberOfLines={2}
-              />
+                          fontSize: typography.xs,
+                          fontWeight: active ? '700' : '500',
+                          textTransform: 'capitalize',
+                        },
+                      ]}
+                    >
+                      {m}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
-            {/* ── Actions ────────────────────────────────────────── */}
-            <View style={{ marginTop: spacing[8], gap: spacing[3] }}>
-              <Button
-                label={busy ? 'Saving…' : 'Save Period'}
-                onPress={handleSubmit}
-                disabled={busy}
-                loading={busy}
-                size="lg"
-                fullWidth
-              />
-              <Button
-                label="Cancel"
-                onPress={() => navigation.goBack()}
-                variant="ghost"
-                size="lg"
-                fullWidth
-              />
-            </View>
+            <TextInput
+              style={[
+                styles.textInputArea,
+                {
+                  backgroundColor: colors.surfaceSecondary,
+                  borderColor: colors.border,
+                  borderRadius: borderRadius.md,
+                  color: colors.textPrimary,
+                  fontSize: typography.sm,
+                  padding: spacing[3],
+                  marginTop: spacing[2],
+                },
+              ]}
+              placeholder="Other medications taken..."
+              placeholderTextColor={colors.textTertiary}
+              value={medicationText}
+              onChangeText={setMedicationText}
+              multiline
+              numberOfLines={2}
+            />
+          </View>
+
+          {/* ── Submit & Cancel Actions ───────────────────────────── */}
+          <View style={{ gap: spacing[2] }}>
+            <Button
+              label={busy ? 'Saving…' : 'Save Period Entry'}
+              onPress={handleSubmit}
+              disabled={busy}
+              loading={busy}
+              size="lg"
+              fullWidth
+            />
+            <Button
+              label="Cancel"
+              onPress={() => navigation.goBack()}
+              variant="ghost"
+              size="md"
+              fullWidth
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
 
-    {/* End active period sheet */}
-    <EndPeriodSheet
-      visible={endPeriodSheet.visible}
-      activePeriodStartDate={endPeriodSheet.activePeriodStartDate}
-      onClose={() => setEndPeriodSheet(s => ({ ...s, visible: false }))}
-      onConfirm={handleEndAndStartNew}
-      onEndOnly={handleEndOnly}
-    />
-    </View>
+      {/* End Period Sheet */}
+      <EndPeriodSheet
+        visible={endPeriodSheet.visible}
+        activePeriodStartDate={endPeriodSheet.activePeriodStartDate}
+        onClose={() => setEndPeriodSheet(s => ({ ...s, visible: false }))}
+        onConfirm={handleEndAndStartNew}
+        onEndOnly={handleEndOnly}
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  sectionLabel: {
+  headerTitle: {
     fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginBottom: 10,
+    letterSpacing: -0.3,
   },
-  datePicker: {
+  headerSubtitle: {
+    lineHeight: 18,
+  },
+  fieldSectionLabel: {
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  optionalTag: {
+    fontWeight: '500',
+  },
+  quickDatesRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  quickDateTab: {
+    flex: 1,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickDateLabel: {},
+  customDateTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
   },
-  textArea: {
+  customDateLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  customDateLabel: {},
+  chipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  chipItem: {
     borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    minHeight: 72,
+  },
+  chipText: {},
+  textInputArea: {
+    borderWidth: 1,
+    minHeight: 64,
     textAlignVertical: 'top',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    maxHeight: '75%',
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  modalHandleWrapper: {
+    alignItems: 'center',
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  modalHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  modalTitle: {
+    fontWeight: '700',
+  },
+  modalSubtitle: {
+    fontWeight: '500',
+  },
+  dateListScroll: {
+    maxHeight: 320,
+  },
+  dateOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateOptionText: {},
+  todayTagText: {
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  modalActionFooter: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  endPeriodSheet: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  endPeriodHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  endPeriodNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  endPeriodNoteText: {
+    flex: 1,
+    lineHeight: 16,
+  },
+  datePillBtn: {
+    flex: 1,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  datePillText: {
+    textAlign: 'center',
   },
 });

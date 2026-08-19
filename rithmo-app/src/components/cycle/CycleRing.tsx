@@ -19,6 +19,10 @@ const PHASE_COLORS: Record<CyclePhase, string> = {
   follicular: '#22c55e',
   ovulation:  '#8b5cf6',
   luteal:     '#f59e0b',
+  expected:   '#3b82f6',
+  late:       '#f97316',
+  overdue:    '#f43f5e',
+  unknown:    '#9ca3af',
 };
 
 const PHASE_LABELS: Record<CyclePhase, string> = {
@@ -26,6 +30,10 @@ const PHASE_LABELS: Record<CyclePhase, string> = {
   follicular: 'Follicular',
   ovulation:  'Ovulation',
   luteal:     'Luteal',
+  expected:   'Expected',
+  late:       'Late',
+  overdue:    'Overdue',
+  unknown:    'No data',
 };
 
 const SIZE   = 200;
@@ -124,7 +132,7 @@ export const CycleRing = memo(function CycleRing({
       <View style={[styles.phasePill, { backgroundColor: phaseColor + '18', borderColor: phaseColor + '44' }]}>
         <View style={[styles.phaseDot, { backgroundColor: phaseColor }]} />
         <Text style={[styles.phaseText, { color: phaseColor, fontSize: typography.sm }]}>
-          {PHASE_LABELS[phase]} Phase
+          {PHASE_LABELS[phase]}
         </Text>
       </View>
 
