@@ -22,7 +22,7 @@ export const Card = memo(function Card({
   noPadding = false,
   accentColor,
   gradientBorder = false,
-  rounded = 'xl',
+  rounded = 'lg',
 }: CardProps) {
   const { colors, spacing, borderRadius, shadow } = useTheme();
 
@@ -40,9 +40,9 @@ export const Card = memo(function Card({
           styles.gradientWrapper,
           {
             borderRadius: radiusMap[rounded],
-            padding: 2,
+            padding: 1.5,
             backgroundColor: colors.accent,
-            ...(elevated ? shadow.md : shadow.xs),
+            ...(elevated ? shadow.sm : shadow.none),
           },
           style,
         ]}
@@ -52,8 +52,8 @@ export const Card = memo(function Card({
             styles.gradientInner,
             {
               backgroundColor: colors.surface,
-              borderRadius: radiusMap[rounded] - 2,
-              padding: noPadding ? 0 : spacing[5],
+              borderRadius: radiusMap[rounded] - 1.5,
+              padding: noPadding ? 0 : spacing[4],
             },
           ]}
         >
@@ -73,7 +73,7 @@ export const Card = memo(function Card({
           borderWidth: 1,
           borderColor: colors.border,
           overflow: 'hidden',
-          ...(elevated ? shadow.md : shadow.xs),
+          ...(elevated ? shadow.sm : shadow.none),
         },
         style,
       ]}
@@ -83,7 +83,7 @@ export const Card = memo(function Card({
       )}
       <View
         style={[
-          { flex: 1, padding: noPadding ? 0 : spacing[5] },
+          { flex: 1, padding: noPadding ? 0 : spacing[4] },
           accentColor ? { marginLeft: 0 } : undefined,
         ]}
       >
@@ -99,3 +99,4 @@ const styles = StyleSheet.create({
   gradientWrapper: { overflow: 'hidden' },
   gradientInner: { flex: 1 },
 });
+

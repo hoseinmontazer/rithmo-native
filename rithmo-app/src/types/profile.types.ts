@@ -8,6 +8,10 @@ export interface UserProfile {
   // ── Preferred (editable) ──────────────────────────────────────────────────
   preferred_cycle_length?: number;
   preferred_period_duration?: number;
+  // ── Onboarding preferences ────────────────────────────────────────────────
+  onboarding_intent?: string;
+  onboarding_regularity?: string;
+  onboarding_symptoms?: string;
   // ── Legacy / calculated (read-only analytics) ─────────────────────────────
   cycle_length?: number;
   period_duration?: number;
@@ -27,6 +31,9 @@ export interface UpdateProfileRequest {
   /** Editable preferred values — PATCH /api/user/profile/ */
   preferred_cycle_length?: number;
   preferred_period_duration?: number;
+  onboarding_intent?: string;
+  onboarding_regularity?: string;
+  onboarding_symptoms?: string;
 }
 
 export interface InvitationCode {

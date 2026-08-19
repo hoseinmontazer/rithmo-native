@@ -1,5 +1,5 @@
 /**
- * PhasePill — Displays current cycle phase with color coding
+ * PhasePill — Displays current cycle phase with semantic color coding
  */
 import React, { memo } from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
@@ -39,8 +39,16 @@ export const PhasePill = memo(function PhasePill({
     luteal: colors.lutealBg,
   };
 
+  const phaseBorderColors = {
+    menstrual: colors.menstrualBorder,
+    follicular: colors.follicularBorder,
+    ovulation: colors.ovulationBorder,
+    luteal: colors.lutealBorder,
+  };
+
   const phaseColor = phaseColors[phase];
   const phaseBg = phaseBgColors[phase];
+  const phaseBorder = phaseBorderColors[phase];
 
   return (
     <View
@@ -49,10 +57,10 @@ export const PhasePill = memo(function PhasePill({
         {
           backgroundColor: phaseBg,
           borderRadius: borderRadius.full,
-          paddingVertical: spacing[2],
-          paddingHorizontal: spacing[4],
+          paddingVertical: 4,
+          paddingHorizontal: spacing[3],
           borderWidth: 1,
-          borderColor: phaseColor + '40',
+          borderColor: phaseBorder,
         },
         style,
       ]}
@@ -63,9 +71,9 @@ export const PhasePill = memo(function PhasePill({
           styles.text,
           {
             color: phaseColor,
-            fontSize: typography.sm,
+            fontSize: typography.caption,
             fontWeight: '600',
-            marginLeft: spacing[2],
+            marginHorizontal: spacing[2],
           },
         ]}
       >
@@ -83,9 +91,10 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   text: {},
 });
+

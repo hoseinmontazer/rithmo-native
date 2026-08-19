@@ -1,106 +1,139 @@
 export const palette = {
   // Base & Neutrals
-  canvas: '#FFFFFF',
-  primary: '#080808',
-  primaryHover: '#1f1f1f',
-  onPrimary: '#FFFFFF',
-  
-  ink: '#080808',
-  inkStrong: '#222222',
-  body: '#363636',
-  bodyMid: '#5A5A5A',
-  mute: '#898989',
-  muteSoft: '#ABABAB',
-  hairline: '#D8D8D8',
+  canvas:       '#FFFFFF',
+  canvasSubtle: '#F8F9FA',
+  canvasDark:   '#090A0F',
 
-  // 5-Stop Chromatic Category Palette
-  accentPurple: '#7A3DFF',
-  accentPink: '#ED52CB',
-  accentBlue: '#3B89FF',
-  accentBlueDeep: '#006ACC',
-  accentBlueInfo: '#146EF5',
-  accentOrange: '#FF6B00',
-  accentGreen: '#00D722',
-  accentYellow: '#FFAE13',
-  accentRed: '#EE1D36',
+  ink:          '#111827', // Slate 900
+  inkStrong:    '#111827',
+  inkMid:       '#374151', // Slate 700
+  body:         '#4B5563', // Slate 600
+  bodyMid:      '#4B5563',
+  mute:         '#6B7280', // Slate 500
+  muteSoft:     '#9CA3AF', // Slate 400
+  hairline:     '#E5E7EB', // Slate 200
+  hairlineSubtle:'#F3F4F6', // Slate 100
 
-  // Semantic mappings to palette for compatibility
-  rose500: '#EE1D36',
-  violet500: '#7A3DFF',
-  violet600: '#5c2ebd',
-  amber500: '#FFAE13',
-  blue400: '#3B89FF',
-  blue500: '#146EF5',
+  // Restrained Chromatic Phase Palette (HSL-Calibrated)
+  roseCoral:    '#E11D48', // Menstrual / Period
+  roseSoft:     '#FFE4E6',
+  violetSoft:   '#7C3AED', // Follicular
+  violetTint:   '#EDE9FE',
+  amberWarm:    '#D97706', // Ovulation / Fertile window
+  amberTint:    '#FEF3C7',
+  azureCalm:    '#0284C7', // Luteal
+  azureTint:    '#E0F2FE',
+  emeraldClean: '#059669', // Wellness
+  emeraldTint:  '#D1FAE5',
 
-  white: '#ffffff',
+  // Semantic mappings for backward compatibility
+  accentPurple:   '#7C3AED',
+  accentPink:     '#E11D48',
+  accentBlue:     '#0284C7',
+  accentBlueDeep: '#0284C7',
+  accentBlueInfo: '#0284C7',
+  accentOrange:   '#D97706',
+  accentGreen:    '#059669',
+  accentYellow:   '#D97706',
+  accentRed:      '#DC2626',
+
+  rose500:   '#E11D48',
+  violet500: '#7C3AED',
+  violet600: '#6D28D9',
+  amber500:  '#D97706',
+  blue400:   '#38BDF8',
+  blue500:   '#0284C7',
+
+  white: '#FFFFFF',
   black: '#000000',
 } as const;
 
 export const lightColors = {
-  // Backgrounds
+  // Backgrounds & Canvas
   background:       palette.canvas,
-  backgroundAlt:    '#F5F5F5',
-  surface:          palette.white,
-  surfaceSecondary: '#FAFAFA',
-  surfaceElevated:  palette.white,
+  backgroundAlt:    palette.canvasSubtle,
+  surface:          palette.canvas,
+  surfaceSecondary: palette.canvasSubtle,
+  surfaceSubtle:    palette.hairlineSubtle,
+  surfaceElevated:  palette.canvas,
   surfaceDark:      palette.ink,
-  overlay:          'rgba(8, 8, 8, 0.4)',
+  overlay:          'rgba(17, 24, 39, 0.4)',
 
-  // Borders
+  // Borders & Dividers
   border:           palette.hairline,
+  borderSubtle:     palette.hairlineSubtle,
   borderStrong:     palette.ink,
-  divider:          palette.hairline,
+  divider:          palette.hairlineSubtle,
 
-  // Brand 
-  primary:          palette.primary,
-  primaryLight:     palette.muteSoft,
+  // Brand / Actions
+  primary:          palette.ink,
+  primaryLight:     palette.hairlineSubtle,
   primaryLighter:   palette.hairline,
-  primaryDark:      palette.primaryHover,
+  primaryDark:      palette.black,
+  primaryPressed:   '#1F2937',
 
   // Accent
-  accent:           palette.accentBlueDeep,
-  accentLight:      'rgba(0, 106, 204, 0.1)',
-  accentLighter:    'rgba(0, 106, 204, 0.05)',
+  accent:           palette.azureCalm,
+  accentLight:      palette.azureTint,
+  accentLighter:    'rgba(2, 132, 199, 0.04)',
 
   // Wellness
-  wellness:         palette.accentGreen,
-  wellnessLight:    'rgba(0, 215, 34, 0.1)',
-  wellnessLighter:  'rgba(0, 215, 34, 0.05)',
+  wellness:         palette.emeraldClean,
+  wellnessBg:       palette.emeraldTint,
+  wellnessLight:    'rgba(5, 150, 105, 0.12)',
+  wellnessLighter:  'rgba(5, 150, 105, 0.05)',
 
-  // Ovulation
-  ovulationColor:   palette.accentOrange,
-  ovulationLight:   'rgba(255, 107, 0, 0.1)',
-  ovulationLighter: 'rgba(255, 107, 0, 0.05)',
+  // Ovulation & Fertile
+  ovulationColor:   palette.amberWarm,
+  ovulationLight:   palette.amberTint,
+  ovulationLighter: 'rgba(217, 119, 6, 0.04)',
 
-  // Text
+  // Text Hierarchy
   textPrimary:      palette.inkStrong,
-  textSecondary:    palette.bodyMid,
+  textSecondary:    palette.body,
   textTertiary:     palette.mute,
+  textMuted:        palette.muteSoft,
   textDisabled:     palette.muteSoft,
-  textOnPrimary:    palette.onPrimary,
+  textOnPrimary:    palette.white,
   textOnDark:       palette.canvas,
 
-  // Semantic
-  success:          palette.accentGreen,
-  successBg:        'rgba(0, 215, 34, 0.1)',
-  warning:          palette.accentYellow,
-  warningBg:        'rgba(255, 174, 19, 0.1)',
+  // Semantic Feedback
+  success:          palette.emeraldClean,
+  successBg:        palette.emeraldTint,
+  warning:          palette.amberWarm,
+  warningBg:        palette.amberTint,
   error:            palette.accentRed,
-  errorBg:          'rgba(238, 29, 54, 0.1)',
-  info:             palette.accentBlueInfo,
-  infoBg:           'rgba(20, 110, 245, 0.1)',
+  errorBg:          '#FEE2E2',
+  info:             palette.azureCalm,
+  infoBg:           palette.azureTint,
 
-  // Cycle phases mapped to Webflow 5-stop chromatic scale
-  menstrual:        palette.accentPink,
-  menstrualBg:      'rgba(237, 82, 203, 0.1)',
-  follicular:       palette.accentPurple,
-  follicularBg:     'rgba(122, 61, 255, 0.1)',
-  ovulation:        palette.accentOrange,
-  ovulationBg:      'rgba(255, 107, 0, 0.1)',
-  luteal:           palette.accentBlue,
-  lutealBg:         'rgba(59, 137, 255, 0.1)',
+  // Cycle Phase Chromatic Palette
+  menstrual:        palette.roseCoral,
+  menstrualBg:      palette.roseSoft,
+  menstrualBorder:  '#FDA4AF',
+  follicular:       palette.violetSoft,
+  follicularBg:     palette.violetTint,
+  follicularBorder: '#C4B5FD',
+  ovulation:        palette.amberWarm,
+  ovulationBg:      palette.amberTint,
+  ovulationBorder:  '#FCD34D',
+  luteal:           palette.azureCalm,
+  lutealBg:         palette.azureTint,
+  lutealBorder:     '#7DD3FC',
 
-  // Additional palette colors for compatibility
+  // Explicit Phase Aliases
+  phasePeriod:        palette.roseCoral,
+  phasePeriodBg:      palette.roseSoft,
+  phaseFollicular:    palette.violetSoft,
+  phaseFollicularBg:  palette.violetTint,
+  phaseOvulation:     palette.amberWarm,
+  phaseOvulationBg:   palette.amberTint,
+  phaseFertile:       palette.amberWarm,
+  phaseFertileBg:     palette.amberTint,
+  phaseLuteal:        palette.azureCalm,
+  phaseLutealBg:      palette.azureTint,
+
+  // Compatibility tokens
   violet500:        palette.violet500,
   violet600:        palette.violet600,
   rose500:          palette.rose500,
@@ -108,65 +141,86 @@ export const lightColors = {
   blue400:          palette.blue400,
   blue500:          palette.blue500,
 
-  shadowColor:      '#000000',
+  shadowColor:      '#111827',
   black:            palette.black,
+  white:            palette.white,
 } as const;
 
 export const darkColors = {
-  // Backgrounds - High contrast dark mode
-  background:       palette.primary, // #080808
-  backgroundAlt:    '#121212',
-  surface:          '#1a1a1a',
-  surfaceSecondary: '#242424',
-  surfaceElevated:  '#2a2a2a',
-  surfaceDark:      palette.primaryHover,
-  overlay:          'rgba(0,0,0,0.8)',
+  // Backgrounds - High contrast, low visual fatigue
+  background:       palette.canvasDark,
+  backgroundAlt:    '#111318',
+  surface:          '#161922',
+  surfaceSecondary: '#1E222D',
+  surfaceSubtle:    '#1A1D27',
+  surfaceElevated:  '#252A37',
+  surfaceDark:      '#0F1117',
+  overlay:          'rgba(0, 0, 0, 0.75)',
 
-  border:           '#333333',
-  borderStrong:     '#555555',
-  divider:          '#333333',
+  border:           '#272E3F',
+  borderSubtle:     '#1E222D',
+  borderStrong:     '#4B5563',
+  divider:          '#1E222D',
 
-  primary:          palette.canvas, // White as primary action on dark mode
-  primaryLight:     '#CCCCCC',
-  primaryLighter:   '#AAAAAA',
-  primaryDark:      '#E5E5E5',
+  primary:          palette.canvas,
+  primaryLight:     '#1F2937',
+  primaryLighter:   '#374151',
+  primaryDark:      '#E5E7EB',
+  primaryPressed:   '#D1D5DB',
 
-  accent:           palette.accentBlue,
-  accentLight:      'rgba(59, 137, 255, 0.2)',
-  accentLighter:    'rgba(59, 137, 255, 0.1)',
+  accent:           '#38BDF8',
+  accentLight:      'rgba(56, 189, 248, 0.15)',
+  accentLighter:    'rgba(56, 189, 248, 0.08)',
 
-  wellness:         palette.accentGreen,
-  wellnessLight:    'rgba(0, 215, 34, 0.2)',
-  wellnessLighter:  'rgba(0, 215, 34, 0.1)',
+  wellness:         '#34D399',
+  wellnessBg:       'rgba(52, 211, 153, 0.15)',
+  wellnessLight:    'rgba(52, 211, 153, 0.15)',
+  wellnessLighter:  'rgba(52, 211, 153, 0.08)',
 
-  ovulationColor:   palette.accentOrange,
-  ovulationLight:   'rgba(255, 107, 0, 0.2)',
-  ovulationLighter: 'rgba(255, 107, 0, 0.1)',
+  ovulationColor:   '#FBBF24',
+  ovulationLight:   'rgba(251, 191, 36, 0.15)',
+  ovulationLighter: 'rgba(251, 191, 36, 0.08)',
 
-  textPrimary:      '#FFFFFF',
-  textSecondary:    '#CCCCCC',
-  textTertiary:     '#999999',
-  textDisabled:     '#666666',
-  textOnPrimary:    palette.ink, // Black text on white primary button
-  textOnDark:       '#FFFFFF',
+  textPrimary:      '#F9FAFB',
+  textSecondary:    '#D1D5DB',
+  textTertiary:     '#9CA3AF',
+  textMuted:        '#6B7280',
+  textDisabled:     '#4B5563',
+  textOnPrimary:    palette.ink,
+  textOnDark:       palette.canvas,
 
-  success:          palette.accentGreen,
-  successBg:        'rgba(0, 215, 34, 0.15)',
-  warning:          palette.accentYellow,
-  warningBg:        'rgba(255, 174, 19, 0.15)',
-  error:            palette.accentRed,
-  errorBg:          'rgba(238, 29, 54, 0.15)',
-  info:             palette.accentBlueInfo,
-  infoBg:           'rgba(20, 110, 245, 0.15)',
+  success:          '#34D399',
+  successBg:        'rgba(52, 211, 153, 0.15)',
+  warning:          '#FBBF24',
+  warningBg:        'rgba(251, 191, 36, 0.15)',
+  error:            '#F87171',
+  errorBg:          'rgba(248, 113, 113, 0.15)',
+  info:             '#38BDF8',
+  infoBg:           'rgba(56, 189, 248, 0.15)',
 
-  menstrual:        palette.accentPink,
-  menstrualBg:      'rgba(237, 82, 203, 0.15)',
-  follicular:       palette.accentPurple,
-  follicularBg:     'rgba(122, 61, 255, 0.15)',
-  ovulation:        palette.accentOrange,
-  ovulationBg:      'rgba(255, 107, 0, 0.15)',
-  luteal:           palette.accentBlue,
-  lutealBg:         'rgba(59, 137, 255, 0.15)',
+  menstrual:        '#FB7185',
+  menstrualBg:      'rgba(251, 113, 133, 0.15)',
+  menstrualBorder:  '#E11D48',
+  follicular:       '#A78BFA',
+  follicularBg:     'rgba(167, 139, 250, 0.15)',
+  follicularBorder: '#7C3AED',
+  ovulation:        '#FBBF24',
+  ovulationBg:      'rgba(251, 191, 36, 0.15)',
+  ovulationBorder:  '#D97706',
+  luteal:           '#38BDF8',
+  lutealBg:         'rgba(56, 189, 248, 0.15)',
+  lutealBorder:     '#0284C7',
+
+  phasePeriod:        '#FB7185',
+  phasePeriodBg:      'rgba(251, 113, 133, 0.15)',
+  phaseFollicular:    '#A78BFA',
+  phaseFollicularBg:  'rgba(167, 139, 250, 0.15)',
+  phaseOvulation:     '#FBBF24',
+  phaseOvulationBg:   'rgba(251, 191, 36, 0.15)',
+  phaseFertile:       '#FBBF24',
+  phaseFertileBg:     'rgba(251, 191, 36, 0.15)',
+  phaseLuteal:        '#38BDF8',
+  phaseLutealBg:      'rgba(56, 189, 248, 0.15)',
 
   violet500:        palette.violet500,
   violet600:        palette.violet600,
@@ -177,7 +231,7 @@ export const darkColors = {
 
   shadowColor:      '#000000',
   black:            palette.black,
+  white:            palette.white,
 } as const;
-
 
 export type AppColors = typeof lightColors | typeof darkColors;

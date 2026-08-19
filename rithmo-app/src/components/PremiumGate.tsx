@@ -26,7 +26,7 @@ import { useTheme } from '@hooks/useTheme';
 import { usePremiumStatus } from '@hooks/queries/useSubscription';
 
 interface PremiumGateProps {
-  children:     React.ReactNode;
+  children?:    React.ReactNode;
   featureName?: string;
   /** If true, renders children behind a blur/overlay instead of replacing them */
   overlay?:     boolean;
@@ -34,7 +34,7 @@ interface PremiumGateProps {
 
 export function PremiumGate({ children, featureName, overlay = false }: PremiumGateProps) {
   const { isPremium, isLoading } = usePremiumStatus();
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, borderRadius } = useTheme();
   const navigation = useNavigation();
 
   const handleUpgrade = useCallback(() => {
@@ -49,30 +49,52 @@ export function PremiumGate({ children, featureName, overlay = false }: PremiumG
     );
   }, [navigation, featureName]);
 
-  // Loading or premium → show children
+  // Loading or premium → show children (nothing to render if used as standalone upsell)
   if (isLoading || isPremium) {
-    return <>{children}</>;
+    return children ? <>{children}</> : null;
   }
 
   // Overlay mode — show children dimmed with a lock banner on top
-  if (overlay) {
+  if (overlay && children) {
     return (
       <View style={styles.overlayRoot}>
         <View style={styles.overlayDim} pointerEvents="none">
           {children}
         </View>
-        <View style={[styles.overlayBanner, { backgroundColor: colors.surface, borderColor: colors.primary + '40' }]}>
-          <Icon name="lock-outline" size={20} color={colors.primary} />
-          <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '700', marginHorizontal: spacing[3], flex: 1 }}>
+        <View
+          style={[
+            styles.overlayBanner,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderRadius: borderRadius.medium,
+            },
+          ]}
+        >
+          <Icon name="lock-outline" size={18} color={colors.textPrimary} />
+          <Text
+            style={{
+              color: colors.textPrimary,
+              fontSize: typography.bodySmall,
+              fontWeight: '600',
+              marginHorizontal: spacing[3],
+              flex: 1,
+            }}
+          >
             {featureName ? `${featureName} is Premium` : 'Premium feature'}
           </Text>
           <TouchableOpacity
             onPress={handleUpgrade}
-            style={[styles.unlockBtn, { backgroundColor: colors.primary }]}
+            style={[
+              styles.unlockBtn,
+              { backgroundColor: colors.primary, borderRadius: borderRadius.small },
+            ]}
             accessibilityRole="button"
             accessibilityLabel={`Unlock ${featureName ?? 'premium feature'}`}
           >
-            <Text style={{ color: '#fff', fontSize: typography.xs, fontWeight: '800' }}>Unlock</Text>
+            <Text style={{ color: colors.textOnPrimary, fontSize: typography.label, fontWeight: '700' }}>
+              Unlock
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -81,33 +103,60 @@ export function PremiumGate({ children, featureName, overlay = false }: PremiumG
 
   // Default: replace content with a locked card
   return (
-    <View style={[styles.lockedCard, { backgroundColor: colors.surface, borderColor: colors.primary + '30' }]}>
-      {/* Top accent */}
-      <View style={{ height: 3, backgroundColor: colors.primary, borderTopLeftRadius: 16, borderTopRightRadius: 16 }} />
-
+    <View
+      style={[
+        styles.lockedCard,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+          borderRadius: borderRadius.large,
+        },
+      ]}
+    >
       <View style={{ padding: spacing[5], alignItems: 'center' }}>
-        <View style={[styles.lockIcon, { backgroundColor: colors.primaryLighter }]}>
-          <Icon name="crown" size={24} color={colors.primary} />
+        <View style={[styles.lockIcon, { backgroundColor: colors.surfaceSubtle, borderRadius: borderRadius.medium }]}>
+          <Icon name="crown-outline" size={24} color={colors.primary} />
         </View>
 
-        <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '800', textAlign: 'center', marginBottom: spacing[2] }}>
+        <Text
+          style={{
+            color: colors.textPrimary,
+            fontSize: typography.title,
+            fontWeight: '700',
+            textAlign: 'center',
+            marginBottom: spacing[2],
+          }}
+        >
           {featureName ? `${featureName}` : 'Premium feature'}
         </Text>
 
-        <Text style={{ color: colors.textSecondary, fontSize: typography.sm, textAlign: 'center', lineHeight: 20, marginBottom: spacing[5] }}>
-          This feature is included in the Premium plan — a tracker that gets smarter
-          and more personal the more you log.
+        <Text
+          style={{
+            color: colors.textSecondary,
+            fontSize: typography.bodySmall,
+            textAlign: 'center',
+            lineHeight: 20,
+            marginBottom: spacing[4],
+          }}
+        >
+          This feature is included in the Premium plan — a personalized health companion that deepens as you log.
         </Text>
 
         <TouchableOpacity
           onPress={handleUpgrade}
-          activeOpacity={0.85}
-          style={[styles.ctaBtn, { backgroundColor: colors.primary }]}
+          activeOpacity={0.8}
+          style={[
+            styles.ctaBtn,
+            {
+              backgroundColor: colors.primary,
+              borderRadius: borderRadius.medium,
+            },
+          ]}
           accessibilityRole="button"
           accessibilityLabel="Upgrade to Premium"
         >
-          <Icon name="crown" size={16} color="#fff" style={{ marginRight: spacing[2] }} />
-          <Text style={{ color: '#fff', fontSize: typography.sm, fontWeight: '800' }}>
+          <Icon name="crown" size={16} color={colors.textOnPrimary} style={{ marginHorizontal: 4 }} />
+          <Text style={{ color: colors.textOnPrimary, fontSize: typography.button, fontWeight: '700' }}>
             Upgrade to Premium
           </Text>
         </TouchableOpacity>
@@ -117,11 +166,12 @@ export function PremiumGate({ children, featureName, overlay = false }: PremiumG
 }
 
 const styles = StyleSheet.create({
-  lockedCard:   { borderRadius: 16, borderWidth: 1, overflow: 'hidden', marginVertical: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 3 },
-  lockIcon:     { width: 52, height: 52, borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  ctaBtn:       { borderRadius: 12, paddingVertical: 14, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center' },
+  lockedCard:   { borderWidth: 1, overflow: 'hidden', marginVertical: 8 },
+  lockIcon:     { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  ctaBtn:       { paddingVertical: 12, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   overlayRoot:  { position: 'relative' },
   overlayDim:   { opacity: 0.25 },
-  overlayBanner:{ flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, padding: 12, marginTop: 8 },
-  unlockBtn:    { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
+  overlayBanner:{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, padding: 12, marginTop: 8 },
+  unlockBtn:    { paddingHorizontal: 12, paddingVertical: 6 },
 });
+
