@@ -17,7 +17,6 @@ import { WellnessStack } from './stacks/WellnessStack';
 import { InsightsStack } from './stacks/InsightsStack';
 import { ProfileStack }  from './stacks/ProfileStack';
 import { useUnreadNotifications } from '@hooks/queries/useNotifications';
-import { usePushTokenRegistration } from '@hooks/usePushTokenRegistration';
 import { TabIcon } from '@components/ui';
 import { useTheme } from '@hooks/useTheme';
 import icons from '../assets/icons';
@@ -79,9 +78,6 @@ function LogTabIcon({ focused, color }: { focused: boolean; color: string }) {
 
 export function MainNavigator() {
   const { data: unreadNotifs } = useUnreadNotifications();
-  // Register / refresh FCM push token whenever the authenticated session starts.
-  // The hook is a no-op until @react-native-firebase/messaging is installed.
-  usePushTokenRegistration();
   const { colors }             = useTheme();
 
   const TAB_H      = Platform.OS === 'ios' ? 80 : 64;

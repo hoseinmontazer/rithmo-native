@@ -145,7 +145,7 @@ function buildCycleDateMap(periods: any[]): Map<string, DayInfo> {
     const lCur = new Date(ovEnd); lCur.setDate(lCur.getDate() + 1);
     while (lCur < pmsStart && lCur < nextStart) {
       const key = formatDateISO(lCur);
-      if (!map.has(key)) map.set(key, { type: 'follicular', periodId: p.id });
+      if (!map.has(key)) map.set(key, { type: 'luteal', periodId: p.id });
       lCur.setDate(lCur.getDate() + 1);
     }
 

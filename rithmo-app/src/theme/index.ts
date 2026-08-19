@@ -1,6 +1,6 @@
 import { lightColors, darkColors, type AppColors } from './colors';
 import { typography } from './typography';
-import { spacing, borderRadius, shadow } from './spacing';
+import { spacing, borderRadius, shadow, elevation, motion } from './spacing';
 
 export function buildTheme(isDark: boolean) {
   return {
@@ -9,10 +9,13 @@ export function buildTheme(isDark: boolean) {
     spacing,
     borderRadius,
     shadow,
+    elevation,
+    motion,
     isDark,
   } as const;
 }
 
 export type AppTheme = ReturnType<typeof buildTheme>;
-export { lightColors, darkColors, typography, spacing, borderRadius, shadow };
+export { lightColors, darkColors, typography, spacing, borderRadius, shadow, elevation, motion };
 export type { AppColors };
+

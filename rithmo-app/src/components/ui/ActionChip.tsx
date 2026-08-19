@@ -34,18 +34,19 @@ export const ActionChip = memo(function ActionChip({
       style={[
         styles.chip,
         {
-          backgroundColor: chipColor + '15',
-          borderRadius: borderRadius.full,
-          paddingVertical: spacing[3],
-          paddingHorizontal: spacing[5],
+          backgroundColor: color ? color + '12' : colors.surfaceSubtle,
+          borderRadius: borderRadius.pill,
+          paddingVertical: spacing[2],
+          paddingHorizontal: spacing[4],
+          minHeight: 38,
           borderWidth: 1,
-          borderColor: chipColor + '30',
+          borderColor: color ? color + '25' : colors.borderSubtle,
           ...shadow.xs,
         },
         style,
       ]}
     >
-      {emoji && <Text style={[styles.emoji, { marginRight: spacing[2] }]}>{emoji}</Text>}
+      {emoji && <Text style={[styles.emoji, { marginHorizontal: 4 }]}>{emoji}</Text>}
       {iconName && (
         <Icon
           name={iconName}
@@ -59,9 +60,9 @@ export const ActionChip = memo(function ActionChip({
           styles.label,
           {
             color: colors.textPrimary,
-            fontSize: typography.sm,
+            fontSize: typography.bodySmall,
             fontWeight: '600',
-            marginLeft: (emoji || iconName) ? spacing[2] : 0,
+            marginHorizontal: (emoji || iconName) ? 4 : 0,
           },
         ]}
       >
@@ -78,7 +79,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emoji: {
-    fontSize: 18,
+    fontSize: 16,
   },
   label: {},
 });
+

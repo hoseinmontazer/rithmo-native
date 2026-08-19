@@ -29,12 +29,18 @@ import { Platform } from 'react-native';
 import { useRegisterPushToken } from '@hooks/queries/useNotifications';
 import { useAuth } from '@hooks/useAuth';
 
-/** Attempt to load @react-native-firebase/messaging lazily so the app
- *  doesn't crash if the native module isn't installed yet. */
+/** Attempt to load @react-native-firebase/messaging lazily.
+ *  Returns null if the package is missing OR if the native module is not
+ *  wired up (i.e. the JS package exists but calling messaging() would throw). */
 function getMessaging(): any | null {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require('@react-native-firebase/messaging').default;
+    const mod = require('@react-native-firebase/messaging').default;
+    // Verify the native module is actually available by calling the factory.
+    // If the native side isn't set up, this throws "No Firebase App '[DEFAULT]'"
+    // or a NativeModule error — catch it and return null so we stay a no-op.
+    mod();
+    return mod;
   } catch {
     return null;
   }
@@ -53,9 +59,8 @@ export function usePushTokenRegistration(): void {
       if (__DEV__) {
         console.warn(
           '[usePushTokenRegistration] @react-native-firebase/messaging is not ' +
-          'installed. Push notifications will not work until the native Firebase ' +
-          'libraries are added to the project. See src/hooks/usePushTokenRegistration.ts ' +
-          'for setup instructions.',
+          'available (package missing or native module not configured). ' +
+          'Push notifications are disabled. See usePushTokenRegistration.ts for setup.',
         );
       }
       return;
@@ -99,23 +104,29 @@ export function usePushTokenRegistration(): void {
       }
     }
 
-    requestAndRegister();
+    try {
+      requestAndRegister();
 
-    // Re-register whenever FCM rotates the token
-    unsubscribeRefresh = messaging().onTokenRefresh(async (newToken: string) => {
-      if (newToken === registeredToken.current) { return; }
-      try {
-        await registerToken({
-          token: newToken,
-          device_type: Platform.OS === 'ios' ? 'ios' : 'android',
-        });
-        registeredToken.current = newToken;
-      } catch (err) {
-        if (__DEV__) {
-          console.warn('[usePushTokenRegistration] Token refresh registration failed:', err);
+      // Re-register whenever FCM rotates the token
+      unsubscribeRefresh = messaging().onTokenRefresh(async (newToken: string) => {
+        if (newToken === registeredToken.current) { return; }
+        try {
+          await registerToken({
+            token: newToken,
+            device_type: Platform.OS === 'ios' ? 'ios' : 'android',
+          });
+          registeredToken.current = newToken;
+        } catch (err) {
+          if (__DEV__) {
+            console.warn('[usePushTokenRegistration] Token refresh registration failed:', err);
+          }
         }
+      });
+    } catch (err) {
+      if (__DEV__) {
+        console.warn('[usePushTokenRegistration] Firebase setup error:', err);
       }
-    });
+    }
 
     return () => {
       unsubscribeRefresh?.();

@@ -30,27 +30,40 @@ interface TodayStateCardProps {
 export const TodayStateCard = memo(function TodayStateCard({
   log, isLoading, onLogPress,
 }: TodayStateCardProps) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, typography, borderRadius, shadow } = useTheme();
 
   // ── Not yet logged ────────────────────────────────────────────────────────
   if (!isLoading && !log) {
     return (
       <TouchableOpacity
         onPress={onLogPress}
-        activeOpacity={0.85}
-        style={[styles.ctaCard, {
-          backgroundColor: colors.surfaceSecondary,
-          borderColor: colors.border,
-        }]}
-        accessibilityLabel="ثبت امروز"
+        activeOpacity={0.8}
+        style={[
+          styles.ctaCard,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            borderRadius: borderRadius.large,
+            ...shadow.xs,
+          },
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel="ثبت وضعیت امروز"
       >
-        <Text style={{ fontSize: 22, marginBottom: 2 }}>✏️</Text>
-        <View>
-          <Text style={[styles.ctaTitle, { color: colors.primary, fontSize: typography.base }]}>
-            ثبت امروز
+        <View style={[styles.ctaIconBadge, { backgroundColor: colors.surfaceSubtle, borderRadius: borderRadius.medium }]}>
+          <Text style={{ fontSize: 20 }}>✏️</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.ctaTitle, { color: colors.textPrimary, fontSize: typography.body }]}>
+            ثبت وضعیت امروز
           </Text>
-          <Text style={[styles.ctaSub, { color: colors.textSecondary, fontSize: typography.sm }]}>
-            هنوز چیزی ثبت نکردی
+          <Text style={[styles.ctaSub, { color: colors.textSecondary, fontSize: typography.bodySmall }]}>
+            حال و انرژی امروزت رو ثبت کن
+          </Text>
+        </View>
+        <View style={[styles.logBtn, { backgroundColor: colors.primary, borderRadius: borderRadius.small }]}>
+          <Text style={{ color: colors.textOnPrimary, fontSize: typography.label, fontWeight: '700' }}>
+            ثبت
           </Text>
         </View>
       </TouchableOpacity>
@@ -69,44 +82,53 @@ export const TodayStateCard = memo(function TodayStateCard({
     <TouchableOpacity
       onPress={onLogPress}
       activeOpacity={0.88}
-      style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.shadowColor }]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+          borderRadius: borderRadius.large,
+          ...shadow.xs,
+        },
+      ]}
+      accessibilityRole="button"
       accessibilityLabel="ویرایش ثبت امروز"
     >
       <View style={styles.row}>
         {/* Mood */}
         <View style={styles.metricItem}>
           <Text style={styles.metricEmoji}>{MOOD_EMOJI[moodKey] ?? '😐'}</Text>
-          <Text style={[styles.metricLabel, { color: colors.textTertiary, fontSize: typography.xs }]}>خلق</Text>
+          <Text style={[styles.metricLabel, { color: colors.textTertiary, fontSize: typography.label }]}>خلق</Text>
         </View>
 
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <View style={[styles.divider, { backgroundColor: colors.borderSubtle }]} />
 
         {/* Energy */}
         <View style={styles.metricItem}>
           <Text style={styles.metricEmoji}>{ENERGY_EMOJI[energyKey] ?? '😌'}</Text>
-          <Text style={[styles.metricLabel, { color: colors.textTertiary, fontSize: typography.xs }]}>انرژی</Text>
+          <Text style={[styles.metricLabel, { color: colors.textTertiary, fontSize: typography.label }]}>انرژی</Text>
         </View>
 
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
+        <View style={[styles.divider, { backgroundColor: colors.borderSubtle }]} />
 
         {/* Pain */}
         <View style={styles.metricItem}>
           <Text style={styles.metricEmoji}>{PAIN_EMOJI[painKey] ?? '✅'}</Text>
-          <Text style={[styles.metricLabel, { color: colors.textTertiary, fontSize: typography.xs }]}>درد</Text>
+          <Text style={[styles.metricLabel, { color: colors.textTertiary, fontSize: typography.label }]}>درد</Text>
         </View>
 
         {/* Edit hint */}
-        <View style={[styles.editHint, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={{ color: colors.textTertiary, fontSize: typography.xs }}>ویرایش</Text>
+        <View style={[styles.editHint, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle, borderRadius: borderRadius.small }]}>
+          <Text style={{ color: colors.textSecondary, fontSize: typography.caption, fontWeight: '600' }}>ویرایش</Text>
         </View>
       </View>
 
       {log.notes ? (
         <Text
-          style={[styles.notes, { color: colors.textSecondary, fontSize: typography.sm }]}
+          style={[styles.notes, { color: colors.textSecondary, fontSize: typography.bodySmall }]}
           numberOfLines={2}
         >
-          "{log.notes}"
+          «{log.notes}»
         </Text>
       ) : null}
     </TouchableOpacity>
@@ -118,22 +140,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderRadius: 8,
     borderWidth: 1,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  ctaTitle: { fontWeight: '700' },
-  ctaSub: { marginTop: 2 },
-
+  ctaIconBadge: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaTitle: {
+    fontWeight: '700',
+  },
+  ctaSub: {
+    marginTop: 2,
+  },
+  logBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
   card: {
-    borderRadius: 8,
-    paddingHorizontal: 18,
+    borderWidth: 1,
+    paddingHorizontal: 16,
     paddingVertical: 14,
-    shadowOffset: { width: 0, height: 13 },
-    shadowOpacity: 0.08,
-    shadowRadius: 13,
-    elevation: 6,
   },
   row: {
     flexDirection: 'row',
@@ -145,28 +175,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  metricEmoji: { fontSize: 28 },
+  metricEmoji: {
+    fontSize: 24,
+  },
   metricLabel: {
     fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
   },
   divider: {
     width: StyleSheet.hairlineWidth,
-    height: 36,
+    height: 32,
     marginHorizontal: 4,
   },
   editHint: {
     borderWidth: 1,
-    borderRadius: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    marginLeft: 8,
+    marginHorizontal: 4,
   },
   notes: {
     marginTop: 10,
     fontStyle: 'italic',
     lineHeight: 18,
-    opacity: 0.8,
   },
 });
+

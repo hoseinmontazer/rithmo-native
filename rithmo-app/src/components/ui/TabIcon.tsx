@@ -23,13 +23,13 @@ interface TabIconProps {
 export const TabIcon = memo(function TabIcon({
   source,
   size = 24,
-
+  color,
 }: TabIconProps) {
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <Image
         source={source}
-        style={{ width: size, height: size }}
+        style={{ width: size, height: size, tintColor: color }}
         resizeMode="contain"
       />
     </View>
@@ -57,3 +57,4 @@ export const AppIcon = memo(function AppIcon({
     </View>
   );
 });
+

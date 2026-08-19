@@ -1,37 +1,45 @@
-import { Platform } from 'react-native';
-
 export const typography = {
-  // Size scale mapped to Webflow system closely
-  xs:    12, // smaller labels
-  sm:    14, // button text, nav links
-  base:  16, // body-md
+  // Semantic Type Scale (supporting English and Persian text)
+  display:   32, // Hero cycle day counters & primary impact numbers
+  heading:   24, // Screen titles
+  title:     18, // Section headers & major card titles
+  body:      15, // Standard body & conversational text
+  bodyMedium:15, // Emphasized body text
+  bodySmall: 13, // Secondary descriptions & compact lists
+  caption:   13, // Dates, timestamps & metadata
+  label:     12, // Badges, form labels & category tags
+  button:    15, // Button & interactive action labels
+  overline:  11, // Eyebrows & uppercase metadata
+
+  // Compatibility scale
+  xs:    12,
+  sm:    14,
+  base:  15,
   md:    18,
   lg:    20,
-  xl:    24, // body-lg / display-sm
-  '2xl': 32, // display-md
-  '3xl': 40, 
-  '4xl': 44, // display-lg
-  '5xl': 48, // display-xxl start
-  
-  // Custom Webflow typography classes could be mapped here conceptually, 
-  // but we keep the same naming convention so we don't break existing components immediately.
+  xl:    24,
+  '2xl': 32,
+  '3xl': 40,
+  '4xl': 44,
+  '5xl': 48,
 
-  // Line heights
-  lineHeightTight:   1.04,
-  lineHeightSnug:    1.2,
-  lineHeightNormal:  1.6,
-  lineHeightRelaxed: 1.8,
+  // Line heights (calibrated for Persian and Latin scripts)
+  lineHeightTight:   1.15,
+  lineHeightSnug:    1.25,
+  lineHeightNormal:  1.5,
+  lineHeightRelaxed: 1.7,
 
   // Letter spacing
-  trackingTight:  -0.8,
-  trackingNormal: -0.16,
-  trackingWide:    0,
-  trackingWidest:  1.5, // eyebrow
+  trackingTight:  -0.4,
+  trackingNormal: 0,
+  trackingWide:   0.2,
+  trackingWidest: 0.8,
 
-  // Weights
+  // Font Weights
   weightRegular:  '400' as const,
   weightMedium:   '500' as const,
   weightSemiBold: '600' as const,
   weightBold:     '700' as const,
-  weightBlack:    '900' as const,
+  weightBlack:    '800' as const,
 } as const;
+

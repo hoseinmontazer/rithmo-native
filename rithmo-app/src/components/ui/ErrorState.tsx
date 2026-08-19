@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '@hooks/useTheme';
 import { Button } from './Button';
+import { Icon } from './Icon';
 import { extractErrorMessage } from '@utils/errorHandler';
 
 interface ErrorStateProps {
@@ -16,19 +17,22 @@ export const ErrorState = memo(function ErrorState({ error, onRetry, fullScreen 
 
   return (
     <View style={[styles.container, fullScreen && styles.fullScreen, { backgroundColor: colors.background }]}>
-      <Text style={{ fontSize: 40 }}>⚠️</Text>
-      <Text style={[styles.title, { color: colors.textPrimary, fontSize: typography.lg, marginTop: spacing[3] }]}>
+      <View style={[styles.iconContainer, { backgroundColor: colors.errorBg }]}>
+        <Icon name="alert-circle-outline" size={28} color={colors.error} />
+      </View>
+      <Text style={[styles.title, { color: colors.textPrimary, fontSize: typography.title, marginTop: spacing[3] }]}>
         Something went wrong
       </Text>
-      <Text style={[styles.message, { color: colors.textSecondary, fontSize: typography.base, marginTop: spacing[2] }]}>
+      <Text style={[styles.message, { color: colors.textSecondary, fontSize: typography.bodySmall, marginTop: spacing[2] }]}>
         {message}
       </Text>
       {onRetry && (
         <Button
           label="Try Again"
           onPress={onRetry}
-          variant="outline"
-          style={{ marginTop: spacing[5] }}
+          variant="secondary"
+          size="sm"
+          style={{ marginTop: spacing[4] }}
         />
       )}
     </View>
@@ -36,8 +40,10 @@ export const ErrorState = memo(function ErrorState({ error, onRetry, fullScreen 
 });
 
 const styles = StyleSheet.create({
-  container:  { alignItems: 'center', justifyContent: 'center', padding: 32 },
-  fullScreen: { flex: 1 },
-  title:      { fontWeight: '600', textAlign: 'center' },
-  message:    { textAlign: 'center', lineHeight: 22 },
+  container:     { alignItems: 'center', justifyContent: 'center', padding: 32 },
+  fullScreen:    { flex: 1 },
+  iconContainer: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  title:         { fontWeight: '700', textAlign: 'center' },
+  message:       { textAlign: 'center', lineHeight: 20, maxWidth: 280 },
 });
+

@@ -53,8 +53,6 @@ export const Input = memo(function Input({
 
   const bg = error
     ? colors.errorBg
-    : focused
-    ? colors.primaryLighter
     : colors.surface;
 
   return (
@@ -64,7 +62,7 @@ export const Input = memo(function Input({
           style={{
             color: focused ? colors.primary : colors.textSecondary,
             fontSize: typography.sm,
-            fontWeight: '700',
+            fontWeight: '600',
             marginBottom: spacing[2],
             letterSpacing: 0,
           }}
@@ -73,22 +71,21 @@ export const Input = memo(function Input({
         </Text>
       )}
 
-      {/* Pill-shaped input wrapper */}
       <View
         style={[
           styles.wrap,
           {
             borderColor,
-            borderWidth: focused ? 2 : 1.5,
-            borderRadius: borderRadius.xl,
+            borderWidth: focused ? 1.5 : 1,
+            borderRadius: borderRadius.medium,
             backgroundColor: bg,
-            paddingHorizontal: spacing[4],
-            minHeight: 54,
+            paddingHorizontal: spacing[3],
+            minHeight: 48,
           },
         ]}
       >
         {leftIconName && (
-          <View style={{ marginRight: spacing[2] }}>
+          <View style={{ marginHorizontal: 4 }}>
             <Icon
               name={leftIconName}
               size={20}
@@ -101,8 +98,9 @@ export const Input = memo(function Input({
           style={{
             flex: 1,
             color: colors.textPrimary,
-            fontSize: typography.base,
-            paddingVertical: spacing[3],
+            fontSize: typography.body,
+            paddingVertical: spacing[2],
+            textAlign: 'auto',
           }}
           placeholderTextColor={colors.textTertiary}
           secureTextEntry={isPassword && !show}
@@ -139,7 +137,7 @@ export const Input = memo(function Input({
               color: colors.error,
               fontSize: typography.xs,
               fontWeight: '500',
-              marginLeft: 4,
+              marginHorizontal: 4,
             }}
           >
             {error}
@@ -152,7 +150,7 @@ export const Input = memo(function Input({
           style={{
             color: colors.textTertiary,
             fontSize: typography.xs,
-            marginTop: 5,
+            marginTop: 4,
           }}
         >
           {hint}
@@ -166,3 +164,4 @@ const styles = StyleSheet.create({
   wrap:   { flexDirection: 'row', alignItems: 'center' },
   errRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
 });
+

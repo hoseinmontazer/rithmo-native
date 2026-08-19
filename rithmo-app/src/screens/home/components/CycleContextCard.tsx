@@ -16,35 +16,34 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useTheme } from '@hooks/useTheme';
-import { PhasePill } from '@components/ui';
 
 // ── Phase interpretation map ──────────────────────────────────────────────────
 // User-facing language: personal, non-medical, observational.
 
 const PHASE_CONTEXT: Record<string, {
-  label: string;      // non-medical user-facing label
-  accent: string;     // key in colors
+  label: string;          // non-medical user-facing label
+  accent: string;         // key in colors
   interpretation: string; // what this phase typically means for the user
 }> = {
   menstrual: {
     label: 'روزهای دوره',
     accent: 'menstrual',
-    interpretation: 'معمولاً روزهایی برای آرام‌گرفتن',
+    interpretation: 'معمولاً روزهایی برای استراحت و آرامش',
   },
   follicular: {
-    label: 'روزهای اوج',
+    label: 'فاز فولیکولار',
     accent: 'follicular',
-    interpretation: 'انرژی معمولاً در حال افزایش است',
+    interpretation: 'انرژی و تمرکز در حال افزایش است',
   },
   ovulation: {
-    label: 'روزهای اوج',
+    label: 'پنجره باروری و تخمک‌گذاری',
     accent: 'ovulation',
-    interpretation: 'اغلب بهترین روزهای ماه',
+    interpretation: 'اوج انرژی و بهترین روزهای سیکل',
   },
   luteal: {
-    label: 'روزهای پایانی سیکل',
+    label: 'فاز لوتئال',
     accent: 'luteal',
-    interpretation: 'ممکن است کمی سخت‌تر باشد',
+    interpretation: 'روزهای پایانی سیکل و افت تدریجی انرژی',
   },
 };
 
@@ -73,15 +72,26 @@ export const CycleContextCard = memo(function CycleContextCard({
   onRetry,
   onStartTracking,
 }: CycleContextCardProps) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, borderRadius, shadow } = useTheme();
   const ctx = PHASE_CONTEXT[phase] ?? PHASE_CONTEXT.follicular;
   const accent = (colors as any)[ctx.accent] ?? colors.primary;
-  const accentBg = accent + '12';
+  const accentBg = (colors as any)[`${ctx.accent}Bg`] ?? (accent + '15');
+  const accentBorder = (colors as any)[`${ctx.accent}Border`] ?? (accent + '40');
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <View style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.shadowColor }]}>
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            borderRadius: borderRadius.large,
+            padding: spacing[6],
+          },
+        ]}
+      >
         <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
@@ -92,22 +102,45 @@ export const CycleContextCard = memo(function CycleContextCard({
     return (
       <TouchableOpacity
         onPress={hasError ? onRetry : onStartTracking}
-        activeOpacity={0.85}
-        style={[styles.card, {
-          backgroundColor: colors.surface,
-          shadowColor: colors.shadowColor,
-          borderStyle: 'dashed',
-          borderWidth: 1,
-          borderColor: colors.border,
-        }]}
+        activeOpacity={0.8}
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            borderRadius: borderRadius.large,
+            borderStyle: 'dashed',
+            padding: spacing[5],
+            alignItems: 'center',
+          },
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={hasError ? 'تلاش دوباره' : 'شروع ردیابی'}
       >
-        <Text style={{ color: colors.textSecondary, fontSize: typography.base, textAlign: 'center', lineHeight: 22 }}>
+        <Text
+          style={{
+            color: colors.textSecondary,
+            fontSize: typography.body,
+            textAlign: 'center',
+            lineHeight: 22,
+          }}
+        >
           {hasError
-            ? 'مشکلی پیش آمد. لمس کنید تا دوباره تلاش شود.'
+            ? 'مشکلی در بارگذاری اطلاعات پیش آمد. لمس کنید تا دوباره تلاش شود.'
             : 'برای شروع، آخرین دوره‌ات را ثبت کن.'}
         </Text>
-        <View style={[styles.ctaBtn, { backgroundColor: colors.primaryLight, marginTop: spacing[3] }]}>
-          <Text style={{ color: colors.primary, fontWeight: '700', fontSize: typography.sm }}>
+        <View
+          style={[
+            styles.ctaBtn,
+            {
+              backgroundColor: colors.surfaceSubtle,
+              borderColor: colors.borderSubtle,
+              borderRadius: borderRadius.medium,
+              marginTop: spacing[3],
+            },
+          ]}
+        >
+          <Text style={{ color: colors.primary, fontWeight: '700', fontSize: typography.label }}>
             {hasError ? 'تلاش دوباره' : 'شروع ردیابی'}
           </Text>
         </View>
@@ -120,40 +153,62 @@ export const CycleContextCard = memo(function CycleContextCard({
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.88}
-      style={[styles.card, { backgroundColor: colors.surface, shadowColor: colors.shadowColor }]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+          borderRadius: borderRadius.large,
+          ...shadow.xs,
+        },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={`روز ${cycleDay ?? ''} سیکل، ${ctx.label}`}
     >
       {/* Accent top bar */}
       <View style={[styles.accentBar, { backgroundColor: accent }]} />
 
-      <View style={{ padding: spacing[5] }}>
+      <View style={{ padding: spacing[4] }}>
         {/* Cycle day + phase label row */}
         <View style={styles.topRow}>
           {cycleDay ? (
             <View>
-              <Text style={[styles.cycleDayNum, { color: accent, fontSize: typography['4xl'] }]}>
+              <Text style={[styles.cycleDayNum, { color: colors.textPrimary, fontSize: typography.display }]}>
                 {cycleDay}
               </Text>
-              <Text style={[styles.cycleDayLabel, { color: colors.textTertiary, fontSize: typography.xs }]}>
+              <Text style={[styles.cycleDayLabel, { color: colors.textTertiary, fontSize: typography.label }]}>
                 روز سیکل
               </Text>
             </View>
           ) : null}
 
-          <View style={{ flex: 1, alignItems: 'flex-end', gap: 6 }}>
-            <View style={[styles.phaseBadge, { backgroundColor: accentBg }]}>
-              <Text style={[styles.phaseLabel, { color: accent, fontSize: typography.xs }]}>
+          <View style={styles.phaseRightCol}>
+            <View
+              style={[
+                styles.phaseBadge,
+                {
+                  backgroundColor: accentBg,
+                  borderColor: accentBorder,
+                  borderRadius: borderRadius.pill,
+                },
+              ]}
+            >
+              <View style={[styles.phaseDot, { backgroundColor: accent }]} />
+              <Text style={[styles.phaseLabel, { color: accent, fontSize: typography.caption }]}>
                 {ctx.label}
               </Text>
             </View>
+
             {daysUntilPeriod != null && !isOnPeriod && (
-              <Text style={[styles.daysUntil, { color: colors.textSecondary, fontSize: typography.sm }]}>
+              <Text style={[styles.daysUntil, { color: colors.textSecondary, fontSize: typography.bodySmall }]}>
                 {daysUntilPeriod === 0
                   ? 'دوره احتمالاً امروز شروع می‌شود'
-                  : `${daysUntilPeriod} روز تا دوره`}
+                  : `${daysUntilPeriod} روز تا دوره بعدی`}
               </Text>
             )}
+
             {isOnPeriod && (
-              <Text style={[styles.daysUntil, { color: colors.menstrual, fontSize: typography.sm, fontWeight: '700' }]}>
+              <Text style={[styles.daysUntil, { color: colors.menstrual, fontSize: typography.bodySmall, fontWeight: '700' }]}>
                 دوره جاری 🩸
               </Text>
             )}
@@ -161,8 +216,18 @@ export const CycleContextCard = memo(function CycleContextCard({
         </View>
 
         {/* Interpretation line */}
-        <View style={[styles.interpretLine, { backgroundColor: accentBg, marginTop: spacing[4] }]}>
-          <Text style={[styles.interpretText, { color: accent, fontSize: typography.sm }]}>
+        <View
+          style={[
+            styles.interpretLine,
+            {
+              backgroundColor: accentBg,
+              borderColor: accentBorder,
+              borderRadius: borderRadius.medium,
+              marginTop: spacing[3],
+            },
+          ]}
+        >
+          <Text style={[styles.interpretText, { color: accent, fontSize: typography.bodySmall }]}>
             {ctx.interpretation}
           </Text>
         </View>
@@ -173,55 +238,64 @@ export const CycleContextCard = memo(function CycleContextCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 8,
+    borderWidth: 1,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 13 },
-    shadowOpacity: 0.08,
-    shadowRadius: 13,
-    elevation: 6,
   },
-  accentBar: { height: 4 },
+  accentBar: {
+    height: 3,
+  },
   topRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
+  phaseRightCol: {
+    flex: 1,
+    alignItems: 'flex-end',
+    gap: 6,
+  },
   cycleDayNum: {
-    fontWeight: '900',
-    letterSpacing: -1,
-    lineHeight: 42,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    lineHeight: 36,
   },
   cycleDayLabel: {
     fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    marginTop: 2,
   },
   phaseBadge: {
-    borderRadius: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 4,
+    borderWidth: 1,
+  },
+  phaseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginHorizontal: 4,
   },
   phaseLabel: {
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontWeight: '600',
   },
   daysUntil: {
     fontWeight: '500',
   },
   interpretLine: {
-    borderRadius: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   interpretText: {
     fontWeight: '600',
-    lineHeight: 20,
+    lineHeight: 18,
   },
   ctaBtn: {
-    borderRadius: 4,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     alignItems: 'center',
   },
 });
+

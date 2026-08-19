@@ -69,10 +69,10 @@ function UpcomingRow({
   return (
     <View style={[styles.upcomingRow, { backgroundColor: colors.surface }]}>
       <View style={[styles.upcomingDot, { backgroundColor: accent }]} />
-      <Text style={[styles.upcomingLabel, { color: colors.textSecondary, fontSize: typography.sm }]}>
+      <Text style={[styles.upcomingLabel, { color: colors.textSecondary, fontSize: typography.bodySmall }]}>
         {label}
       </Text>
-      <Text style={[styles.upcomingDate, { color: colors.textPrimary, fontSize: typography.sm }]}>
+      <Text style={[styles.upcomingDate, { color: colors.textPrimary, fontSize: typography.bodySmall }]}>
         {date}
       </Text>
     </View>
@@ -83,13 +83,12 @@ function UpcomingRow({
 
 export default function HomeScreen() {
   const navigation = useNavigation<Props['navigation']>();
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, borderRadius } = useTheme();
   const { user } = useAuth();
 
   // ── Profile ───────────────────────────────────────────────────────────────
   const { data: profile, refetch: refetchProfile } = useProfile();
   const isMale = profile?.sex === 'male' || user?.sex === 'male';
-  const isCycleUser = profile ? profile.sex !== 'male' : true;
   const shouldFetchCycle = profile !== undefined;
 
   // ── Data queries ──────────────────────────────────────────────────────────
@@ -183,7 +182,7 @@ export default function HomeScreen() {
       edges={['top', 'left', 'right']}
     >
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: spacing[5], paddingBottom: spacing[20] }}
+        contentContainerStyle={{ paddingHorizontal: spacing[4], paddingBottom: spacing[20] }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -195,17 +194,17 @@ export default function HomeScreen() {
         }
       >
         {/* ── Header ──────────────────────────────────────────────────── */}
-        <View style={[styles.header, { paddingTop: spacing[4], marginBottom: spacing[6] }]}>
+        <View style={[styles.header, { paddingTop: spacing[3], marginBottom: spacing[5] }]}>
           <View>
-            <Text style={[styles.dateText, { color: colors.textTertiary, fontSize: typography.sm }]}>
+            <Text style={[styles.dateText, { color: colors.textTertiary, fontSize: typography.caption }]}>
               {dateStr}
             </Text>
             {userName ? (
-              <Text style={[styles.greeting, { color: colors.textPrimary, fontSize: typography.xl }]}>
+              <Text style={[styles.greeting, { color: colors.textPrimary, fontSize: typography.heading }]}>
                 سلام، {userName}
               </Text>
             ) : (
-              <Text style={[styles.greeting, { color: colors.textPrimary, fontSize: typography.xl }]}>
+              <Text style={[styles.greeting, { color: colors.textPrimary, fontSize: typography.heading }]}>
                 ریتمو
               </Text>
             )}
@@ -217,6 +216,7 @@ export default function HomeScreen() {
             style={[styles.bellBtn, {
               backgroundColor: colors.surface,
               borderColor: colors.border,
+              borderRadius: borderRadius.medium,
             }]}
             accessibilityLabel={`اعلان‌ها${unreadCount > 0 ? `, ${unreadCount} خوانده‌نشده` : ''}`}
           >
@@ -228,7 +228,7 @@ export default function HomeScreen() {
         </View>
 
         {/* ── Section label ────────────────────────────────────────────── */}
-        <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[2] }]}>
+        <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.label, marginBottom: spacing[2] }]}>
           وضعیت سیکل
         </Text>
 
@@ -249,7 +249,7 @@ export default function HomeScreen() {
         </View>
 
         {/* ── Section label ────────────────────────────────────────────── */}
-        <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[2] }]}>
+        <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.label, marginBottom: spacing[2] }]}>
           امروز
         </Text>
 
@@ -263,7 +263,7 @@ export default function HomeScreen() {
         </View>
 
         {/* ── Section label ────────────────────────────────────────────── */}
-        <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[2] }]}>
+        <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.label, marginBottom: spacing[2] }]}>
           الگوهای من
         </Text>
 
@@ -282,10 +282,10 @@ export default function HomeScreen() {
         {/* ── 4. Upcoming ───────────────────────────────────────────────── */}
         {nextPeriodDate && (
           <>
-            <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[2] }]}>
+            <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.label, marginBottom: spacing[2] }]}>
               پیش‌بینی
             </Text>
-            <View style={[styles.upcomingCard, { borderColor: colors.border, marginBottom: spacing[6] }]}>
+            <View style={[styles.upcomingCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: borderRadius.large, marginBottom: spacing[6] }]}>
               <UpcomingRow
                 label="دوره بعدی"
                 date={nextPeriodDate}
@@ -308,12 +308,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
-  dateText: { marginBottom: 2, opacity: 0.7 },
-  greeting: { fontWeight: '800', letterSpacing: -0.4 },
+  dateText: { marginBottom: 2 },
+  greeting: { fontWeight: '700', letterSpacing: -0.4 },
   bellBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 4,
+    width: 44,
+    height: 44,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -321,8 +320,8 @@ const styles = StyleSheet.create({
   },
   unreadDot: {
     position: 'absolute',
-    top: 8,
-    right: 9,
+    top: 9,
+    right: 10,
     width: 8,
     height: 8,
     borderRadius: 4,
@@ -330,19 +329,16 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
   sectionLabel: {
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    fontWeight: '600',
   },
   upcomingCard: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 8,
+    borderWidth: 1,
     overflow: 'hidden',
   },
   upcomingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 10,
   },
@@ -352,5 +348,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   upcomingLabel: { flex: 1, fontWeight: '500' },
-  upcomingDate: { fontWeight: '700' },
+  upcomingDate: { fontWeight: '600' },
 });
+

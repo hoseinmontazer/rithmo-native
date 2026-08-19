@@ -34,6 +34,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { useCreatePeriod } from '@hooks/queries/usePeriods';
+import { profileService } from '@api/services/profileService';
 import { formatDateISO } from '@utils/dateUtils';
 
 const TOTAL_STEPS = 4;
@@ -150,7 +151,20 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
   const handleComplete = useCallback(async () => {
     setSaving(true);
     try {
-      // Create the first period record if user specified when it started
+      // 1. Persist onboarding preferences to UserProfile
+      const profileUpdates: Record<string, string> = {};
+      if (intent) profileUpdates.onboarding_intent = intent;
+      if (regularity) profileUpdates.onboarding_regularity = regularity;
+      if (hasSymptoms) profileUpdates.onboarding_symptoms = hasSymptoms;
+      if (Object.keys(profileUpdates).length > 0) {
+        try {
+          await profileService.patchProfile(profileUpdates);
+        } catch {
+          // Non-blocking: ensure onboarding completes even if offline/patch fails
+        }
+      }
+
+      // 2. Create the first period record if user specified when it started
       if (periodDaysAgo !== null) {
         const startDate = daysAgoToISO(periodDaysAgo);
         await createPeriod({ start_date: startDate });
@@ -164,7 +178,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
     } finally {
       setSaving(false);
     }
-  }, [periodDaysAgo, createPeriod, onComplete]);
+  }, [intent, regularity, hasSymptoms, periodDaysAgo, createPeriod, onComplete]);
 
   const handleSkip = useCallback(async () => {
     await AsyncStorage.setItem(ONBOARDING_KEY, '1');

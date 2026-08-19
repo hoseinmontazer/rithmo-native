@@ -15,8 +15,8 @@ export const LoadingState = memo(function LoadingState({
 
   return (
     <View style={[styles.container, fullScreen && styles.fullScreen, { backgroundColor: colors.background }]}>
-      <ActivityIndicator size="large" color={colors.primary} />
-      <Text style={[styles.text, { color: colors.textSecondary, fontSize: typography.base, marginTop: spacing[3] }]}>
+      <ActivityIndicator size="small" color={colors.primary} />
+      <Text style={[styles.text, { color: colors.textSecondary, fontSize: typography.bodySmall, marginTop: spacing[3] }]}>
         {message}
       </Text>
     </View>
@@ -26,5 +26,6 @@ export const LoadingState = memo(function LoadingState({
 const styles = StyleSheet.create({
   container:  { alignItems: 'center', justifyContent: 'center', padding: 32 },
   fullScreen: { flex: 1 },
-  text:       { textAlign: 'center' },
+  text:       { textAlign: 'center', fontWeight: '500' },
 });
+
