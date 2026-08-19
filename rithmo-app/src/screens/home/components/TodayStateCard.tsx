@@ -117,6 +117,8 @@ export const TodayStateCard = memo(function TodayStateCard({
           <Text style={[styles.metricLabel, { color: colors.textTertiary, fontSize: typography.label }]}>درد</Text>
         </View>
 
+        <View style={[styles.divider, { backgroundColor: colors.borderSubtle }]} />
+
         {/* Edit hint */}
         <View style={[styles.editHint, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle, borderRadius: borderRadius.small }]}>
           <Text style={{ color: colors.textSecondary, fontSize: typography.caption, fontWeight: '600' }}>ویرایش</Text>

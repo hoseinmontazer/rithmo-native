@@ -1,11 +1,9 @@
 /**
  * QuickLogScreen — ثبت امروز
  *
- * Core experience: 3 emoji-pickers (Mood, Energy, Pain) + optional expander.
- * Target time: 15–20 seconds to complete core fields.
- *
- * After save, shows a contextual observation if data exists.
- * Never fabricates an insight when there is insufficient evidence.
+ * Rhythmo Design System Redesign.
+ * A calm, frictionless, ~15-second daily wellness check-in.
+ * Preserves all underlying payload fields, scales, and observation logic.
  */
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
@@ -31,82 +29,123 @@ import {
   useWellnessLogs,
 } from '@hooks/queries/useWellness';
 import { usePeriods, useCycleAnalysis } from '@hooks/queries/usePeriods';
+import { Button, Card, Badge } from '@components/ui';
 import { extractErrorMessage } from '@utils/errorHandler';
 import type { WellnessScreenProps } from '@navigation/types';
 
 type Props = WellnessScreenProps<'QuickLog'>;
 
-// ── Emoji option set ──────────────────────────────────────────────────────────
+// ── Rating option sets ────────────────────────────────────────────────────────
 
-const MOOD_OPTIONS = [
-  { value: 1, emoji: '😞', label: 'خیلی بد' },
-  { value: 2, emoji: '😕', label: 'بد' },
-  { value: 3, emoji: '😐', label: 'معمولی' },
-  { value: 4, emoji: '🙂', label: 'خوب' },
-  { value: 5, emoji: '😊', label: 'عالی' },
-];
-
-const ENERGY_OPTIONS = [
-  { value: 1, emoji: '😴', label: 'بی‌حال' },
-  { value: 2, emoji: '🥱', label: 'کم' },
-  { value: 3, emoji: '😌', label: 'متوسط' },
-  { value: 4, emoji: '🙂', label: 'خوب' },
-  { value: 5, emoji: '⚡', label: 'پرانرژی' },
-];
-
-const PAIN_OPTIONS = [
-  { value: 0, emoji: '✅', label: 'بدون درد' },
-  { value: 1, emoji: '🟡', label: 'کم' },
-  { value: 2, emoji: '🟠', label: 'متوسط' },
-  { value: 3, emoji: '🔴', label: 'زیاد' },
-  { value: 4, emoji: '💢', label: 'خیلی زیاد' },
-];
-
-// ── Emoji picker ──────────────────────────────────────────────────────────────
-
-interface EmojiPickerProps {
+interface RatingOption {
+  value: number;
   label: string;
-  options: typeof MOOD_OPTIONS;
+  shortLabel: string;
+  iconName?: string;
+}
+
+const MOOD_OPTIONS: RatingOption[] = [
+  { value: 1, label: 'خیلی بد', shortLabel: '۱', iconName: 'emoticon-cry-outline' },
+  { value: 2, label: 'بد', shortLabel: '۲', iconName: 'emoticon-sad-outline' },
+  { value: 3, label: 'معمولی', shortLabel: '۳', iconName: 'emoticon-neutral-outline' },
+  { value: 4, label: 'خوب', shortLabel: '۴', iconName: 'emoticon-happy-outline' },
+  { value: 5, label: 'عالی', shortLabel: '۵', iconName: 'emoticon-excited-outline' },
+];
+
+const ENERGY_OPTIONS: RatingOption[] = [
+  { value: 1, label: 'بی‌حال', shortLabel: '۱', iconName: 'battery-10' },
+  { value: 2, label: 'کم', shortLabel: '۲', iconName: 'battery-30' },
+  { value: 3, label: 'متوسط', shortLabel: '۳', iconName: 'battery-50' },
+  { value: 4, label: 'خوب', shortLabel: '۴', iconName: 'battery-80' },
+  { value: 5, label: 'پرانرژی', shortLabel: '۵', iconName: 'lightning-bolt' },
+];
+
+const PAIN_OPTIONS: RatingOption[] = [
+  { value: 0, label: 'بدون درد', shortLabel: '۰', iconName: 'check' },
+  { value: 1, label: 'کم', shortLabel: '۱', iconName: 'circle-small' },
+  { value: 2, label: 'متوسط', shortLabel: '۲', iconName: 'circle-medium' },
+  { value: 3, label: 'زیاد', shortLabel: '۳', iconName: 'alert-circle-outline' },
+  { value: 4, label: 'خیلی زیاد', shortLabel: '۴', iconName: 'alert-octagon-outline' },
+];
+
+const SLEEP_OPTIONS = [4, 5, 6, 7, 8, 9, 10];
+
+const COMMON_SYMPTOMS = [
+  'سردرد',
+  'گرفتگی',
+  'خستگی',
+  'نفخ',
+  'استرس',
+  'بی‌خوابی',
+  'حساسیت پستان',
+  'کمردرد',
+];
+
+// ── Rating Segmented Picker ───────────────────────────────────────────────────
+
+interface RatingPickerProps {
+  label: string;
+  options: RatingOption[];
   value: number;
   onChange: (v: number) => void;
   accentColor: string;
 }
 
-function EmojiPicker({ label, options, value, onChange, accentColor }: EmojiPickerProps) {
-  const { colors, typography, spacing } = useTheme();
+function RatingPicker({ label, options, value, onChange, accentColor }: RatingPickerProps) {
+  const { colors, typography, spacing, borderRadius } = useTheme();
   const selected = options.find(o => o.value === value);
 
   return (
-    <View style={{ marginBottom: spacing[6] }}>
+    <View style={{ marginBottom: spacing[4] }}>
       <View style={styles.pickerHeader}>
-        <Text style={[styles.pickerLabel, { color: colors.textSecondary, fontSize: typography.sm }]}>
+        <Text style={[styles.pickerLabel, { color: colors.textPrimary, fontSize: typography.sm }]}>
           {label}
         </Text>
         {selected && (
-          <Text style={[styles.pickerSelected, { color: accentColor, fontSize: typography.sm }]}>
-            {selected.label}
-          </Text>
+          <Badge label={selected.label} variant="neutral" />
         )}
       </View>
-      <View style={styles.emojiRow}>
+
+      <View style={[styles.optionsRow, { gap: spacing[2] }]}>
         {options.map(opt => {
           const isSelected = opt.value === value;
           return (
             <TouchableOpacity
               key={opt.value}
               onPress={() => onChange(opt.value)}
-              activeOpacity={0.7}
+              activeOpacity={0.75}
               style={[
-                styles.emojiBtn,
+                styles.ratingOptionBtn,
                 {
-                  backgroundColor: isSelected ? accentColor + '20' : colors.surface,
+                  borderRadius: borderRadius.md,
+                  backgroundColor: isSelected ? accentColor + '18' : colors.surfaceSecondary,
                   borderColor: isSelected ? accentColor : colors.border,
-                  borderWidth: isSelected ? 2 : 1,
+                  borderWidth: isSelected ? 1.5 : 1,
+                  paddingVertical: spacing[2],
                 },
               ]}
               accessibilityLabel={`${label}: ${opt.label}`}
             >
-              <Text style={styles.emoji}>{opt.emoji}</Text>
+              {opt.iconName && (
+                <Icon
+                  name={opt.iconName}
+                  size={20}
+                  color={isSelected ? accentColor : colors.textTertiary}
+                />
+              )}
+              <Text
+                style={[
+                  styles.ratingValueText,
+                  {
+                    color: isSelected ? accentColor : colors.textSecondary,
+                    fontSize: typography.xs,
+                    fontWeight: isSelected ? '700' : '500',
+                    marginTop: 2,
+                  },
+                ]}
+              >
+                {opt.shortLabel}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -116,14 +155,13 @@ function EmojiPicker({ label, options, value, onChange, accentColor }: EmojiPick
 }
 
 // ── Post-log observation ──────────────────────────────────────────────────────
-// Deterministic engine — never invents insight from insufficient data.
 
 type DataState = 'empty' | 'building' | 'one_cycle' | 'multi_cycle';
 
 function deriveDataState(periodCount: number, logCount: number): DataState {
   if (periodCount === 0 && logCount < 3) { return 'empty'; }
-  if (logCount < 5 || periodCount === 0)  { return 'building'; }
-  if (periodCount === 1)                  { return 'one_cycle'; }
+  if (logCount < 5 || periodCount === 0) { return 'building'; }
+  if (periodCount === 1) { return 'one_cycle'; }
   return 'multi_cycle';
 }
 
@@ -133,7 +171,6 @@ function buildPostLogObservation(
   todayEnergy: number,
   avgMood: number | null,
   avgEnergy: number | null,
-  cycleDay: number | null,
 ): string | null {
   if (dataState === 'empty') {
     return 'ثبت شد. ریتمو شروع می‌کنه به شناخت تو.';
@@ -142,11 +179,10 @@ function buildPostLogObservation(
     return 'ثبت شد. داریم الگو را می‌سازیم.';
   }
 
-  // One cycle or more: can surface real observations
   const observations: string[] = [];
 
   if (avgMood !== null && avgEnergy !== null) {
-    const moodDiff  = todayMood   - avgMood;
+    const moodDiff = todayMood - avgMood;
     const energyDiff = todayEnergy - avgEnergy;
 
     if (moodDiff <= -1.5 && energyDiff <= -1.5) {
@@ -167,69 +203,31 @@ function buildPostLogObservation(
   return `ثبت شد.\n${observations[0]}`;
 }
 
-// ── Sleep stepper ─────────────────────────────────────────────────────────────
-
-const SLEEP_OPTIONS = [4, 5, 6, 7, 8, 9, 10];
-
-function SleepStepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const { colors, typography, spacing } = useTheme();
-  return (
-    <View style={{ marginBottom: spacing[5] }}>
-      <Text style={[styles.pickerLabel, { color: colors.textSecondary, fontSize: typography.sm, marginBottom: spacing[2] }]}>
-        خواب (ساعت)
-      </Text>
-      <View style={styles.emojiRow}>
-        {SLEEP_OPTIONS.map(h => {
-          const sel = h === value;
-          return (
-            <TouchableOpacity
-              key={h}
-              onPress={() => onChange(h)}
-              style={[
-                styles.sleepBtn,
-                {
-                  backgroundColor: sel ? colors.primary + '20' : colors.surface,
-                  borderColor: sel ? colors.primary : colors.border,
-                  borderWidth: sel ? 2 : 1,
-                },
-              ]}
-            >
-              <Text style={{ fontSize: typography.sm, color: sel ? colors.primary : colors.textSecondary, fontWeight: sel ? '700' : '400' }}>
-                {h}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function QuickLogScreen() {
   const navigation = useNavigation<Props['navigation']>();
-  const route      = useRoute<Props['route']>();
-  const { colors, spacing, typography } = useTheme();
+  const route = useRoute<Props['route']>();
+  const { colors, spacing, typography, borderRadius } = useTheme();
 
   const logId = route.params?.logId;
 
-  const { data: existing }      = useWellnessLog(logId ?? 0);
-  const { data: todayLog }      = useTodayWellnessLog();
-  const { data: allLogs }       = useWellnessLogs();
-  const { data: periods }       = usePeriods();
+  const { data: existing } = useWellnessLog(logId ?? 0);
+  const { data: todayLog } = useTodayWellnessLog();
+  const { data: allLogs } = useWellnessLogs();
+  const { data: periods } = usePeriods();
   const { data: cycleAnalysis } = useCycleAnalysis();
   const { mutateAsync: saveLog, isPending } = useCreateOrUpdateWellnessLog();
 
-  // Use today's existing log if no logId provided
   const prefillSource = logId ? existing : (todayLog ?? existing);
 
   // ── Form state ──────────────────────────────────────────────────────────────
-  const [mood,    setMood]    = useState(3);
-  const [energy,  setEnergy]  = useState(3);
-  const [pain,    setPain]    = useState(0);
-  const [sleep,   setSleep]   = useState(7);
-  const [notes,   setNotes]   = useState('');
+  const [mood, setMood] = useState(3);
+  const [energy, setEnergy] = useState(3);
+  const [pain, setPain] = useState(0);
+  const [sleep, setSleep] = useState(7);
+  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
+  const [notes, setNotes] = useState('');
   const [expanded, setExpanded] = useState(false);
 
   // ── Post-save observation state ─────────────────────────────────────────────
@@ -241,21 +239,22 @@ export default function QuickLogScreen() {
   useEffect(() => {
     if (prefillSource) {
       setMood(Math.min(5, Math.max(1, Math.round(prefillSource.mood_level || 3))));
-      // energy_level is 1–10 in backend; map to 1–5 for display
       setEnergy(Math.min(5, Math.max(1, Math.round((prefillSource.energy_level || 5) / 2))));
-      // pain_level 0–10 → 0–4 for display
       setPain(Math.min(4, Math.max(0, Math.round((prefillSource.pain_level || 0) / 2.5))));
       setSleep(Math.round(prefillSource.sleep_hours || 7));
       setNotes(prefillSource.notes || '');
+      if (prefillSource.symptoms) {
+        const list = prefillSource.symptoms.split(',').map(s => s.trim()).filter(Boolean);
+        setSelectedSymptoms(list);
+      }
     }
   }, [prefillSource]);
 
   // ── Derived data-state ──────────────────────────────────────────────────────
-  const periodCount = Array.isArray(periods) ? (periods as any[]).length : 0;
-  const logCount    = Array.isArray(allLogs)  ? (allLogs  as any[]).length : 0;
-  const dataState   = deriveDataState(periodCount, logCount);
+  const periodCount = Array.isArray(periods) ? (periods as unknown[]).length : 0;
+  const logCount = Array.isArray(allLogs) ? (allLogs as unknown[]).length : 0;
+  const dataState = deriveDataState(periodCount, logCount);
 
-  // Personal averages from all logs (last 30 days)
   const personalAvgMood = logCount >= 5
     ? (allLogs as any[]).slice(0, 30).reduce((s: number, l: any) => s + (l.mood_level || 3), 0)
       / Math.min(30, logCount)
@@ -267,24 +266,30 @@ export default function QuickLogScreen() {
 
   const cycleDay: number | null = (cycleAnalysis as any)?.current_status?.cycle_day ?? null;
 
+  const toggleSymptom = useCallback((sym: string) => {
+    setSelectedSymptoms(prev =>
+      prev.includes(sym) ? prev.filter(s => s !== sym) : [...prev, sym]
+    );
+  }, []);
+
   // ── Save handler ────────────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
     try {
       await saveLog({
-        mood_level:        mood,
-        energy_level:      energy * 2,          // scale 1–5 → 2–10 for backend
-        pain_level:        Math.round(pain * 2.5), // scale 0–4 → 0–10
-        sleep_hours:       sleep,
+        mood_level: mood,
+        energy_level: energy * 2,
+        pain_level: Math.round(pain * 2.5),
+        sleep_hours: sleep,
+        symptoms: selectedSymptoms.join(','),
         notes,
-        // Pass through defaults for other fields the backend requires
-        stress_level:      5,
-        anxiety_level:     3,
-        focus_level:       5,
-        exercise_minutes:  0,
+        stress_level: 5,
+        anxiety_level: 3,
+        focus_level: 5,
+        exercise_minutes: 0,
         nutrition_quality: 3,
-        caffeine_intake:   0,
-        alcohol_intake:    0,
-        smoking:           0,
+        caffeine_intake: 0,
+        alcohol_intake: 0,
+        smoking: 0,
       });
 
       const obs = buildPostLogObservation(
@@ -293,29 +298,27 @@ export default function QuickLogScreen() {
         energy,
         personalAvgMood,
         personalAvgEnergy,
-        cycleDay,
       );
       setObservation(obs);
       setSaved(true);
 
-      // Fade in observation
       Animated.timing(fadeAnim, {
-        toValue: 1, duration: 400, useNativeDriver: true,
+        toValue: 1,
+        duration: 350,
+        useNativeDriver: true,
       }).start();
 
-      // Navigate back after 1.8s
       setTimeout(() => {
         if (navigation.canGoBack()) {
           navigation.goBack();
         }
-      }, 1800);
-
+      }, 1600);
     } catch (err) {
       Alert.alert('خطا', extractErrorMessage(err));
     }
   }, [
-    mood, energy, pain, sleep, notes,
-    saveLog, dataState, personalAvgMood, personalAvgEnergy, cycleDay,
+    mood, energy, pain, sleep, selectedSymptoms, notes,
+    saveLog, dataState, personalAvgMood, personalAvgEnergy,
     fadeAnim, navigation,
   ]);
 
@@ -325,14 +328,14 @@ export default function QuickLogScreen() {
       <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
         <View style={styles.savedContainer}>
           <Animated.View style={{ opacity: fadeAnim, alignItems: 'center' }}>
-            <View style={[styles.savedIcon, { backgroundColor: colors.primaryLight }]}>
-              <Icon name="check-circle" size={48} color={colors.primary} />
+            <View style={[styles.savedIconCircle, { backgroundColor: colors.primary + '18' }]}>
+              <Icon name="check" size={36} color={colors.primary} />
             </View>
-            <Text style={[styles.savedTitle, { color: colors.textPrimary, fontSize: typography.xl }]}>
+            <Text style={[styles.savedTitle, { color: colors.textPrimary, fontSize: typography.xl, marginTop: spacing[3] }]}>
               ثبت شد
             </Text>
             {observation && (
-              <Text style={[styles.savedObs, { color: colors.textSecondary, fontSize: typography.base }]}>
+              <Text style={[styles.savedObs, { color: colors.textSecondary, fontSize: typography.sm, marginTop: spacing[2] }]}>
                 {observation}
               </Text>
             )}
@@ -342,15 +345,15 @@ export default function QuickLogScreen() {
     );
   }
 
-  // ── Today's date header ─────────────────────────────────────────────────────
+  // ── Date header ─────────────────────────────────────────────────────────────
   const today = new Date();
   const dateStr = today.toLocaleDateString('fa-IR', {
-    weekday: 'long', month: 'long', day: 'numeric',
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
   });
 
-  const cycleContext = cycleDay
-    ? `روز ${cycleDay} سیکل`
-    : null;
+  const cycleContext = cycleDay ? `روز ${cycleDay} سیکل` : null;
 
   return (
     <KeyboardAvoidingView
@@ -359,99 +362,191 @@ export default function QuickLogScreen() {
     >
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: spacing[5], paddingBottom: spacing[12] }}
+          contentContainerStyle={{ paddingHorizontal: spacing[4], paddingBottom: spacing[12] }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {/* ── Header ──────────────────────────────────────────────── */}
-          <View style={[styles.header, { paddingTop: spacing[4], marginBottom: spacing[6] }]}>
+          <View style={[styles.header, { paddingTop: spacing[3], marginBottom: spacing[4] }]}>
             <View>
-              <Text style={[styles.dateText, { color: colors.textTertiary, fontSize: typography.sm }]}>
+              <Text style={[styles.dateText, { color: colors.textTertiary, fontSize: typography.xs }]}>
                 {dateStr}
               </Text>
               <Text style={[styles.title, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
                 ثبت امروز
               </Text>
               {cycleContext && (
-                <Text style={[styles.cyclePill, { color: colors.primary, fontSize: typography.sm }]}>
+                <Text style={[styles.cyclePill, { color: colors.primary, fontSize: typography.xs }]}>
                   {cycleContext}
                 </Text>
               )}
             </View>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
-              style={[styles.closeBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              style={[
+                styles.closeBtn,
+                {
+                  backgroundColor: colors.surfaceSecondary,
+                  borderColor: colors.border,
+                  borderRadius: borderRadius.md,
+                },
+              ]}
               accessibilityLabel="بستن"
             >
               <Icon name="close" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          {/* ── Context note ─────────────────────────────────────────── */}
-          <Text style={[styles.contextNote, { color: colors.textTertiary, fontSize: typography.sm, marginBottom: spacing[6] }]}>
-            این ثبت به ریتمو کمک می‌کند الگوی شخصی تو را دقیق‌تر کند.
-          </Text>
+          {/* ── Core rating pickers ──────────────────────────────────── */}
+          <Card elevated={false} style={{ padding: spacing[4], marginBottom: spacing[4] }}>
+            <RatingPicker
+              label="خلق"
+              options={MOOD_OPTIONS}
+              value={mood}
+              onChange={setMood}
+              accentColor={colors.luteal}
+            />
 
-          {/* ── Core fields ──────────────────────────────────────────── */}
-          <EmojiPicker
-            label="خلق"
-            options={MOOD_OPTIONS}
-            value={mood}
-            onChange={setMood}
-            accentColor={colors.luteal}
-          />
+            <RatingPicker
+              label="انرژی"
+              options={ENERGY_OPTIONS}
+              value={energy}
+              onChange={setEnergy}
+              accentColor={colors.ovulation}
+            />
 
-          <EmojiPicker
-            label="انرژی"
-            options={ENERGY_OPTIONS}
-            value={energy}
-            onChange={setEnergy}
-            accentColor={colors.ovulationColor}
-          />
+            <RatingPicker
+              label="درد"
+              options={PAIN_OPTIONS}
+              value={pain}
+              onChange={setPain}
+              accentColor={colors.menstrual}
+            />
+          </Card>
 
-          <EmojiPicker
-            label="درد"
-            options={PAIN_OPTIONS}
-            value={pain}
-            onChange={setPain}
-            accentColor={colors.menstrual}
-          />
+          {/* ── Quick Symptom Chips ───────────────────────────────────── */}
+          <View style={{ marginBottom: spacing[4] }}>
+            <Text style={[styles.sectionSubtitle, { color: colors.textPrimary, fontSize: typography.sm, marginBottom: spacing[2] }]}>
+              علائم شایع امروز
+            </Text>
+            <View style={[styles.chipWrap, { gap: spacing[2] }]}>
+              {COMMON_SYMPTOMS.map(sym => {
+                const active = selectedSymptoms.includes(sym);
+                return (
+                  <TouchableOpacity
+                    key={sym}
+                    onPress={() => toggleSymptom(sym)}
+                    activeOpacity={0.7}
+                    style={[
+                      styles.symptomChip,
+                      {
+                        borderRadius: borderRadius.pill,
+                        backgroundColor: active ? colors.primary + '18' : colors.surfaceSecondary,
+                        borderColor: active ? colors.primary : colors.border,
+                        borderWidth: 1,
+                        paddingHorizontal: spacing[3],
+                        paddingVertical: spacing[1],
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.symptomChipText,
+                        {
+                          color: active ? colors.primary : colors.textSecondary,
+                          fontSize: typography.xs,
+                          fontWeight: active ? '700' : '500',
+                        },
+                      ]}
+                    >
+                      {sym}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
 
-          {/* ── Expand / Collapse ─────────────────────────────────────── */}
+          {/* ── Expandable Details ────────────────────────────────────── */}
           <TouchableOpacity
             onPress={() => setExpanded(v => !v)}
-            style={[styles.expandBtn, { borderColor: colors.border }]}
-            activeOpacity={0.7}
+            style={[
+              styles.expandToggleRow,
+              {
+                borderColor: colors.border,
+                borderRadius: borderRadius.md,
+                backgroundColor: colors.surfaceSecondary,
+                padding: spacing[3],
+                marginBottom: spacing[4],
+              },
+            ]}
+            activeOpacity={0.75}
           >
+            <Text style={[styles.expandToggleText, { color: colors.textSecondary, fontSize: typography.xs }]}>
+              {expanded ? 'بستن جزئیات خواب و یادداشت' : 'افزودن جزئیات خواب / یادداشت شخصی'}
+            </Text>
             <Icon
               name={expanded ? 'chevron-up' : 'chevron-down'}
               size={18}
               color={colors.textSecondary}
             />
-            <Text style={{ color: colors.textSecondary, fontSize: typography.sm, marginLeft: 6 }}>
-              {expanded ? 'بستن جزئیات' : 'افزودن خواب / یادداشت'}
-            </Text>
           </TouchableOpacity>
 
-          {/* ── Optional expanded fields ──────────────────────────────── */}
           {expanded && (
-            <View style={{ marginTop: spacing[4] }}>
-              <SleepStepper value={sleep} onChange={setSleep} />
+            <Card elevated={false} style={{ padding: spacing[4], marginBottom: spacing[4] }}>
+              <Text style={[styles.pickerLabel, { color: colors.textPrimary, fontSize: typography.sm, marginBottom: spacing[2] }]}>
+                خواب دیشب (ساعت)
+              </Text>
+              <View style={[styles.optionsRow, { gap: spacing[2], marginBottom: spacing[4] }]}>
+                {SLEEP_OPTIONS.map(h => {
+                  const sel = h === sleep;
+                  return (
+                    <TouchableOpacity
+                      key={h}
+                      onPress={() => setSleep(h)}
+                      style={[
+                        styles.sleepOptionBtn,
+                        {
+                          borderRadius: borderRadius.md,
+                          backgroundColor: sel ? colors.primary + '18' : colors.surfaceSecondary,
+                          borderColor: sel ? colors.primary : colors.border,
+                          borderWidth: sel ? 1.5 : 1,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.sleepOptionText,
+                          {
+                            color: sel ? colors.primary : colors.textSecondary,
+                            fontSize: typography.xs,
+                            fontWeight: sel ? '700' : '500',
+                          },
+                        ]}
+                      >
+                        {h}س
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
 
-              <Text style={[styles.pickerLabel, { color: colors.textSecondary, fontSize: typography.sm, marginBottom: 8 }]}>
-                یادداشت
+              <Text style={[styles.pickerLabel, { color: colors.textPrimary, fontSize: typography.sm, marginBottom: spacing[2] }]}>
+                یادداشت شخصی
               </Text>
               <TextInput
                 style={[
-                  styles.notesInput,
+                  styles.notesInputArea,
                   {
-                    backgroundColor: colors.surface,
+                    backgroundColor: colors.surfaceSecondary,
                     borderColor: colors.border,
+                    borderRadius: borderRadius.md,
                     color: colors.textPrimary,
-                    fontSize: typography.base,
+                    fontSize: typography.sm,
+                    padding: spacing[3],
                   },
                 ]}
-                placeholder="هر چیزی که می‌خوای یادداشت کنی..."
+                placeholder="یادداشت در مورد روزت..."
                 placeholderTextColor={colors.textTertiary}
                 value={notes}
                 onChangeText={setNotes}
@@ -459,33 +554,18 @@ export default function QuickLogScreen() {
                 numberOfLines={3}
                 textAlignVertical="top"
               />
-            </View>
+            </Card>
           )}
 
-          {/* ── Save button ───────────────────────────────────────────── */}
-          <TouchableOpacity
+          {/* ── Save Button ───────────────────────────────────────────── */}
+          <Button
+            label={isPending ? 'در حال ذخیره...' : 'ثبت گزارش امروز'}
             onPress={handleSave}
+            loading={isPending}
             disabled={isPending}
-            style={[
-              styles.saveBtn,
-              {
-                backgroundColor: colors.primary,
-                opacity: isPending ? 0.6 : 1,
-                marginTop: spacing[6],
-              },
-            ]}
-            activeOpacity={0.85}
-          >
-            {isPending ? (
-              <Text style={[styles.saveBtnText, { color: '#fff', fontSize: typography.base }]}>
-                در حال ذخیره...
-              </Text>
-            ) : (
-              <Text style={[styles.saveBtnText, { color: '#fff', fontSize: typography.base }]}>
-                ذخیره
-              </Text>
-            )}
-          </TouchableOpacity>
+            size="lg"
+            fullWidth
+          />
         </ScrollView>
       </SafeAreaView>
     </KeyboardAvoidingView>
@@ -502,86 +582,87 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  dateText: { opacity: 0.6, marginBottom: 2 },
-  title: { fontWeight: '800', letterSpacing: -0.5 },
-  cyclePill: { marginTop: 4, fontWeight: '600' },
+  dateText: {
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  title: {
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  cyclePill: {
+    marginTop: 2,
+    fontWeight: '700',
+  },
   closeBtn: {
     width: 36,
     height: 36,
-    borderRadius: 4,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
-  },
-
-  contextNote: {
-    lineHeight: 20,
-    opacity: 0.7,
   },
 
   pickerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   pickerLabel: {
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontWeight: '700',
   },
-  pickerSelected: { fontWeight: '700' },
-
-  emojiRow: {
+  optionsRow: {
     flexDirection: 'row',
-    gap: 8,
   },
-  emojiBtn: {
+  ratingOptionBtn: {
     flex: 1,
-    aspectRatio: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 4,
-    maxHeight: 60,
+    minHeight: 48,
   },
-  emoji: { fontSize: 26 },
+  ratingValueText: {
+    textAlign: 'center',
+  },
 
-  sleepBtn: {
+  sectionSubtitle: {
+    fontWeight: '700',
+  },
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  symptomChip: {
+    minHeight: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  symptomChipText: {
+    textAlign: 'center',
+  },
+
+  expandToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+  },
+  expandToggleText: {
+    fontWeight: '600',
+  },
+
+  sleepOptionBtn: {
     flex: 1,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 4,
+  },
+  sleepOptionText: {
+    textAlign: 'center',
   },
 
-  expandBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+  notesInputArea: {
     borderWidth: 1,
-    borderRadius: 4,
-    paddingVertical: 10,
-    marginTop: 4,
-  },
-
-  notesInput: {
-    borderWidth: 1,
-    borderRadius: 4,
-    padding: 12,
-    minHeight: 80,
-    marginBottom: 8,
-  },
-
-  saveBtn: {
-    borderRadius: 4,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveBtnText: {
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    minHeight: 70,
   },
 
   // Saved state
@@ -589,16 +670,20 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 24,
   },
-  savedIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+  savedIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
   },
-  savedTitle: { fontWeight: '800', letterSpacing: -0.5, marginBottom: 12, textAlign: 'center' },
-  savedObs: { lineHeight: 24, textAlign: 'center', opacity: 0.75 },
+  savedTitle: {
+    fontWeight: '800',
+  },
+  savedObs: {
+    textAlign: 'center',
+    lineHeight: 20,
+  },
 });

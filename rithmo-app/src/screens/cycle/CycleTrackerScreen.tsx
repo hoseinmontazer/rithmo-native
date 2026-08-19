@@ -21,9 +21,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type Props = NativeStackScreenProps<CycleStackParamList, 'CycleTracker'>;
 
-const { width: W } = Dimensions.get('window');
-const CALENDAR_PADDING = 32; // padding[4] * 2 = 16*2
-const CALENDAR_WIDTH = W - 40 - CALENDAR_PADDING; // screen - horizontal margins - inner padding
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 type ViewMode = 'calendar' | 'list';
@@ -31,7 +29,7 @@ type ViewMode = 'calendar' | 'list';
 /** Returns next period date only if after end_date */
 function safeNextPeriod(period: any): string | null {
   const next = period.next_period_start_date;
-  const end  = period.end_date;
+  const end = period.end_date;
   if (!next) return null;
   if (end && next <= end) return null;
   return next;
@@ -72,7 +70,8 @@ function buildCycleDateMap(periods: any[]): Map<string, DayInfo> {
     } else if (p.predicted_end_date) {
       redEnd = new Date(p.predicted_end_date + 'T00:00:00');
     } else {
-      redEnd = new Date(); redEnd.setHours(0,0,0,0);
+      redEnd = new Date();
+      redEnd.setHours(0, 0, 0, 0);
     }
 
     // Next period start: API field → or next period in list
@@ -100,49 +99,58 @@ function buildCycleDateMap(periods: any[]): Map<string, DayInfo> {
 
     if (!nextStart || nextStart <= redEnd) continue;
 
-    // Cycle length from start → nextStart
-    const cycleLen = p.cycle_length ??
-      Math.round((nextStart.getTime() - startDate.getTime()) / 86400000);
-
-    // Period duration
-    const periodDays = Math.round((redEnd.getTime() - startDate.getTime()) / 86400000) + 1;
-
-    // Ovulation day: cycle_length - 14 days from start (standard luteal = 14d)
-    const ovDayFromStart = Math.max(cycleLen - 14, periodDays + 1);
-    const ovulationDate = new Date(startDate);
-    ovulationDate.setDate(startDate.getDate() + ovDayFromStart - 1);
-
-    // Fertile window: 5 days before ovulation through 1 day after
-    const ovStart = new Date(ovulationDate);
-    ovStart.setDate(ovulationDate.getDate() - 5);
-    const ovEnd = new Date(ovulationDate);
-    ovEnd.setDate(ovulationDate.getDate() + 1);
-
-    // PMS: 5 days before next period
+    // PMS: 5 days before next period (also serves as the follicular/
+    // luteal tiling boundary when there is no ovulation estimate).
     const pmsStart = new Date(nextStart);
     pmsStart.setDate(nextStart.getDate() - 5);
+
+    // ── Ovulation + fertile window ───────────────────────────────────
+    // The backend is the single source of truth: each period carries
+    // estimated_ovulation_date / fertile_window (null when the backend
+    // has no reliable estimate for that cycle, e.g. the cycle gap is
+    // outside the 15-60 day plausibility window, or ovulation would
+    // land before this period ends).  When the backend says "no
+    // reliable estimate", the calendar draws NO ovulation or fertile
+    // days for that cycle — it does not recompute one locally.
+    let ovStart: Date | null = null;
+    let ovEnd: Date | null = null;
+    if (p.estimated_ovulation_date) {
+      const ovDate = new Date(p.estimated_ovulation_date + 'T00:00:00');
+      ovStart = p.fertile_window?.start
+        ? new Date(p.fertile_window.start + 'T00:00:00')
+        : new Date(ovDate.getTime() - 5 * 86400000);
+      ovEnd = p.fertile_window?.end
+        ? new Date(p.fertile_window.end + 'T00:00:00')
+        : new Date(ovDate.getTime() + 86400000);
+    }
+    const boundaryOvStart = ovStart ?? pmsStart;
+    const boundaryOvEnd = ovEnd ?? pmsStart;
 
     const dayAfterRed = new Date(redEnd);
     dayAfterRed.setDate(redEnd.getDate() + 1);
 
     // ── 2. Follicular ────────────────────────────────────────────
     const fCur = new Date(dayAfterRed);
-    while (fCur < ovStart && fCur < nextStart) {
+    while (fCur < boundaryOvStart && fCur < nextStart) {
       const key = formatDateISO(fCur);
       if (!map.has(key)) map.set(key, { type: 'follicular', periodId: p.id });
       fCur.setDate(fCur.getDate() + 1);
     }
 
-    // ── 3. Ovulation / Fertile Window ────────────────────────────
-    const oCur = new Date(ovStart);
-    while (oCur <= ovEnd && oCur < nextStart) {
-      const key = formatDateISO(oCur);
-      if (!map.has(key)) map.set(key, { type: 'ovulation', periodId: p.id });
-      oCur.setDate(oCur.getDate() + 1);
+    // ── 3. Ovulation / Fertile Window (only when the backend has a
+    //    reliable estimate — see the contract note above) ──────────
+    if (ovStart && ovEnd) {
+      const oCur = new Date(ovStart);
+      while (oCur <= ovEnd && oCur < nextStart) {
+        const key = formatDateISO(oCur);
+        if (!map.has(key)) map.set(key, { type: 'ovulation', periodId: p.id });
+        oCur.setDate(oCur.getDate() + 1);
+      }
     }
 
     // ── 4. Luteal ────────────────────────────────────────────────
-    const lCur = new Date(ovEnd); lCur.setDate(lCur.getDate() + 1);
+    const lCur = new Date(boundaryOvEnd);
+    lCur.setDate(lCur.getDate() + 1);
     while (lCur < pmsStart && lCur < nextStart) {
       const key = formatDateISO(lCur);
       if (!map.has(key)) map.set(key, { type: 'luteal', periodId: p.id });
@@ -183,24 +191,23 @@ function buildCycleDateMap(periods: any[]): Map<string, DayInfo> {
 // ── Calendar component ────────────────────────────────────────────────────────
 function CycleCalendar({
   periods,
-  isMaleWithPartner,
   onDayPress,
 }: {
   periods: any[];
   isMaleWithPartner: boolean;
   onDayPress: (dateStr: string, periodId: number | null) => void;
 }) {
-  const { colors, spacing, typography } = useTheme();
-  const today  = new Date();
+  const { colors, spacing, typography, borderRadius } = useTheme();
+  const today = new Date();
 
-  const [displayYear,  setDisplayYear]  = useState(today.getFullYear());
+  const [displayYear, setDisplayYear] = useState(today.getFullYear());
   const [displayMonth, setDisplayMonth] = useState(today.getMonth());
 
-  // Keep refs in sync so PanResponder always sees latest values
+  // Keep refs in sync for PanResponder
   const displayMonthRef = useRef(today.getMonth());
-  const displayYearRef  = useRef(today.getFullYear());
+  const displayYearRef = useRef(today.getFullYear());
 
-  // Animation values for slide transition
+  // Animation values for smooth slide transition
   const slideAnim = useRef(new Animated.Value(0)).current;
   const isAnimating = useRef(false);
 
@@ -215,25 +222,25 @@ function CycleCalendar({
 
   const goToMonth = useCallback((direction: 'prev' | 'next') => {
     if (isAnimating.current) return;
+    const now = new Date();
     const currentMonth = displayMonthRef.current;
-    const currentYear  = displayYearRef.current;
+    const currentYear = displayYearRef.current;
     if (direction === 'next') {
-      const maxFuture = new Date(today.getFullYear(), today.getMonth() + 3, 1);
+      const maxFuture = new Date(now.getFullYear(), now.getMonth() + 3, 1);
       const nextMonthDate = new Date(currentYear, currentMonth + 1, 1);
       if (nextMonthDate > maxFuture) return;
     }
     isAnimating.current = true;
 
-    const outTo = direction === 'prev' ? W : -W;
+    const outTo = direction === 'prev' ? SCREEN_WIDTH : -SCREEN_WIDTH;
 
     Animated.timing(slideAnim, {
       toValue: outTo,
-      duration: 220,
+      duration: 200,
       useNativeDriver: true,
     }).start(() => {
-      // Compute new month/year
       let newMonth = currentMonth;
-      let newYear  = currentYear;
+      let newYear = currentYear;
       if (direction === 'prev') {
         if (newMonth === 0) { newMonth = 11; newYear -= 1; }
         else newMonth -= 1;
@@ -242,15 +249,14 @@ function CycleCalendar({
         else newMonth += 1;
       }
       displayMonthRef.current = newMonth;
-      displayYearRef.current  = newYear;
+      displayYearRef.current = newYear;
       setDisplayMonth(newMonth);
       setDisplayYear(newYear);
 
-      // Slide in from opposite side
       slideAnim.setValue(-outTo);
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 220,
+        duration: 200,
         useNativeDriver: true,
       }).start(() => {
         isAnimating.current = false;
@@ -261,23 +267,23 @@ function CycleCalendar({
   const goToMonthRef = useRef(goToMonth);
   goToMonthRef.current = goToMonth;
 
-  // PanResponder for swipe — uses goToMonth which reads from refs
+  // PanResponder for horizontal swipe
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, gs) =>
-        Math.abs(gs.dx) > 10 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.5,
+        Math.abs(gs.dx) > 12 && Math.abs(gs.dx) > Math.abs(gs.dy) * 1.5,
       onPanResponderRelease: (_, gs) => {
-        if (gs.dx < -40)      goToMonthRef.current('next');
-        else if (gs.dx > 40)  goToMonthRef.current('prev');
+        if (gs.dx < -40) goToMonthRef.current('next');
+        else if (gs.dx > 40) goToMonthRef.current('prev');
       },
     })
   ).current;
 
   // Build calendar grid
   const calendarDays = useMemo(() => {
-    const firstDay   = new Date(displayYear, displayMonth, 1);
-    const lastDay    = new Date(displayYear, displayMonth + 1, 0);
+    const firstDay = new Date(displayYear, displayMonth, 1);
+    const lastDay = new Date(displayYear, displayMonth + 1, 0);
     const startOffset = firstDay.getDay();
 
     const days: (Date | null)[] = [];
@@ -292,224 +298,212 @@ function CycleCalendar({
   const monthLabel = new Date(displayYear, displayMonth, 1)
     .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-  const isToday  = (d: Date) => d.toDateString() === today.toDateString();
+  const isToday = (d: Date) => d.toDateString() === today.toDateString();
   const isFuture = (d: Date) => d > today;
 
   return (
-    <View
-      style={{
-        backgroundColor: colors.surface,
-        borderRadius: 20,
-        overflow: 'hidden',
-        shadowColor: colors.shadowColor,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-        elevation: 3,
-        marginBottom: spacing[4],
-      }}
-    >
-      {/* Accent bar */}
-      <View style={{ height: 3, backgroundColor: colors.menstrual }} />
-
-      <View style={{ padding: spacing[4] }}>
-        {/* Month navigation */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing[4] }}>
-          <TouchableOpacity
-            onPress={() => goToMonth('prev')}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Icon name="chevron-left" size={24} color={colors.textPrimary} />
-          </TouchableOpacity>
-
-          <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '800' }}>
-            {monthLabel}
-          </Text>
-
-          <TouchableOpacity
-            onPress={() => goToMonth('next')}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            disabled={isFutureMonth}
-          >
-            <Icon name="chevron-right" size={24} color={isFutureMonth ? colors.border : colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Week day headers */}
-        <View style={{ flexDirection: 'row', marginBottom: spacing[2] }}>
-          {WEEK_DAYS.map(d => (
-            <View key={d} style={{ flex: 1, alignItems: 'center' }}>
-              <Text style={{ color: colors.textSecondary, fontSize: 11, fontWeight: '700' }}>{d}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Swipeable day grid */}
-        <Animated.View
-          style={{ transform: [{ translateX: slideAnim }] }}
-          {...panResponder.panHandlers}
+    <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+      {/* Month navigation */}
+      <View style={styles.monthHeader}>
+        <TouchableOpacity
+          onPress={() => goToMonth('prev')}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={[styles.monthNavBtn, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md }]}
         >
-          {/* Render weeks row by row so flex works correctly */}
-          {Array.from({ length: calendarDays.length / 7 }, (_, rowIdx) => (
-            <View key={rowIdx} style={{ flexDirection: 'row' }}>
-              {calendarDays.slice(rowIdx * 7, rowIdx * 7 + 7).map((day, colIdx) => {
-                const idx = rowIdx * 7 + colIdx;
-                if (!day) {
-                  return <View key={`empty-${idx}`} style={{ flex: 1, height: 44 }} />;
-                }
+          <Icon name="chevron-left" size={20} color={colors.textPrimary} />
+        </TouchableOpacity>
 
-                const dateStr   = formatDateISO(day);
-                const entry     = periodMap.get(dateStr);
-                const dayType   = entry?.type ?? 'none';
-                const hasMark   = dayType !== 'none';
-                const isStart   = entry?.isStart  ?? false;
-                const isEnd     = entry?.isEnd    ?? false;
-                const ongoing   = entry?.isOngoing ?? false;
-                const todayDay  = isToday(day);
-                const future    = isFuture(day);
+        <Text style={[styles.monthTitle, { color: colors.textPrimary, fontSize: typography.base }]}>
+          {monthLabel}
+        </Text>
 
-                // Phase colors
-                const phaseColor = dayType === 'period'
-                  ? (ongoing ? (colors as any).ovulationColor || '#F59E0B' : colors.menstrual)
-                  : dayType === 'ovulation'
-                  ? (colors as any).ovulationColor || '#F59E0B'
-                  : dayType === 'pms'
-                  ? (colors as any).luteal || '#A855F7'
-                  : dayType === 'follicular'
-                  ? colors.primary + '80'
-                  : 'transparent';
+        <TouchableOpacity
+          onPress={() => goToMonth('next')}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          disabled={isFutureMonth}
+          style={[
+            styles.monthNavBtn,
+            { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md, opacity: isFutureMonth ? 0.3 : 1 },
+          ]}
+        >
+          <Icon name="chevron-right" size={20} color={colors.textPrimary} />
+        </TouchableOpacity>
+      </View>
 
-                const isPeriod     = dayType === 'period';
-                const isPredPeriod = dayType === 'predicted_period';
-                const isLate       = dayType === 'late';
-                const isOvulation  = dayType === 'ovulation';
-                const isPms        = dayType === 'pms';
-                const isFollic     = dayType === 'follicular';
+      {/* Week day headers */}
+      <View style={styles.weekHeaderRow}>
+        {WEEK_DAYS.map(d => (
+          <View key={d} style={styles.dayCol}>
+            <Text style={[styles.weekDayText, { color: colors.textTertiary, fontSize: typography.xs }]}>
+              {d}
+            </Text>
+          </View>
+        ))}
+      </View>
 
-                return (
-                  <TouchableOpacity
-                    key={dateStr}
-                    onPress={() => !future && onDayPress(dateStr, entry?.periodId ?? null)}
-                    activeOpacity={future ? 1 : 0.75}
-                    style={{ flex: 1, height: 44, alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    {/* Period strip background */}
-                    {isPeriod && (
-                      <View
-                        style={{
-                          position: 'absolute',
-                          top: 5, bottom: 5,
-                          left:  isStart ? 4 : 0,
-                          right: isEnd   ? 4 : 0,
-                          backgroundColor: phaseColor + '35',
-                          borderTopLeftRadius:     isStart ? 18 : 0,
-                          borderBottomLeftRadius:  isStart ? 18 : 0,
-                          borderTopRightRadius:    isEnd   ? 18 : 0,
-                          borderBottomRightRadius: isEnd   ? 18 : 0,
-                        }}
-                      />
-                    )}
+      {/* Swipeable day grid */}
+      <Animated.View
+        style={{ transform: [{ translateX: slideAnim }] }}
+        {...panResponder.panHandlers}
+      >
+        {Array.from({ length: calendarDays.length / 7 }, (_, rowIdx) => (
+          <View key={rowIdx} style={styles.weekRow}>
+            {calendarDays.slice(rowIdx * 7, rowIdx * 7 + 7).map((day, colIdx) => {
+              const idx = rowIdx * 7 + colIdx;
+              if (!day) {
+                return <View key={`empty-${idx}`} style={styles.dayCol} />;
+              }
 
-                    {/* Phase dot for non-period days */}
-                    {(isOvulation || isPms || isFollic) && (
-                      <View
-                        style={{
-                          position: 'absolute',
-                          bottom: 4,
-                          width: 5, height: 5, borderRadius: 2.5,
-                          backgroundColor: phaseColor,
-                        }}
-                      />
-                    )}
+              const dateStr = formatDateISO(day);
+              const entry = periodMap.get(dateStr);
+              const dayType = entry?.type ?? 'none';
+              const isStart = entry?.isStart ?? false;
+              const isEnd = entry?.isEnd ?? false;
+              const todayDay = isToday(day);
+              const future = isFuture(day);
 
-                    {/* Day circle */}
+              const isPeriod = dayType === 'period';
+              const isPredPeriod = dayType === 'predicted_period';
+              const isLate = dayType === 'late';
+              const isOvulation = dayType === 'ovulation';
+              const isPms = dayType === 'pms';
+              const isFollic = dayType === 'follicular';
+
+              // Semantic phase colors from design tokens
+              const phaseDotColor = isPeriod
+                ? colors.menstrual
+                : isOvulation
+                ? colors.ovulation
+                : isPms
+                ? colors.luteal
+                : isFollic
+                ? colors.follicular
+                : 'transparent';
+
+              return (
+                <TouchableOpacity
+                  key={dateStr}
+                  onPress={() => !future && onDayPress(dateStr, entry?.periodId ?? null)}
+                  activeOpacity={future ? 1 : 0.75}
+                  style={styles.dayCol}
+                >
+                  {/* Period strip background */}
+                  {isPeriod && (
                     <View
-                      style={{
-                        width: 30, height: 30, borderRadius: 15,
-                        alignItems: 'center', justifyContent: 'center',
+                      style={[
+                        styles.periodStrip,
+                        {
+                          backgroundColor: colors.menstrual + '18',
+                          borderTopLeftRadius: isStart ? 16 : 0,
+                          borderBottomLeftRadius: isStart ? 16 : 0,
+                          borderTopRightRadius: isEnd ? 16 : 0,
+                          borderBottomRightRadius: isEnd ? 16 : 0,
+                        },
+                      ]}
+                    />
+                  )}
+
+                  {/* Predicted period strip */}
+                  {isPredPeriod && (
+                    <View
+                      style={[
+                        styles.periodStrip,
+                        {
+                          backgroundColor: colors.menstrual + '0A',
+                          borderWidth: 1,
+                          borderColor: colors.menstrual + '30',
+                          borderStyle: 'dashed',
+                          borderRadius: 16,
+                        },
+                      ]}
+                    />
+                  )}
+
+                  {/* Day cell circle */}
+                  <View
+                    style={[
+                      styles.dayCircle,
+                      {
                         backgroundColor: todayDay
                           ? colors.primary
                           : isPeriod
-                          ? phaseColor + '20'
-                          : isPredPeriod
-                          ? colors.menstrual + '12'
-                          : isLate
-                          ? '#F59E0B18'
+                          ? colors.menstrual + '22'
                           : 'transparent',
-                        borderWidth: isOvulation ? 1.5 : isPredPeriod || isLate ? 1.5 : 0,
                         borderColor: isOvulation
-                          ? phaseColor
-                          : isPredPeriod
-                          ? colors.menstrual
+                          ? colors.ovulation
                           : isLate
-                          ? '#F59E0B'
+                          ? colors.warning
                           : 'transparent',
-                      }}
-                    >
-                      <Text
-                        style={{
+                        borderWidth: isOvulation || isLate ? 1.5 : 0,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.dayNumber,
+                        {
                           fontSize: typography.sm,
-                          fontWeight: (isPeriod || isPredPeriod || isLate || isOvulation || isPms || todayDay) ? '800' : '400',
                           color: todayDay
-                            ? '#fff'
+                            ? '#FFFFFF'
                             : isPeriod
-                            ? phaseColor
+                            ? colors.menstrual
                             : isPredPeriod
                             ? colors.menstrual
                             : isLate
-                            ? '#F59E0B'
+                            ? colors.warning
                             : isOvulation
-                            ? (colors as any).ovulationColor || '#F59E0B'
+                            ? colors.ovulation
                             : isPms
-                            ? (colors as any).luteal || '#A855F7'
+                            ? colors.luteal
                             : future
-                            ? colors.border
+                            ? colors.textDisabled
                             : colors.textPrimary,
-                        }}
-                      >
-                        {day.getDate()}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ))}
-        </Animated.View>
+                          fontWeight: (todayDay || isPeriod || isOvulation || isPms || isLate) ? '700' : '400',
+                        },
+                      ]}
+                    >
+                      {day.getDate()}
+                    </Text>
+                  </View>
 
-        {/* Swipe hint */}
-        <Text style={{ color: colors.textTertiary, fontSize: 10, textAlign: 'center', marginTop: spacing[3] }}>
-          Swipe left or right to change months
-        </Text>
+                  {/* Phase dot for non-period active days */}
+                  {!isPeriod && !todayDay && (isOvulation || isPms || isFollic) && (
+                    <View
+                      style={[
+                        styles.phaseIndicatorDot,
+                        { backgroundColor: phaseDotColor },
+                      ]}
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ))}
+      </Animated.View>
 
-        {/* Legend */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing[3], marginTop: spacing[2], justifyContent: 'center' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[1] }}>
-            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.menstrual }} />
-            <Text style={{ color: colors.textSecondary, fontSize: 10 }}>Period</Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[1] }}>
-            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary + '80' }} />
-            <Text style={{ color: colors.textSecondary, fontSize: 10 }}>Follicular</Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[1] }}>
-            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: (colors as any).ovulationColor || '#F59E0B' }} />
-            <Text style={{ color: colors.textSecondary, fontSize: 10 }}>Fertile window</Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[1] }}>
-            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: (colors as any).luteal || '#A855F7' }} />
-            <Text style={{ color: colors.textSecondary, fontSize: 10 }}>PMS</Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[1] }}>
-            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary }} />
-            <Text style={{ color: colors.textSecondary, fontSize: 10 }}>Today</Text>
-          </View>
+      {/* Legend */}
+      <View style={[styles.legendContainer, { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, marginTop: spacing[3], paddingTop: spacing[3] }]}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: colors.menstrual }]} />
+          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>Menstrual</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: colors.follicular }]} />
+          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>Follicular</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: colors.ovulation }]} />
+          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>Ovulation</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: colors.luteal }]} />
+          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>Luteal / PMS</Text>
         </View>
       </View>
-    </View>
+    </Card>
   );
 }
-
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function CycleTrackerScreen() {
@@ -517,8 +511,8 @@ export default function CycleTrackerScreen() {
   const { colors, spacing, typography, borderRadius } = useTheme();
 
   const { data: profile } = useProfile();
-  const isMale            = profile?.sex === 'male';
-  const hasPartner        = (profile?.partners?.length ?? 0) > 0;
+  const isMale = profile?.sex === 'male';
+  const hasPartner = (profile?.partners?.length ?? 0) > 0;
   const isMaleWithPartner = isMale && hasPartner;
 
   const { data: periods, isLoading, refetch } = usePeriods(
@@ -526,7 +520,7 @@ export default function CycleTrackerScreen() {
   );
 
   const [refreshing, setRefreshing] = useState(false);
-  const [viewMode, setViewMode]     = useState<ViewMode>('calendar');
+  const [viewMode, setViewMode] = useState<ViewMode>('calendar');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const onRefresh = useCallback(async () => {
@@ -535,10 +529,10 @@ export default function CycleTrackerScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  // Build the full cycle map for selected period detail
+  // Full cycle date map
   const cycleMap = useMemo(() => buildCycleDateMap((periods as any[]) ?? []), [periods]);
 
-  // Find period for selected date (check period OR phases)
+  // Find period for selected date
   const selectedPeriod = useMemo(() => {
     if (!selectedDate || !periods) return null;
     const entry = cycleMap.get(selectedDate);
@@ -551,12 +545,12 @@ export default function CycleTrackerScreen() {
     return cycleMap.get(selectedDate)?.type ?? null;
   }, [selectedDate, cycleMap]);
 
-  const handleDayPress = useCallback((dateStr: string, periodId: number | null) => {
+  const handleDayPress = useCallback((dateStr: string, _periodId: number | null) => {
     setSelectedDate(prev => prev === dateStr ? null : dateStr);
   }, []);
 
   if (isLoading && !refreshing) {
-    return <LoadingState fullScreen message="Loading period history…" />;
+    return <LoadingState fullScreen message="Loading cycle history…" />;
   }
 
   const partnerName =
@@ -569,101 +563,123 @@ export default function CycleTrackerScreen() {
   return (
     <ScrollView
       style={[styles.flex, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingBottom: spacing[10] }}
+      contentContainerStyle={{ paddingHorizontal: spacing[4], paddingTop: spacing[4], paddingBottom: spacing[10] }}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
     >
-      {/* ── Top bar ─────────────────────────────────────────────────── */}
-      <View style={{ paddingHorizontal: spacing[5], paddingTop: spacing[5], paddingBottom: spacing[4] }}>
-        {/* Partner banner */}
-        {isMaleWithPartner && (
-          <View
-            style={{
-              flexDirection: 'row', alignItems: 'center', gap: spacing[2],
-              backgroundColor: colors.primaryLighter, padding: spacing[3],
-              borderRadius: borderRadius.lg, marginBottom: spacing[4],
-            }}
-          >
-            <Text style={{ color: colors.primary, fontSize: typography.sm, fontWeight: '600' }}>
-              {partnerName}'s Period History
-            </Text>
+      {/* Partner Context Banner */}
+      {isMaleWithPartner && (
+        <View
+          style={[
+            styles.partnerBanner,
+            {
+              backgroundColor: colors.surfaceSecondary,
+              borderRadius: borderRadius.lg,
+              borderColor: colors.border,
+              padding: spacing[3],
+              marginBottom: spacing[4],
+            },
+          ]}
+        >
+          <Icon name="account-heart-outline" size={18} color={colors.primary} />
+          <Text style={[styles.partnerBannerText, { color: colors.textPrimary, fontSize: typography.sm }]}>
+            Viewing {partnerName}'s Cycle History
+          </Text>
+        </View>
+      )}
+
+      {/* Top Action & View Switcher Bar */}
+      <View style={[styles.topActionBar, { marginBottom: spacing[4] }]}>
+        {!isMale && (
+          <View style={{ flex: 1 }}>
+            <Button
+              label="Log Period"
+              onPress={() => navigation.navigate('LogPeriod')}
+              size="md"
+              fullWidth
+            />
           </View>
         )}
 
-        {/* Log button + view toggle row */}
-        <View style={{ flexDirection: 'row', gap: spacing[3], alignItems: 'center' }}>
-          {!isMale && (
-            <View style={{ flex: 1 }}>
-              <Button
-                label="Log New Period"
-                onPress={() => navigation.navigate('LogPeriod')}
-                size="md"
-                fullWidth
-              />
-            </View>
-          )}
-
-          {/* View mode toggle */}
-          <View
-            style={{
-              flexDirection: 'row',
+        {/* View Mode Segmented Switch */}
+        <View
+          style={[
+            styles.segmentedContainer,
+            {
               backgroundColor: colors.surfaceSecondary,
-              borderRadius: 12,
-              padding: 3,
-              borderWidth: 1,
+              borderRadius: borderRadius.md,
               borderColor: colors.border,
-            }}
-          >
-            <TouchableOpacity
-              onPress={() => setViewMode('calendar')}
-              activeOpacity={0.8}
-              style={{
-                paddingHorizontal: spacing[3], paddingVertical: spacing[2],
-                borderRadius: 10,
+              padding: 3,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => setViewMode('calendar')}
+            activeOpacity={0.8}
+            style={[
+              styles.segmentTab,
+              {
                 backgroundColor: viewMode === 'calendar' ? colors.surface : 'transparent',
-                shadowColor: viewMode === 'calendar' ? colors.shadowColor : 'transparent',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: viewMode === 'calendar' ? 2 : 0,
-                flexDirection: 'row', alignItems: 'center', gap: spacing[1],
-              }}
+                borderRadius: borderRadius.sm,
+              },
+            ]}
+          >
+            <Icon
+              name="calendar-month-outline"
+              size={18}
+              color={viewMode === 'calendar' ? colors.primary : colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.segmentTabText,
+                {
+                  fontSize: typography.xs,
+                  fontWeight: viewMode === 'calendar' ? '700' : '400',
+                  color: viewMode === 'calendar' ? colors.primary : colors.textSecondary,
+                },
+              ]}
             >
-              <Icon name="calendar-month-outline" size={18} color={viewMode === 'calendar' ? colors.primary : colors.textSecondary} />
-              <Text style={{ fontSize: typography.xs, fontWeight: viewMode === 'calendar' ? '700' : '400', color: viewMode === 'calendar' ? colors.primary : colors.textSecondary }}>
-                Calendar
-              </Text>
-            </TouchableOpacity>
+              Calendar
+            </Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => setViewMode('list')}
-              activeOpacity={0.8}
-              style={{
-                paddingHorizontal: spacing[3], paddingVertical: spacing[2],
-                borderRadius: 10,
+          <TouchableOpacity
+            onPress={() => setViewMode('list')}
+            activeOpacity={0.8}
+            style={[
+              styles.segmentTab,
+              {
                 backgroundColor: viewMode === 'list' ? colors.surface : 'transparent',
-                shadowColor: viewMode === 'list' ? colors.shadowColor : 'transparent',
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.1,
-                shadowRadius: 4,
-                elevation: viewMode === 'list' ? 2 : 0,
-                flexDirection: 'row', alignItems: 'center', gap: spacing[1],
-              }}
+                borderRadius: borderRadius.sm,
+              },
+            ]}
+          >
+            <Icon
+              name="format-list-bulleted"
+              size={18}
+              color={viewMode === 'list' ? colors.primary : colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.segmentTabText,
+                {
+                  fontSize: typography.xs,
+                  fontWeight: viewMode === 'list' ? '700' : '400',
+                  color: viewMode === 'list' ? colors.primary : colors.textSecondary,
+                },
+              ]}
             >
-              <Icon name="format-list-bulleted" size={18} color={viewMode === 'list' ? colors.primary : colors.textSecondary} />
-              <Text style={{ fontSize: typography.xs, fontWeight: viewMode === 'list' ? '700' : '400', color: viewMode === 'list' ? colors.primary : colors.textSecondary }}>
-                List
-              </Text>
-            </TouchableOpacity>
-          </View>
+              List
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* ── Calendar View ───────────────────────────────────────────── */}
+      {/* ── Calendar Mode ───────────────────────────────────────────── */}
       {viewMode === 'calendar' && (
-        <View style={{ paddingHorizontal: spacing[5] }}>
+        <View>
           {periodList.length > 0 ? (
             <>
               <CycleCalendar
@@ -672,105 +688,86 @@ export default function CycleTrackerScreen() {
                 onDayPress={handleDayPress}
               />
 
-              {/* Selected day detail card */}
+              {/* Selected Day Inspection Card */}
               {selectedDate && (selectedPeriod || selectedDayType) && (
-                <TouchableOpacity
-                  onPress={() =>
-                    selectedPeriod && !isMaleWithPartner &&
-                    navigation.navigate('PeriodDetail', { periodId: selectedPeriod.id })
-                  }
-                  activeOpacity={selectedPeriod && !isMaleWithPartner ? 0.82 : 1}
-                >
-                  <Card style={{ marginBottom: spacing[3], overflow: 'hidden' }}>
-                    {/* Phase color accent */}
-                    <View style={{
-                      height: 3,
-                      backgroundColor:
-                        selectedDayType === 'period' ? colors.menstrual
-                        : selectedDayType === 'ovulation' ? (colors as any).ovulationColor || '#F59E0B'
-                        : selectedDayType === 'pms' ? (colors as any).luteal || '#A855F7'
-                        : colors.primary + '80',
-                      marginTop: -spacing[3], marginHorizontal: -spacing[4], marginBottom: spacing[3],
-                    }} />
-
-                    <Text style={{ color: colors.textSecondary, fontSize: typography.xs, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: spacing[2] }}>
-                      {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                    </Text>
-
-                    {/* Phase label */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[2], marginBottom: spacing[2] }}>
-                      <View style={{
-                        paddingHorizontal: spacing[3], paddingVertical: 3,
-                        borderRadius: 20,
-                        backgroundColor:
-                          selectedDayType === 'period' ? colors.menstrual + '20'
-                          : selectedDayType === 'ovulation' ? ((colors as any).ovulationColor || '#F59E0B') + '20'
-                          : selectedDayType === 'pms' ? ((colors as any).luteal || '#A855F7') + '20'
-                          : colors.primary + '15',
-                      }}>
-                        <Text style={{
-                          fontSize: typography.xs, fontWeight: '700',
-                          color:
-                            selectedDayType === 'period' ? colors.menstrual
-                            : selectedDayType === 'ovulation' ? (colors as any).ovulationColor || '#F59E0B'
-                            : selectedDayType === 'pms' ? (colors as any).luteal || '#A855F7'
-                            : colors.primary,
-                        }}>
-                          {selectedDayType === 'period' ? 'Menstrual phase'
-                           : selectedDayType === 'ovulation' ? 'Fertile window'
-                           : selectedDayType === 'pms' ? 'PMS / Luteal phase'
-                           : 'Follicular phase'}
-                        </Text>
-                      </View>
+                <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+                  <View style={styles.selectedHeaderRow}>
+                    <View>
+                      <Text style={[styles.selectedDateLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
+                        {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                      </Text>
+                      <Text style={[styles.selectedPhaseTitle, { color: colors.textPrimary, fontSize: typography.base }]}>
+                        {selectedDayType === 'period'
+                          ? 'Menstrual Phase'
+                          : selectedDayType === 'ovulation'
+                          ? 'Fertile / Ovulation Window'
+                          : selectedDayType === 'pms'
+                          ? 'Luteal / PMS Phase'
+                          : selectedDayType === 'follicular'
+                          ? 'Follicular Phase'
+                          : 'Recorded Day'}
+                      </Text>
                     </View>
 
-                    {selectedPeriod && (
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <View>
-                          <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '700' }}>
+                    {selectedPeriod && !isMaleWithPartner && (
+                      <TouchableOpacity
+                        onPress={() => navigation.navigate('EditPeriod', { periodId: selectedPeriod.id })}
+                        activeOpacity={0.75}
+                        style={[styles.iconEditBtn, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md }]}
+                      >
+                        <Icon name="pencil-outline" size={18} color={colors.primary} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {selectedPeriod && (
+                    <View style={[styles.selectedPeriodContent, { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, marginTop: spacing[3], paddingTop: spacing[3] }]}>
+                      <View style={styles.rowBetween}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.periodDateSpan, { color: colors.textPrimary, fontSize: typography.sm }]}>
                             {formatDate(selectedPeriod.start_date)}
                             {selectedPeriod.end_date ? ` → ${formatDate(selectedPeriod.end_date)}` : ' → ongoing'}
                           </Text>
                           {selectedPeriod.symptoms ? (
-                            <Text style={{ color: colors.textTertiary, fontSize: typography.xs, marginTop: spacing[1] }} numberOfLines={1}>
-                              {selectedPeriod.symptoms}
-                            </Text>
+                            <View style={styles.tagWrap}>
+                              {selectedPeriod.symptoms.split(',').map((s: string) => (
+                                <View key={s} style={[styles.symptomTag, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.sm }]}>
+                                  <Text style={[styles.symptomTagText, { color: colors.textSecondary, fontSize: typography.xs }]}>
+                                    {s.trim()}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
                           ) : null}
                         </View>
-                        <View style={{ flexDirection: 'row', gap: spacing[2], alignItems: 'center' }}>
-                          {selectedPeriod.period_duration > 0 && (
-                            <View style={{ alignItems: 'center' }}>
-                              <Text style={{ color: colors.menstrual, fontSize: typography.xl, fontWeight: '800' }}>{selectedPeriod.period_duration}</Text>
-                              <Text style={{ color: colors.textTertiary, fontSize: typography.xs }}>days</Text>
-                            </View>
-                          )}
-                          {!isMaleWithPartner && (
-                            <TouchableOpacity
-                              onPress={() => navigation.navigate('EditPeriod', { periodId: selectedPeriod.id })}
-                              activeOpacity={0.75}
-                              style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: colors.primary + '15', alignItems: 'center', justifyContent: 'center' }}
-                            >
-                              <Icon name="pencil-outline" size={17} color={colors.primary} />
-                            </TouchableOpacity>
-                          )}
-                        </View>
+
+                        {selectedPeriod.period_duration > 0 && (
+                          <View style={styles.durationPill}>
+                            <Text style={[styles.durationValue, { color: colors.menstrual, fontSize: typography.lg }]}>
+                              {selectedPeriod.period_duration}
+                            </Text>
+                            <Text style={[styles.durationUnit, { color: colors.textTertiary, fontSize: typography.xs }]}>
+                              days
+                            </Text>
+                          </View>
+                        )}
                       </View>
-                    )}
-                  </Card>
-                </TouchableOpacity>
+                    </View>
+                  )}
+                </Card>
               )}
 
-              {selectedDate && !selectedPeriod && (
-                <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: spacing[4], marginBottom: spacing[3], borderWidth: 1, borderColor: colors.border }}>
-                  <Text style={{ color: colors.textSecondary, fontSize: typography.sm, textAlign: 'center' }}>
-                    No period recorded for {new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {selectedDate && !selectedPeriod && !selectedDayType && (
+                <View style={[styles.emptySelectedDay, { backgroundColor: colors.surface, borderRadius: borderRadius.lg, borderColor: colors.border, padding: spacing[4] }]}>
+                  <Text style={[styles.emptySelectedText, { color: colors.textSecondary, fontSize: typography.sm }]}>
+                    No cycle activity recorded for {new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.
                   </Text>
                 </View>
               )}
             </>
           ) : (
             <EmptyState
-              icon="📅"
+              icon="calendar-blank-outline"
               title={isMaleWithPartner ? 'No periods logged yet' : 'No cycles recorded yet'}
               description={
                 isMaleWithPartner
@@ -784,94 +781,92 @@ export default function CycleTrackerScreen() {
         </View>
       )}
 
-      {/* ── List View ───────────────────────────────────────────────── */}
+      {/* ── List Mode ───────────────────────────────────────────────── */}
       {viewMode === 'list' && (
-        <View style={{ paddingHorizontal: spacing[5] }}>
-          <Text style={{ color: colors.textPrimary, fontSize: typography.lg, fontWeight: '700', marginBottom: spacing[4] }}>
-            {isMaleWithPartner ? `${partnerName}'s Cycles` : 'Your Cycle History'}
+        <View>
+          <Text style={[styles.listHeaderTitle, { color: colors.textPrimary, fontSize: typography.lg, marginBottom: spacing[3] }]}>
+            {isMaleWithPartner ? `${partnerName}'s Cycles` : 'Cycle History'}
           </Text>
 
           {periodList.length > 0 ? (
             periodList.map((period: any) => {
               const nextPeriod = safeNextPeriod(period);
-              const isOngoing  = !period.end_date;
+              const isOngoing = !period.end_date;
 
               return (
-                <TouchableOpacity
+                <Card
                   key={period.id}
-                  onPress={() =>
-                    !isMaleWithPartner &&
-                    navigation.navigate('PeriodDetail', { periodId: period.id })
-                  }
-                  activeOpacity={isMaleWithPartner ? 1 : 0.75}
-                  style={{ marginBottom: spacing[3] }}
+                  elevated={false}
+                  style={{ marginBottom: spacing[3], padding: spacing[4] }}
                 >
-                  <Card>
-                    <View style={{ height: 3, backgroundColor: isOngoing ? (colors as any).ovulationColor || colors.primary : colors.menstrual, borderTopLeftRadius: 12, borderTopRightRadius: 12, marginTop: -spacing[3], marginHorizontal: -spacing[4], marginBottom: spacing[3] }} />
-
-                    <View style={styles.rowBetween}>
-                      <View style={{ flex: 1 }}>
+                  <View style={styles.rowBetween}>
+                    <View style={{ flex: 1, marginRight: spacing[3] }}>
+                      <View style={styles.cardHeaderRow}>
                         {isOngoing && (
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[1], marginBottom: spacing[2] }}>
-                            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: (colors as any).ovulationColor || colors.primary }} />
-                            <Text style={{ color: (colors as any).ovulationColor || colors.primary, fontSize: typography.xs, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                              Active
-                            </Text>
-                          </View>
+                          <Badge label="Active" variant="success" style={{ marginRight: spacing[2] }} />
                         )}
-
-                        <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '700', marginBottom: spacing[1] }}>
+                        <Text style={[styles.cycleRangeText, { color: colors.textPrimary, fontSize: typography.base }]}>
                           {formatDate(period.start_date)}
                           {period.end_date ? ` → ${formatDate(period.end_date)}` : ' → ongoing'}
                         </Text>
-
-                        {nextPeriod && (
-                          <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginBottom: spacing[1] }}>
-                            Next predicted: {formatDate(nextPeriod)}
-                          </Text>
-                        )}
-
-                        {period.symptoms ? (
-                          <Text style={{ color: colors.textTertiary, fontSize: typography.xs, marginTop: 2 }} numberOfLines={1}>
-                            Symptoms: {period.symptoms}
-                          </Text>
-                        ) : null}
-
-                        {period.medication ? (
-                          <Text style={{ color: colors.textTertiary, fontSize: typography.xs, marginTop: 2 }} numberOfLines={1}>
-                            Medication: {period.medication}
-                          </Text>
-                        ) : null}
                       </View>
 
-                      <View style={{ alignItems: 'center', marginLeft: spacing[3], gap: spacing[2] }}>
-                        {period.period_duration > 0 ? (
-                          <>
-                            <Text style={{ color: colors.menstrual, fontSize: typography.xl, fontWeight: '800' }}>{period.period_duration}</Text>
-                            <Text style={{ color: colors.textTertiary, fontSize: typography.xs }}>days</Text>
-                          </>
-                        ) : (
-                          <Badge label="ongoing" variant="neutral" />
-                        )}
+                      {nextPeriod && (
+                        <Text style={[styles.nextPredictedText, { color: colors.textSecondary, fontSize: typography.xs, marginTop: spacing[1] }]}>
+                          Next predicted: {formatDate(nextPeriod)}
+                        </Text>
+                      )}
 
-                        {!isMaleWithPartner && (
-                          <TouchableOpacity
-                            onPress={() => navigation.navigate('EditPeriod', { periodId: period.id })}
-                            activeOpacity={0.75}
-                            style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: colors.primary + '15', alignItems: 'center', justifyContent: 'center' }}
-                          >
-                            <Icon name="pencil-outline" size={17} color={colors.primary} />
-                          </TouchableOpacity>
-                        )}
-                      </View>
+                      {period.symptoms ? (
+                        <View style={[styles.tagWrap, { marginTop: spacing[2] }]}>
+                          {period.symptoms.split(',').map((s: string) => (
+                            <View key={s} style={[styles.symptomTag, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.sm }]}>
+                              <Text style={[styles.symptomTagText, { color: colors.textSecondary, fontSize: typography.xs }]}>
+                                {s.trim()}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : null}
+
+                      {period.medication ? (
+                        <Text style={[styles.medicationText, { color: colors.textTertiary, fontSize: typography.xs, marginTop: spacing[1] }]}>
+                          Medication: {period.medication}
+                        </Text>
+                      ) : null}
                     </View>
-                  </Card>
-                </TouchableOpacity>
+
+                    <View style={styles.actionCol}>
+                      {period.period_duration > 0 ? (
+                        <View style={styles.durationPill}>
+                          <Text style={[styles.durationValue, { color: colors.menstrual, fontSize: typography.xl }]}>
+                            {period.period_duration}
+                          </Text>
+                          <Text style={[styles.durationUnit, { color: colors.textTertiary, fontSize: typography.xs }]}>
+                            days
+                          </Text>
+                        </View>
+                      ) : (
+                        <Badge label="ongoing" variant="neutral" />
+                      )}
+
+                      {!isMaleWithPartner && (
+                        <TouchableOpacity
+                          onPress={() => navigation.navigate('EditPeriod', { periodId: period.id })}
+                          activeOpacity={0.75}
+                          style={[styles.iconEditBtn, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md, marginTop: spacing[2] }]}
+                        >
+                          <Icon name="pencil-outline" size={17} color={colors.primary} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                </Card>
               );
             })
           ) : (
             <EmptyState
-              icon="📅"
+              icon="calendar-blank-outline"
               title={isMaleWithPartner ? 'No periods logged yet' : 'No cycles recorded yet'}
               description={
                 isMaleWithPartner
@@ -885,8 +880,8 @@ export default function CycleTrackerScreen() {
         </View>
       )}
 
-      {/* ── Analysis link ────────────────────────────────────────────── */}
-      <View style={{ paddingHorizontal: spacing[5], marginTop: spacing[5] }}>
+      {/* Detailed Analysis Navigation Button */}
+      <View style={{ marginTop: spacing[4] }}>
         <Button
           label="View Detailed Analysis"
           onPress={() => navigation.navigate('CycleAnalysis')}
@@ -900,6 +895,185 @@ export default function CycleTrackerScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex:       { flex: 1 },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  flex: { flex: 1 },
+  monthHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  monthNavBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monthTitle: {
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  weekHeaderRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  dayCol: {
+    flex: 1,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weekDayText: {
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  weekRow: {
+    flexDirection: 'row',
+  },
+  dayCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayNumber: {
+    textAlign: 'center',
+  },
+  periodStrip: {
+    position: 'absolute',
+    top: 6,
+    bottom: 6,
+    left: 0,
+    right: 0,
+  },
+  phaseIndicatorDot: {
+    position: 'absolute',
+    bottom: 3,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+  legendContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginVertical: 4,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontWeight: '500',
+  },
+  partnerBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+  },
+  partnerBannerText: {
+    fontWeight: '600',
+  },
+  topActionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  segmentedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  segmentTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  segmentTabText: {},
+  selectedHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  selectedDateLabel: {
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  selectedPhaseTitle: {
+    fontWeight: '700',
+  },
+  selectedPeriodContent: {},
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  periodDateSpan: {
+    fontWeight: '600',
+  },
+  tagWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 6,
+  },
+  symptomTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  symptomTagText: {
+    fontWeight: '500',
+  },
+  durationPill: {
+    alignItems: 'center',
+    minWidth: 40,
+  },
+  durationValue: {
+    fontWeight: '800',
+    lineHeight: 24,
+  },
+  durationUnit: {
+    fontWeight: '500',
+  },
+  iconEditBtn: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptySelectedDay: {
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  emptySelectedText: {
+    textAlign: 'center',
+  },
+  listHeaderTitle: {
+    fontWeight: '700',
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  cycleRangeText: {
+    fontWeight: '700',
+  },
+  nextPredictedText: {},
+  medicationText: {},
+  actionCol: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
