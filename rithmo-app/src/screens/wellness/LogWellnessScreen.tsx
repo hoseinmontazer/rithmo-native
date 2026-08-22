@@ -19,6 +19,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { toFa } from '@utils/persian';
 import { useTheme } from '@hooks/useTheme';
 import { useCreateOrUpdateWellnessLog, useWellnessLog } from '@hooks/queries/useWellness';
 import { Button, Input, Card } from '@components/ui';
@@ -109,8 +110,10 @@ function SliderMetric({
           </TouchableOpacity>
 
           <View style={[styles.metricValueBadge, { backgroundColor: iconColor + '18', borderRadius: borderRadius.md }]}>
+            {/* Persian digits: this badge is the number the user reads for
+                every metric on the form, and it was rendering Latin. */}
             <Text style={[styles.metricValueText, { color: iconColor, fontSize: typography.sm }]}>
-              {value}{unit ? ` ${unit}` : ''}
+              {toFa(value)}{unit ? ` ${unit}` : ''}
             </Text>
           </View>
 

@@ -1,17 +1,16 @@
 /**
- * DeepInsightsScreen — Premium Deep Insights
+ * DeepInsightsScreen — بینش عمیق (premium)
  *
- * Rhythmo Design System Redesign.
- * Consumes existing dashboard query hooks:
- *   GET /api/dashboard/correlations/  → Pearson correlations between metric pairs
- *   GET /api/dashboard/comparison/    → this week vs last week averages
+ * Persian-first, honest analytics:
+ *   - Week-over-week comparison
+ *   - Personal correlations (Pearson r)
  *
- * Data-state gating:
- *   - Requires ≥ 14 wellness logs before showing correlations (< 14 shows
- *     clean insufficient-data progress state)
- *   - Comparison section renders when this-week or last-week data exists
+ * Data strategy: the /api/dashboard/* endpoints are the intended server
+ * source. Until they exist, the screen computes the SAME statistics
+ * locally from the user's wellness logs (deterministic Pearson + means),
+ * so the premium screen is never a dead end. No AI, no faking.
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -24,14 +23,34 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { useDashboardCorrelations, useDashboardComparison } from '@hooks/queries/useDashboard';
 import { useWellnessLogs } from '@hooks/queries/useWellness';
-import { LoadingState, ErrorState, Card, Badge } from '@components/ui';
+import { LoadingState, Card, Badge } from '@components/ui';
 import { PremiumGate } from '@components/PremiumGate';
 import { usePremiumStatus } from '@hooks/queries/useSubscription';
+import { computeCorrelations, computeWeekComparison, correlationSentence } from '@utils/insightsEngine';
+import { toFa } from '@utils/persian';
 
 // ── constants ─────────────────────────────────────────────────────────────────
 
 /** Minimum wellness logs needed before correlations are meaningful. */
 const MIN_LOGS_FOR_CORRELATIONS = 14;
+
+// ── normalized row types ──────────────────────────────────────────────────────
+
+interface CorrRow {
+  title: string;
+  r: number;
+  n: number | null;
+  sentence: string;
+}
+
+interface CompareRow {
+  label: string;
+  thisWeek: number | null;
+  lastWeek: number | null;
+  delta: number | null;
+  unit: string;
+  higherIsBetter: boolean;
+}
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -42,28 +61,16 @@ function correlationColor(r: number, colors: ReturnType<typeof useTheme>['colors
   return colors.textTertiary;
 }
 
-function correlationBar(r: number): number {
-  // Maps [-1, 1] → [0, 100] for visual bar position
-  return Math.round(((r + 1) / 2) * 100);
-}
-
-function deltaBadgeVariant(
-  metric: string,
-  delta: number | null,
-): { variant: 'success' | 'error' | 'neutral'; text: string } {
-  if (delta == null) {
-    return { variant: 'neutral', text: '—' };
+function deltaBadge(delta: number | null, higherIsBetter: boolean) {
+  if (delta == null || Math.abs(delta) <= 0.05) {
+    return { variant: 'neutral' as const, text: '→' };
   }
-  const higherIsBad = metric === 'stress';
-  const sign = delta > 0 ? '+' : '';
-  const arrow = delta > 0.05 ? '↑' : delta < -0.05 ? '↓' : '→';
-  const text = `${sign}${delta.toFixed(1)} ${arrow}`;
-
-  if (Math.abs(delta) <= 0.05) {
-    return { variant: 'neutral', text };
-  }
-  const isImprovement = higherIsBad ? delta < 0 : delta > 0;
-  return { variant: isImprovement ? 'success' : 'error', text };
+  const up = delta > 0;
+  const improved = higherIsBetter ? up : !up;
+  return {
+    variant: improved ? ('success' as const) : ('error' as const),
+    text: `${up ? '↑' : '↓'} ${toFa(Math.abs(delta).toFixed(1))}`,
+  };
 }
 
 // ── sub-components ────────────────────────────────────────────────────────────
@@ -84,30 +91,22 @@ function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   );
 }
 
-interface CorrelationRowProps {
-  relationship: string;
-  correlation: number;
-  interpretation: string;
-}
-
-function CorrelationRow({ relationship, correlation, interpretation }: CorrelationRowProps) {
+function CorrelationRow({ row, isLast }: { row: CorrRow; isLast: boolean }) {
   const { colors, spacing, typography, borderRadius } = useTheme();
-  const barPct = correlationBar(correlation);
-  const barColor = correlationColor(correlation, colors);
+  const barPct = Math.round(((row.r + 1) / 2) * 100);
+  const barColor = correlationColor(row.r, colors);
 
   return (
-    <View style={[styles.correlationItem, { marginBottom: spacing[4] }]}>
-      {/* Label + value */}
+    <View style={[styles.correlationItem, { marginBottom: isLast ? 0 : spacing[4] }]}>
       <View style={[styles.rowBetween, { marginBottom: spacing[2] }]}>
         <Text style={[styles.relationshipLabel, { color: colors.textPrimary, fontSize: typography.sm }]}>
-          {relationship}
+          {row.title}
         </Text>
         <Text style={[styles.correlationValue, { color: barColor, fontSize: typography.base }]}>
-          {correlation > 0 ? '+' : ''}{correlation.toFixed(2)}
+          {toFa(row.r.toFixed(2))}
         </Text>
       </View>
 
-      {/* Bar track with center 0.0 marker */}
       <View style={[styles.barTrack, { backgroundColor: colors.border, borderRadius: borderRadius.sm }]}>
         <View style={[styles.midMarker, { backgroundColor: colors.textTertiary }]} />
         <View
@@ -116,7 +115,7 @@ function CorrelationRow({ relationship, correlation, interpretation }: Correlati
             {
               backgroundColor: barColor,
               width: `${Math.abs(barPct - 50)}%`,
-              left: correlation >= 0 ? '50%' : `${barPct}%`,
+              left: row.r >= 0 ? '50%' : `${barPct}%`,
               borderRadius: borderRadius.sm,
             },
           ]}
@@ -124,24 +123,17 @@ function CorrelationRow({ relationship, correlation, interpretation }: Correlati
       </View>
 
       <Text style={[styles.interpretationText, { color: colors.textSecondary, fontSize: typography.xs, marginTop: spacing[1] }]}>
-        {interpretation}
+        {row.sentence}
+        {row.n != null ? ` (بر پایه ${toFa(row.n)} ثبت)` : ''}
       </Text>
     </View>
   );
 }
 
-interface ComparisonMetricProps {
-  label: string;
-  thisWeek: number | null;
-  lastWeek: number | null;
-  metric: string;
-  isLast?: boolean;
-}
-
-function ComparisonMetric({ label, thisWeek, lastWeek, metric, isLast }: ComparisonMetricProps) {
+function ComparisonMetric({ row, isLast }: { row: CompareRow; isLast: boolean }) {
   const { colors, spacing, typography } = useTheme();
-  const delta = thisWeek != null && lastWeek != null ? thisWeek - lastWeek : null;
-  const badgeInfo = deltaBadgeVariant(metric, delta);
+  const badgeInfo = deltaBadge(row.delta, row.higherIsBetter);
+  const fmt = (v: number | null) => (v == null ? '—' : toFa(v.toFixed(1)));
 
   return (
     <View
@@ -155,23 +147,23 @@ function ComparisonMetric({ label, thisWeek, lastWeek, metric, isLast }: Compari
       ]}
     >
       <Text style={[styles.metricName, { color: colors.textPrimary, fontSize: typography.sm }]}>
-        {label}
+        {row.label}
       </Text>
       <View style={styles.metricValuesGroup}>
         <View style={styles.valCol}>
           <Text style={[styles.valColHeader, { color: colors.textTertiary, fontSize: typography.xs }]}>
-            Last Wk
+            هفته قبل
           </Text>
           <Text style={[styles.valText, { color: colors.textSecondary, fontSize: typography.sm }]}>
-            {lastWeek != null ? lastWeek.toFixed(1) : '—'}
+            {fmt(row.lastWeek)}
           </Text>
         </View>
         <View style={styles.valCol}>
           <Text style={[styles.valColHeader, { color: colors.textTertiary, fontSize: typography.xs }]}>
-            This Wk
+            این هفته
           </Text>
-          <Text style={[styles.valText, { color: colors.textPrimary, fontSize: typography.sm }]}>
-            {thisWeek != null ? thisWeek.toFixed(1) : '—'}
+          <Text style={[styles.valText, { color: colors.textPrimary, fontSize: typography.sm, fontWeight: '700' }]}>
+            {fmt(row.thisWeek)}
           </Text>
         </View>
         <View style={styles.deltaCol}>
@@ -181,8 +173,6 @@ function ComparisonMetric({ label, thisWeek, lastWeek, metric, isLast }: Compari
     </View>
   );
 }
-
-// ── Not enough data state ─────────────────────────────────────────────────────
 
 function InsufficientDataCard({ logCount }: { logCount: number }) {
   const { colors, spacing, typography, borderRadius } = useTheme();
@@ -197,10 +187,10 @@ function InsufficientDataCard({ logCount }: { logCount: number }) {
         </View>
         <View style={{ flex: 1, marginLeft: spacing[3] }}>
           <Text style={[styles.insufficientTitle, { color: colors.textPrimary, fontSize: typography.base, marginBottom: 2 }]}>
-            {needed} more days to go
+            {toFa(needed)} روز تا نمایش الگوها
           </Text>
           <Text style={[styles.insufficientSub, { color: colors.textSecondary, fontSize: typography.xs }]}>
-            Log wellness data for {MIN_LOGS_FOR_CORRELATIONS} days to reveal personal correlations between sleep, stress, mood, and energy.
+            برای دیدن همبستگی‌های شخصی، {toFa(MIN_LOGS_FOR_CORRELATIONS)} روز داده‌ی سلامت ثبت کن — خواب، استرس، خلق و انرژی.
           </Text>
         </View>
       </View>
@@ -209,7 +199,7 @@ function InsufficientDataCard({ logCount }: { logCount: number }) {
         <View style={[styles.progressFill, { width: `${pct * 100}%`, backgroundColor: colors.primary, borderRadius: 3 }]} />
       </View>
       <Text style={[styles.progressSub, { color: colors.textTertiary, fontSize: typography.xs, marginTop: spacing[2] }]}>
-        {logCount} / {MIN_LOGS_FOR_CORRELATIONS} days logged
+        {toFa(logCount)} / {toFa(MIN_LOGS_FOR_CORRELATIONS)} روز ثبت‌شده
       </Text>
     </Card>
   );
@@ -219,26 +209,76 @@ function InsufficientDataCard({ logCount }: { logCount: number }) {
 
 export default function DeepInsightsScreen() {
   const { colors, spacing, typography } = useTheme();
-  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const { isPremium, isLoading: premiumLoading } = usePremiumStatus();
 
   const {
     data: correlationsData,
-    isLoading: corrLoading,
     isError: corrError,
-    error: corrErr,
     refetch: refetchCorr,
   } = useDashboardCorrelations();
 
   const {
     data: comparisonData,
-    isLoading: compLoading,
+    isError: compError,
     refetch: refetchComp,
   } = useDashboardComparison();
 
-  const { data: allLogs } = useWellnessLogs();
-  const logCount = Array.isArray(allLogs) ? (allLogs as any[]).length : 0;
+  const { data: allLogs } = useWellnessLogs({ days: 90 }) /* correlations and week-over-week are computed over a recent window */;
+  const logs = useMemo(
+    () => (Array.isArray(allLogs) ? (allLogs as any[]) : []),
+    [allLogs],
+  );
+  const logCount = logs.length;
   const hasEnoughData = logCount >= MIN_LOGS_FOR_CORRELATIONS;
+
+  // ── correlations: server-first, local deterministic fallback ─────────────
+  const correlationRows: CorrRow[] = useMemo(() => {
+    const serverCorrs: any[] = !corrError ? (correlationsData?.correlations ?? []) : [];
+    if (serverCorrs.length > 0) {
+      return serverCorrs.map((c) => ({
+        title: String(c.relationship ?? ''),
+        r: Number(c.correlation ?? 0),
+        n: null,
+        sentence: String(c.interpretation ?? ''),
+      }));
+    }
+    if (!hasEnoughData) { return []; }
+    return computeCorrelations(logs).map((c) => ({
+      title: `${c.aLabel} × ${c.bLabel}`,
+      r: c.r,
+      n: c.n,
+      sentence: correlationSentence(c),
+    }));
+  }, [correlationsData, corrError, hasEnoughData, logs]);
+
+  // ── week comparison: server-first, local deterministic fallback ─────────
+  const comparisonRows: CompareRow[] = useMemo(() => {
+    const server = !compError ? comparisonData : null;
+    if (server?.this_week?.averages) {
+      const t = server.this_week.averages;
+      const l = server.last_week?.averages ?? {};
+      const map: [string, number | null, number | null, string, boolean][] = [
+        ['استرس',   t.stress  ?? null, l.stress  ?? null, '', false],
+        ['خواب',   t.sleep   ?? null, l.sleep   ?? null, 'ساعت', true],
+        ['خلق',    t.mood    ?? null, l.mood    ?? null, '', true],
+        ['انرژی',   t.energy  ?? null, l.energy  ?? null, '', true],
+      ];
+      return map.map(([label, thisWeek, lastWeek, unit, higherIsBetter]) => ({
+        label, thisWeek, lastWeek,
+        delta: thisWeek != null && lastWeek != null ? thisWeek - lastWeek : null,
+        unit, higherIsBetter,
+      }));
+    }
+    return computeWeekComparison(logs).map((it) => ({
+      label: it.label,
+      thisWeek: it.thisWeek,
+      lastWeek: it.lastWeek,
+      delta: it.delta,
+      unit: it.unit,
+      higherIsBetter: it.higherIsBetter,
+    }));
+  }, [comparisonData, compError, logs]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -246,41 +286,21 @@ export default function DeepInsightsScreen() {
     setRefreshing(false);
   }, [refetchCorr, refetchComp]);
 
-  // While premium status is loading, show loading state to avoid flash of paywall
+  // While premium status loads, avoid a paywall flash
   if (premiumLoading) {
-    return <LoadingState fullScreen message="Loading…" />;
+    return <LoadingState fullScreen message="در حال بارگذاری…" />;
   }
 
-  // Free user — show paywall in place of the screen content
+  // Free user — paywall
   if (!isPremium) {
     return (
       <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['left', 'right', 'bottom']}>
         <ScrollView contentContainerStyle={{ padding: spacing[4], paddingBottom: spacing[20] }}>
-          <PremiumGate featureName="Deep Insights" />
+          <PremiumGate featureName="بینش عمیق" />
         </ScrollView>
       </SafeAreaView>
     );
   }
-
-  if (corrLoading || compLoading) {
-    return <LoadingState fullScreen message="Crunching your patterns…" />;
-  }
-
-  if (corrError) {
-    return <ErrorState fullScreen error={corrErr} onRetry={refetchCorr} />;
-  }
-
-  const correlations: any[] = correlationsData?.correlations ?? [];
-  const thisWeekAvg = comparisonData?.this_week?.averages ?? {};
-  const lastWeekAvg = comparisonData?.last_week?.averages ?? {};
-  const thisWeekPeriod = comparisonData?.this_week?.period ?? '';
-  const lastWeekPeriod = comparisonData?.last_week?.period ?? '';
-
-  const hasComparisonData =
-    thisWeekAvg.stress != null ||
-    thisWeekAvg.sleep  != null ||
-    thisWeekAvg.mood   != null ||
-    thisWeekAvg.energy != null;
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['left', 'right', 'bottom']}>
@@ -291,7 +311,7 @@ export default function DeepInsightsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        {/* ── Hero header ──────────────────────────────────────────────── */}
+        {/* ── Hero ───────────────────────────────────────────────────── */}
         <Card
           elevated={false}
           style={[
@@ -305,12 +325,12 @@ export default function DeepInsightsScreen() {
           ]}
         >
           <View style={{ flex: 1 }}>
-            <Badge label="✦ Premium" variant="primary" />
+            <Badge label="✦ پریمیوم" variant="primary" />
             <Text style={[styles.heroTitle, { color: colors.textPrimary, fontSize: typography.xl, marginTop: spacing[2] }]}>
-              Deep Insights
+              بینش عمیق
             </Text>
             <Text style={[styles.heroSub, { color: colors.textSecondary, fontSize: typography.xs, marginTop: 2 }]}>
-              {logCount} days of logged wellness data
+              {toFa(logCount)} روز داده‌ی ثبت‌شده از سلامتت
             </Text>
           </View>
           <View style={[styles.heroIconCircle, { backgroundColor: colors.primary + '18' }]}>
@@ -318,74 +338,47 @@ export default function DeepInsightsScreen() {
           </View>
         </Card>
 
-        {/* ── Week-over-week comparison ─────────────────────────────────── */}
-        {hasComparisonData && (
+        {/* ── Week-over-week ─────────────────────────────────────────── */}
+        {comparisonRows.some((r) => r.thisWeek != null || r.lastWeek != null) && (
           <View style={{ marginBottom: spacing[5] }}>
             <SectionHeader
-              title="This week vs last week"
-              sub={`${lastWeekPeriod}  →  ${thisWeekPeriod}`}
+              title="این هفته در برابر هفته‌ی قبل"
+              sub="میانگین هفت روز اخیر با هفته‌ی قبل مقایسه شده"
             />
             <Card elevated={false} style={{ paddingHorizontal: spacing[4], paddingVertical: spacing[2] }}>
-              <ComparisonMetric
-                label="Stress"
-                thisWeek={thisWeekAvg.stress}
-                lastWeek={lastWeekAvg.stress}
-                metric="stress"
-              />
-              <ComparisonMetric
-                label="Sleep (hrs)"
-                thisWeek={thisWeekAvg.sleep}
-                lastWeek={lastWeekAvg.sleep}
-                metric="sleep"
-              />
-              <ComparisonMetric
-                label="Mood"
-                thisWeek={thisWeekAvg.mood}
-                lastWeek={lastWeekAvg.mood}
-                metric="mood"
-              />
-              <ComparisonMetric
-                label="Energy"
-                thisWeek={thisWeekAvg.energy}
-                lastWeek={lastWeekAvg.energy}
-                metric="energy"
-                isLast
-              />
+              {comparisonRows.map((row, i) => (
+                <ComparisonMetric key={row.label} row={row} isLast={i === comparisonRows.length - 1} />
+              ))}
             </Card>
           </View>
         )}
 
-        {/* ── Correlations ─────────────────────────────────────────────── */}
+        {/* ── Correlations ───────────────────────────────────────────── */}
         <View style={{ marginBottom: spacing[5] }}>
           <SectionHeader
-            title="Personal Correlations"
-            sub="Pearson r — calculated across your recorded logs"
+            title="همبستگی‌های شخصی"
+            sub="همبستگی پییرسون — محاسبه‌شده از ثبت‌های خودت"
           />
 
           {!hasEnoughData ? (
             <InsufficientDataCard logCount={logCount} />
-          ) : correlations.length === 0 ? (
+          ) : correlationRows.length === 0 ? (
             <Card elevated={false} style={{ alignItems: 'center', paddingVertical: spacing[6] }}>
-              <Text style={{ color: colors.textSecondary, fontSize: typography.sm, textAlign: 'center' }}>
-                No significant correlations identified yet. Keep logging to reveal patterns.
+              <Text style={{ color: colors.textSecondary, fontSize: typography.sm, textAlign: 'center', lineHeight: 20 }}>
+                هنوز همبستگی معناداری پیدا نشده. ادامه بده ثبت کنی تا الگوها ظاهر شوند.
               </Text>
             </Card>
           ) : (
             <Card elevated={false} style={{ padding: spacing[4] }}>
-              {correlations.map((c, i) => (
-                <CorrelationRow
-                  key={i}
-                  relationship={c.relationship}
-                  correlation={c.correlation}
-                  interpretation={c.interpretation}
-                />
+              {correlationRows.map((row, i) => (
+                <CorrelationRow key={`${row.title}-${i}`} row={row} isLast={i === correlationRows.length - 1} />
               ))}
             </Card>
           )}
         </View>
 
-        {/* ── Scientific explainer ──────────────────────────────────────── */}
-        {hasEnoughData && correlations.length > 0 && (
+        {/* ── Honest explainer ───────────────────────────────────────── */}
+        {hasEnoughData && correlationRows.length > 0 && (
           <Card
             elevated={false}
             style={[
@@ -399,10 +392,10 @@ export default function DeepInsightsScreen() {
             <View style={[styles.row, { alignItems: 'flex-start', gap: spacing[2] }]}>
               <Icon name="information-outline" size={18} color={colors.primary} style={{ marginTop: 2 }} />
               <Text style={{ flex: 1, color: colors.textSecondary, fontSize: typography.xs, lineHeight: 18 }}>
-                <Text style={{ fontWeight: '700', color: colors.textPrimary }}>r closer to +1</Text> indicates both metrics trend upward together.{' '}
-                <Text style={{ fontWeight: '700', color: colors.textPrimary }}>r closer to −1</Text> indicates an inverse relationship.{' '}
-                <Text style={{ fontWeight: '700', color: colors.textPrimary }}>r near 0</Text> indicates no strong correlation.
-                These figures represent correlations in your personal logs and do not imply causation.
+                <Text style={{ fontWeight: '700', color: colors.textPrimary }}>r نزدیک +۱</Text> یعنی هر دو شاخص با هم بالا می‌روند؛{' '}
+                <Text style={{ fontWeight: '700', color: colors.textPrimary }}>r نزدیک −۱</Text> یعنی رابطه‌ی معکوس؛{' '}
+                <Text style={{ fontWeight: '700', color: colors.textPrimary }}>r نزدیک ۰</Text> یعنی ارتباط قوی نداریم.
+                این اعداد همبستگیِ داده‌های شخصی تو هستند و به‌تنهایی به معنای علّیت نیستند.
               </Text>
             </View>
           </Card>
@@ -419,13 +412,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  heroTitle: {
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  heroSub: {
-    fontWeight: '500',
-  },
+  heroTitle: { fontWeight: '800' },
+  heroSub:   { fontWeight: '500' },
   heroIconCircle: {
     width: 48,
     height: 48,
@@ -433,33 +421,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  sectionTitle: {
-    fontWeight: '700',
-    letterSpacing: -0.2,
-  },
-  sectionSub: {
-    marginTop: 2,
-    lineHeight: 16,
-  },
-
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  rowBetween: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-
+  sectionTitle: { fontWeight: '700' },
+  sectionSub:   { marginTop: 2, lineHeight: 16 },
+  row:          { flexDirection: 'row', alignItems: 'center' },
+  rowBetween:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   correlationItem: {},
-  relationshipLabel: {
-    fontWeight: '600',
-  },
-  correlationValue: {
-    fontWeight: '800',
-  },
+  relationshipLabel: { fontWeight: '600' },
+  correlationValue:  { fontWeight: '800' },
   barTrack: {
     height: 6,
     overflow: 'visible',
@@ -478,61 +446,28 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 1,
   },
-  interpretationText: {
-    lineHeight: 16,
-  },
-
+  interpretationText: { lineHeight: 16 },
   comparisonRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  metricName: {
-    flex: 1,
-    fontWeight: '600',
-  },
-  metricValuesGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  valCol: {
-    alignItems: 'center',
-    minWidth: 44,
-  },
-  valColHeader: {
-    fontWeight: '500',
-    marginBottom: 2,
-  },
-  valText: {
-    fontWeight: '700',
-  },
-  deltaCol: {
-    minWidth: 56,
-    alignItems: 'flex-end',
-  },
-
+  metricName:        { flex: 1, fontWeight: '600' },
+  metricValuesGroup: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  valCol:            { alignItems: 'center' },
+  valColHeader:      { marginBottom: 2 },
+  valText:           { fontWeight: '600' },
+  deltaCol:          { alignItems: 'center', justifyContent: 'center', minWidth: 44 },
   iconBubble: {
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  insufficientTitle: {
-    fontWeight: '700',
-  },
-  insufficientSub: {
-    lineHeight: 16,
-  },
-  progressTrack: {
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-  },
-  progressSub: {
-    fontWeight: '500',
-  },
-
-  explainerCard: {},
+  insufficientTitle: { fontWeight: '700' },
+  insufficientSub:   { lineHeight: 16 },
+  progressTrack:     { overflow: 'hidden' },
+  progressFill:      { height: '100%' },
+  progressSub:       { textAlign: 'center' },
+  explainerCard:     {},
 });

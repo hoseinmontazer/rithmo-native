@@ -44,9 +44,22 @@ function unwrap<T>(r: { data: unknown }): T | null {
 }
 
 export const wellnessService = {
-  listLogs: () =>
+  /**
+   * Wellness logs, newest first.
+   *
+   * `days` / `limit` are OPTIONAL server-side bounds. Omitting both is the
+   * legacy behaviour (entire history) and is kept only so nothing breaks —
+   * no screen should use it. The endpoint used to return 46 KB at 84 days
+   * and grow without limit, to screens that sliced it to 30 rows anyway.
+   */
+  listLogs: (bounds?: { days?: number; limit?: number }) =>
     apiClient
-      .get(API_ENDPOINTS.WELLNESS)
+      .get(API_ENDPOINTS.WELLNESS, {
+        params: {
+          ...(bounds?.days ? { days: bounds.days } : {}),
+          ...(bounds?.limit ? { limit: bounds.limit } : {}),
+        },
+      })
       .then((r) => unwrap<WellnessLog[]>(r) ?? []),
 
   createOrUpdateLog: (data: CreateWellnessLogRequest) =>

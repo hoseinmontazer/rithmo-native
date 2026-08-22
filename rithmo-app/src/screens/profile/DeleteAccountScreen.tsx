@@ -23,27 +23,27 @@ export default function DeleteAccountScreen() {
 
   const handleDelete = useCallback(async () => {
     if (!password.trim()) {
-      Alert.alert('Error', 'Please enter your password');
+      Alert.alert('خطا', 'لطفا رمز عبور خود را وارد کن');
       return;
     }
 
     Alert.alert(
-      'Delete Account',
-      'Are you absolutely sure? This action cannot be undone. All your data will be permanently deleted.',
+      'حذف حساب کاربری',
+      'مطمئن هستی؟ این عمل قابل بازگشت نیست و تمام داده‌هایت برای همیشه حذف می‌شوند.',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'انصراف', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'حذف',
           style: 'destructive',
           onPress: async () => {
             setLoading(true);
             try {
               await authService.deleteAccount(password);
-              Alert.alert('Account Deleted', 'Your account has been deleted.', [
-                { text: 'OK', onPress: logout },
+              Alert.alert('حساب حذف شد', 'حساب کاربری شما حذف شد.', [
+                { text: 'باشه', onPress: logout },
               ]);
             } catch (err) {
-              Alert.alert('Error', extractErrorMessage(err));
+              Alert.alert('خطا', extractErrorMessage(err));
             } finally {
               setLoading(false);
             }
@@ -66,19 +66,19 @@ export default function DeleteAccountScreen() {
         <View style={[styles.warningBox, { backgroundColor: colors.error + '18', borderRadius: 16, padding: spacing[5], marginBottom: spacing[6] }]}>
           <Text style={{ fontSize: 48, textAlign: 'center', marginBottom: spacing[3] }}>⚠️</Text>
           <Text style={[styles.warningTitle, { color: colors.error, fontSize: typography.lg, fontWeight: '700', textAlign: 'center', marginBottom: spacing[2] }]}>
-            Permanent Action
+            عملیات دائمی
           </Text>
           <Text style={{ color: colors.textSecondary, fontSize: typography.sm, textAlign: 'center', lineHeight: 20 }}>
-            Deleting your account will permanently remove all your data including:
+            حذف حساب کاربری باعث حذف دائمی تمام داده‌های شما می‌شود، از جمله:
           </Text>
           <View style={{ marginTop: spacing[3] }}>
             {[
-              'Period tracking history',
-              'Wellness logs',
-              'Medications',
-              'Partner connections',
-              'AI suggestions',
-              'All personal information',
+              'تاریخچه‌ی پیگیری دوره‌ها',
+              'ثبت‌های سلامت',
+              'داروها',
+              'پیوند با شریک',
+              'پیشنهادهای هوشمند',
+              'تمام اطلاعات شخصی',
             ].map((item) => (
               <Text key={item} style={{ color: colors.textSecondary, fontSize: typography.sm, marginTop: spacing[1] }}>
                 • {item}
@@ -89,22 +89,22 @@ export default function DeleteAccountScreen() {
 
         <Card style={{ marginBottom: spacing[6] }}>
           <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '600', marginBottom: spacing[3] }}>
-            Confirm Deletion
+            تأیید حذف
           </Text>
           <Text style={{ color: colors.textSecondary, fontSize: typography.sm, marginBottom: spacing[4], lineHeight: 20 }}>
-            Enter your password to confirm account deletion.
+            برای تأیید حذف حساب، رمز عبور خود را وارد کن.
           </Text>
           <Input
-            label="Password"
+            label="رمز عبور"
             value={password}
             onChangeText={setPassword}
             isPassword
-            leftIconName="lock-closed-outline"
+            leftIconName="lock-outline"
           />
         </Card>
 
         <Button
-          label="Delete My Account"
+          label="حذف حساب من"
           onPress={handleDelete}
           loading={loading}
           variant="danger"
@@ -113,7 +113,7 @@ export default function DeleteAccountScreen() {
         />
 
         <Button
-          label="Cancel"
+          label="انصراف"
           onPress={() => navigation.goBack()}
           variant="ghost"
           fullWidth

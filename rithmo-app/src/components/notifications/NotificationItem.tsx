@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '@hooks/useTheme';
-import { formatDate } from '@utils/dateUtils';
+import { faDateShort } from '@utils/persian';
 import type { Notification, NotificationType } from '@types/notification.types';
 
 const TYPE_EMOJI: Record<NotificationType, string> = {
@@ -66,7 +66,7 @@ export const NotificationItem = memo(function NotificationItem({
             {notification.message}
           </Text>
           <Text style={[styles.date, { color: colors.textDisabled, fontSize: typography.xs, marginTop: spacing[1] }]}>
-            {formatDate(notification.created_at)}
+            {faDateShort(notification.created_at)}
           </Text>
         </View>
 

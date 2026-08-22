@@ -31,11 +31,11 @@ export default function ChangePasswordScreen() {
 
   const validate = useCallback((): boolean => {
     const next: Partial<typeof form> = {};
-    if (!form.current_password)           {next.current_password = 'Current password is required';}
-    if (!form.new_password)               {next.new_password     = 'New password is required';}
-    if (form.new_password.length < 8)     {next.new_password     = 'Minimum 8 characters';}
+    if (!form.current_password)           {next.current_password = 'رمز عبور فعلی الزامی است';}
+    if (!form.new_password)               {next.new_password     = 'رمز عبور جدید الزامی است';}
+    if (form.new_password.length < 8)     {next.new_password     = 'حداقل ۸ کاراکتر';}
     if (form.new_password !== form.re_new_password) {
-      next.re_new_password = 'Passwords do not match';
+      next.re_new_password = 'رمز عبور یکسان نیست';
     }
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -50,11 +50,11 @@ export default function ChangePasswordScreen() {
         new_password:     form.new_password,
         re_new_password:  form.re_new_password,
       });
-      Alert.alert('Success', 'Password changed successfully.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+      Alert.alert('موفقیت', 'رمز عبور با موفقیت تغییر کرد.', [
+        { text: 'باشه', onPress: () => navigation.goBack() },
       ]);
     } catch (err) {
-      Alert.alert('Error', extractErrorMessage(err));
+      Alert.alert('خطا', extractErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -71,12 +71,12 @@ export default function ChangePasswordScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.subtitle, { color: colors.textSecondary, fontSize: typography.base, marginBottom: spacing[6], lineHeight: 22 }]}>
-          Choose a strong password with at least 8 characters, including numbers and symbols.
+          یک رمز عبور قوی با حداقل ۸ کاراکتر، شامل اعداد و نشانه‌ها انتخاب کن.
         </Text>
 
         <Card style={{ marginBottom: spacing[6] }}>
           <Input
-            label="Current Password"
+            label="رمز عبور فعلی"
             value={form.current_password}
             onChangeText={(v) => set('current_password', v)}
             isPassword
@@ -84,7 +84,7 @@ export default function ChangePasswordScreen() {
             containerStyle={{ marginBottom: spacing[4] }}
           />
           <Input
-            label="New Password"
+            label="رمز عبور جدید"
             value={form.new_password}
             onChangeText={(v) => set('new_password', v)}
             isPassword
@@ -92,7 +92,7 @@ export default function ChangePasswordScreen() {
             containerStyle={{ marginBottom: spacing[4] }}
           />
           <Input
-            label="Confirm New Password"
+            label="تکرار رمز عبور جدید"
             value={form.re_new_password}
             onChangeText={(v) => set('re_new_password', v)}
             isPassword
@@ -106,7 +106,7 @@ export default function ChangePasswordScreen() {
         )}
 
         <Button
-          label="Change Password"
+          label="تغییر رمز عبور"
           onPress={handleSubmit}
           loading={loading}
           fullWidth
@@ -114,7 +114,7 @@ export default function ChangePasswordScreen() {
           style={{ marginTop: spacing[4] }}
         />
         <Button
-          label="Cancel"
+          label="انصراف"
           onPress={() => navigation.goBack()}
           variant="ghost"
           fullWidth
@@ -137,7 +137,7 @@ function PasswordStrength({ password, colors, spacing, typography }: {
     /[^A-Za-z0-9]/.test(password),
   ].filter(Boolean).length;
 
-  const labels = ['Weak', 'Fair', 'Good', 'Strong'];
+  const labels = ['ضعیف', 'متوسط', 'خوب', 'قوی'];
   const barColors = [colors.error, colors.warning, colors.info, colors.success];
 
   return (

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,9 @@ import {
 } from '@hooks/queries/usePeriods';
 import { useProfile } from '@hooks/queries/useProfile';
 import { Card, LoadingState, ErrorState, Badge, Icon, Button } from '@components/ui';
-import { formatDate } from '@utils/dateUtils';
+import { confidenceLabel, phaseDescription as phaseDescriptionFa } from '@i18n';
+import { track } from '@analytics';
+import { toFa, faDateShort } from '@utils/persian';
 import type { CycleScreenProps } from '@navigation/types';
 
 export default function CycleAnalysisScreen() {
@@ -59,8 +61,19 @@ export default function CycleAnalysisScreen() {
     setRefreshing(false);
   }, [refetchA, refetchI, refetchPeriods]);
 
+  // Analytics must sit ABOVE the early returns below — a hook after a
+  // conditional return changes hook order between renders.
+  // Presence of data only: no phase, no cycle day, no dates.
+  const cycleReportedRef = useRef(false);
+  const cycleHasData = Boolean(apiData || insights || patterns || periods);
+  useEffect(() => {
+    if (cycleReportedRef.current || aLoading || iLoading) { return; }
+    cycleReportedRef.current = true;
+    track('cycle_viewed', { has_data: cycleHasData });
+  }, [cycleHasData, aLoading, iLoading]);
+
   if (aLoading || iLoading) {
-    return <LoadingState fullScreen message="Analyzing cycle data…" />;
+    return <LoadingState fullScreen message="در حال بررسی چرخه‌ات…" />;
   }
   if (aError) {
     return <ErrorState fullScreen error={aErr} onRetry={refetchA} />;
@@ -77,7 +90,14 @@ export default function CycleAnalysisScreen() {
 
   const currentStatus = isPartnerView ? null : (apiData as any)?.current_status;
   const currentPhase = isPartnerView ? partnerInfo?.current_phase : currentStatus?.phase;
-  const phaseDescription = currentStatus?.phase_description;
+  // NEVER render `current_status.phase_description` — it is English prose
+  // written for logs ("Day 1 of your period.") and was shipping verbatim to
+  // Persian users. Compose the sentence client-side from the machine values.
+  const phaseDescription = phaseDescriptionFa(
+    currentPhase,
+    currentStatus?.cycle_day,
+    currentStatus?.days_until_next_period,
+  );
   const cycleDay = currentStatus?.cycle_day;
   const avgCycle = isPartnerView
     ? partnerInfo?.average_cycle_length ?? null
@@ -95,7 +115,6 @@ export default function CycleAnalysisScreen() {
   const regularityScore = isPartnerView
     ? partnerInfo?.cycle_regularity
     : (apiData as any)?.regularity_score || 0;
-  const cycleVariations = (apiData as any)?.cycle_lengths || [];
   const predictionReliability = (apiData as any)?.prediction_confidence;
   const predictionConfidenceLabel = (apiData as any)?.prediction_confidence_label;
   // Numeric confidence in [0,1] from the unified backend engine — guard so
@@ -105,13 +124,16 @@ export default function CycleAnalysisScreen() {
       ? Math.round(predictionReliability * 100)
       : null;
 
+  // Cycle-to-cycle VARIATION, not cycle length.
+  //
+  // This averaged `cycle_lengths` — the lengths themselves — and rendered the
+  // result as «چرخه حدود ±۲۸ روز نوسان دارد» beside «۱۰۰٪ بسیار منظم». A
+  // cycle cannot be perfectly regular and vary by a whole cycle; the field
+  // was simply the wrong one. The backend already computes the real value as
+  // `cycle_length_std_dev` (see UserProfile.get_cycle_analysis).
+  const stdDev = (apiData as any)?.cycle_length_std_dev;
   const avgVariation =
-    cycleVariations.length > 0
-      ? Math.round(
-          cycleVariations.reduce((sum: number, v: number) => sum + Math.abs(v), 0) /
-            cycleVariations.length,
-        )
-      : 0;
+    typeof stdDev === 'number' && Number.isFinite(stdDev) ? Math.round(stdDev) : 0;
 
   const hasData = Boolean(apiData || insights || patterns || periods);
 
@@ -134,14 +156,14 @@ export default function CycleAnalysisScreen() {
 
   // Human phase labels — never "{rawPhase} Phase" for non-standard phases.
   const PHASE_LABELS: Record<string, string> = {
-    menstrual: 'Menstrual',
-    follicular: 'Follicular',
-    ovulation: 'Ovulation',
-    luteal: 'Luteal',
-    expected: 'Expected',
-    late: 'Late',
-    overdue: 'Overdue',
-    unknown: 'No data',
+    menstrual: 'دوره',
+    follicular: 'فولیکولار',
+    ovulation: 'تخمک‌گذاری',
+    luteal: 'لوتئال',
+    expected: 'پیش‌بینی‌شده',
+    late: 'دیرتر از موعد',
+    overdue: 'با تأخیر',
+    unknown: 'بدون داده',
   };
   const phaseLabel = PHASE_LABELS[normalizedPhase] || currentPhase || '';
 
@@ -162,10 +184,10 @@ export default function CycleAnalysisScreen() {
 
   const regularityLabel =
     scorePercent >= 70
-      ? 'Very Regular'
+      ? 'بسیار منظم'
       : scorePercent >= 40
-      ? 'Moderately Regular'
-      : 'Irregular';
+      ? 'نسبتا منظم'
+      : 'نامنظم';
 
   return (
     <ScrollView
@@ -196,7 +218,7 @@ export default function CycleAnalysisScreen() {
         >
           <Icon name="account-heart-outline" size={18} color={colors.primary} />
           <Text style={[styles.partnerBannerText, { color: colors.textPrimary, fontSize: typography.sm }]}>
-            Viewing {partnerInfo?.name || 'Partner'}'s Cycle Analytics
+            در حال مشاهده‌ی تحلیل چرخه‌ی {partnerInfo?.name || 'شریکت'}
           </Text>
         </View>
       )}
@@ -206,7 +228,7 @@ export default function CycleAnalysisScreen() {
         {!isMale && (
           <View style={{ flex: 1 }}>
             <Button
-              label="Log Period"
+              label="ثبت دوره"
               onPress={() => navigation.navigate('LogPeriod')}
               size="md"
               fullWidth
@@ -216,7 +238,7 @@ export default function CycleAnalysisScreen() {
 
         <View style={{ flex: isMale ? 1 : 1 }}>
           <Button
-            label="Cycle Calendar"
+            label="تقویم چرخه"
             onPress={() => navigation.navigate('CycleTracker')}
             variant="outline"
             size="md"
@@ -231,7 +253,7 @@ export default function CycleAnalysisScreen() {
           <View style={styles.cardHeaderRow}>
             <View>
               <Text style={[styles.sectionOverline, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                CURRENT STATUS
+                وضعیت فعلی
               </Text>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.lg }]}>
                 {phaseLabel}
@@ -245,7 +267,7 @@ export default function CycleAnalysisScreen() {
             >
               <View style={[styles.phaseDot, { backgroundColor: phaseColor }]} />
               <Text style={[styles.phaseBadgeText, { color: phaseColor, fontSize: typography.xs }]}>
-                {isOnPeriod ? 'On Period' : currentPhase}
+                {isOnPeriod ? 'در دوره' : phaseLabel}
               </Text>
             </View>
           </View>
@@ -265,8 +287,8 @@ export default function CycleAnalysisScreen() {
           <View style={[styles.statsGrid, { marginTop: spacing[2] }]}>
             {cycleDay !== undefined && cycleDay !== null && (
               <StatTile
-                label="Cycle Day"
-                value={`Day ${cycleDay}`}
+                label="روز چرخه"
+                value={`روز ${toFa(cycleDay)}`}
                 colors={colors}
                 spacing={spacing}
                 typography={typography}
@@ -274,8 +296,8 @@ export default function CycleAnalysisScreen() {
               />
             )}
             <StatTile
-              label="Avg Cycle"
-              value={avgCycle != null ? `${avgCycle} days` : '—'}
+              label="میانگین چرخه"
+              value={avgCycle != null ? `${toFa(avgCycle)} روز` : '—'}
               colors={colors}
               spacing={spacing}
               typography={typography}
@@ -283,8 +305,8 @@ export default function CycleAnalysisScreen() {
             />
             {nextPeriodDate ? (
               <StatTile
-                label="Next Period"
-                value={formatDate(nextPeriodDate)}
+                label="دوره‌ی بعدی"
+                value={faDateShort(nextPeriodDate)}
                 colors={colors}
                 spacing={spacing}
                 typography={typography}
@@ -293,8 +315,8 @@ export default function CycleAnalysisScreen() {
             ) : null}
             {daysUntilNext !== undefined && daysUntilNext !== null ? (
               <StatTile
-                label="Days Away"
-                value={daysUntilNext === 0 ? 'Today' : `${daysUntilNext}d`}
+                label="فاصله"
+                value={daysUntilNext === 0 ? 'امروز' : `${toFa(daysUntilNext)} روز`}
                 colors={colors}
                 spacing={spacing}
                 typography={typography}
@@ -309,10 +331,10 @@ export default function CycleAnalysisScreen() {
       {apiData && (
         <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
           <Text style={[styles.sectionOverline, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[1] }]}>
-            PATTERNS & PREDICTABILITY
+            الگوها و پیش‌بینی‌پذیری
           </Text>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.lg, marginBottom: spacing[4] }]}>
-            Cycle Regularity
+            منظمیت چرخه
           </Text>
 
           {regularityScore !== null && regularityScore > 0 ? (
@@ -346,7 +368,7 @@ export default function CycleAnalysisScreen() {
                   </Svg>
                   <View style={styles.scoreTextOverlay}>
                     <Text style={[styles.scoreValue, { color: colors.textPrimary, fontSize: typography.xl }]}>
-                      {scorePercent}
+                      {toFa(scorePercent)}
                     </Text>
                     <Text style={[styles.scorePercentSign, { color: colors.textTertiary, fontSize: typography.xs }]}>
                       %
@@ -361,12 +383,12 @@ export default function CycleAnalysisScreen() {
                   </Text>
                   <Text style={[styles.scoreSubtext, { color: colors.textSecondary, fontSize: typography.xs, marginTop: spacing[1] }]}>
                     {avgVariation > 0
-                      ? `Cycle varies by about ±${avgVariation} days.`
-                      : 'High predictability across recorded cycles.'}
+                      ? `چرخه حدود ±${toFa(avgVariation)} روز نوسان دارد.`
+                      : 'پیش‌بینی‌پذیری بالا در چرخه‌های ثبت‌شده.'}
                   </Text>
                   {(confidencePct != null || predictionConfidenceLabel) && (
                     <Text style={[styles.confidenceBadgeText, { color: colors.textTertiary, fontSize: typography.xs, marginTop: spacing[1] }]}>
-                      Prediction confidence: {confidencePct != null ? `${confidencePct}%` : '—'}{predictionConfidenceLabel ? ` (${predictionConfidenceLabel})` : ''}
+                      میزان اطمینان پیش‌بینی: {confidencePct != null ? `${toFa(confidencePct)}٪` : '—'}{confidenceLabel(predictionConfidenceLabel) ? ` (${confidenceLabel(predictionConfidenceLabel)})` : ''}
                     </Text>
                   )}
                 </View>
@@ -375,16 +397,16 @@ export default function CycleAnalysisScreen() {
               {/* Stats row */}
               <View style={[styles.statsGrid, { marginTop: spacing[4] }]}>
                 <StatTile
-                  label="Average Variation"
-                  value={avgVariation > 0 ? `±${avgVariation} days` : 'Consistent'}
+                  label="میانگین نوسان"
+                  value={avgVariation > 0 ? `±${toFa(avgVariation)} روز` : 'ثابت'}
                   colors={colors}
                   spacing={spacing}
                   typography={typography}
                   borderRadius={borderRadius}
                 />
                 <StatTile
-                  label="Confidence Level"
-                  value={confidencePct != null ? `${confidencePct}%` : (predictionConfidenceLabel ?? '—')}
+                  label="میزان اطمینان"
+                  value={confidencePct != null ? `${toFa(confidencePct)}٪` : (predictionConfidenceLabel ?? '—')}
                   colors={colors}
                   spacing={spacing}
                   typography={typography}
@@ -395,7 +417,7 @@ export default function CycleAnalysisScreen() {
           ) : (
             <View style={[styles.emptyRegularityBox, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md, padding: spacing[4] }]}>
               <Text style={[styles.emptyRegularityText, { color: colors.textSecondary, fontSize: typography.sm }]}>
-                Not enough cycle history yet to compute regularity score. Keep logging periods to reveal patterns.
+                هنوز تاریخچه‌ی کافی از چرخه برای محاسبه‌ی منظمیت ثبت نشده. ادامه‌ی ثبت دوره‌ها الگوها را آشکار می‌کند.
               </Text>
             </View>
           )}
@@ -408,10 +430,10 @@ export default function CycleAnalysisScreen() {
           <View style={[styles.cardHeaderRow, { marginBottom: spacing[3] }]}>
             <View>
               <Text style={[styles.sectionOverline, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                RECORDED DATA
+                داده‌های ثبت‌شده
               </Text>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.lg }]}>
-                Recent Cycles
+                چرخه‌های اخیر
               </Text>
             </View>
             <TouchableOpacity
@@ -419,7 +441,7 @@ export default function CycleAnalysisScreen() {
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Text style={[styles.viewAllText, { color: colors.primary, fontSize: typography.sm }]}>
-                View All
+                مشاهده همه
               </Text>
             </TouchableOpacity>
           </View>
@@ -440,15 +462,15 @@ export default function CycleAnalysisScreen() {
               >
                 <View style={{ flex: 1 }}>
                   <View style={styles.periodRowHeader}>
-                    {isOngoing && <Badge label="Active" variant="success" style={{ marginRight: spacing[2] }} />}
+                    {isOngoing && <Badge label="فعال" variant="success" style={{ marginRight: spacing[2] }} />}
                     <Text style={[styles.periodDateLabel, { color: colors.textPrimary, fontSize: typography.sm }]}>
-                      {formatDate(period.start_date)}
-                      {period.end_date ? ` → ${formatDate(period.end_date)}` : ' → ongoing'}
+                      {faDateShort(period.start_date)}
+                      {period.end_date ? ` → ${faDateShort(period.end_date)}` : ' → در جریان'}
                     </Text>
                   </View>
                   {period.symptoms ? (
                     <Text style={[styles.periodSymptomsSub, { color: colors.textTertiary, fontSize: typography.xs, marginTop: 2 }]} numberOfLines={1}>
-                      Symptoms: {period.symptoms}
+                      علائم: {period.symptoms}
                     </Text>
                   ) : null}
                 </View>
@@ -456,7 +478,7 @@ export default function CycleAnalysisScreen() {
                 {period.period_duration > 0 ? (
                   <View style={[styles.durationBadgeMini, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.sm }]}>
                     <Text style={[styles.durationBadgeText, { color: colors.textPrimary, fontSize: typography.xs }]}>
-                      {period.period_duration}d
+                      {toFa(period.period_duration)} روز
                     </Text>
                   </View>
                 ) : null}
@@ -470,10 +492,10 @@ export default function CycleAnalysisScreen() {
       {insights && (insights as any).insights && (insights as any).insights.length > 0 && (
         <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
           <Text style={[styles.sectionOverline, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[1] }]}>
-            INTELLIGENCE
+            درک هوشمند
           </Text>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.lg, marginBottom: spacing[3] }]}>
-            Pattern Observations
+            مشاهده‌ی الگوها
           </Text>
 
           {(insights as any).insights.map((insight: string, i: number) => (
@@ -502,10 +524,10 @@ export default function CycleAnalysisScreen() {
       {isPartnerView && supportTips && supportTips.length > 0 && (
         <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
           <Text style={[styles.sectionOverline, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[1] }]}>
-            PARTNER GUIDANCE
+            راهنمای شریک
           </Text>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.lg, marginBottom: spacing[3] }]}>
-            Support Suggestions
+            پیشنهادهای حمایتی
           </Text>
 
           {supportTips.map((tip: string, i: number) => (
@@ -533,10 +555,10 @@ export default function CycleAnalysisScreen() {
       {patterns && (patterns as any).patterns && (patterns as any).patterns.length > 0 && (
         <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
           <Text style={[styles.sectionOverline, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[1] }]}>
-            SYMPTOM CORRELATION
+            همبستگی علائم
           </Text>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.lg, marginBottom: spacing[3] }]}>
-            Symptom Frequency
+            تکرار علائم
           </Text>
 
           {(patterns as any).patterns.map((p: any) => (
@@ -549,10 +571,10 @@ export default function CycleAnalysisScreen() {
                   {p.symptom}
                 </Text>
                 <Text style={[styles.symptomPhaseContext, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                  Most common in {p.most_common_phase} phase
+                  بیشتر در فاز {PHASE_LABELS[p.most_common_phase] ?? p.most_common_phase}
                 </Text>
               </View>
-              <Badge label={`${p.frequency}×`} variant="neutral" />
+              <Badge label={`${toFa(p.frequency)}×`} variant="neutral" />
             </View>
           ))}
         </Card>
@@ -562,7 +584,7 @@ export default function CycleAnalysisScreen() {
       {!hasData && (
         <Card elevated={false} style={{ padding: spacing[6], alignItems: 'center' }}>
           <Text style={[styles.emptyStateText, { color: colors.textSecondary, fontSize: typography.base }]}>
-            No cycle analysis available yet.{'\n'}Log your first period to reveal insights.
+            هنوز تحلیلی از چرخه در دسترس نیست.{'\n'}ثبت اولین دوره‌ات بینش‌ها را آشکار می‌کند.
           </Text>
         </Card>
       )}

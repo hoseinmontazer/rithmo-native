@@ -21,6 +21,20 @@ let failedQueue: Array<{
   reject: (err: unknown) => void;
 }> = [];
 
+// ── Session-expiry listeners ──────────────────────────────────────────────────
+// Fired when token refresh definitively fails. The auth store subscribes to
+// flip isAuthenticated; client.ts itself must not import the store (the
+// store's services use this client — that would be a circular import).
+type SessionExpiredListener = () => void;
+const sessionExpiredListeners = new Set<SessionExpiredListener>();
+
+export function onSessionExpired(listener: SessionExpiredListener): () => void {
+  sessionExpiredListeners.add(listener);
+  return () => {
+    sessionExpiredListeners.delete(listener);
+  };
+}
+
 function processQueue(error: unknown, token: string | null): void {
   failedQueue.forEach(({ resolve, reject }) => {
     if (error) {reject(error);}
@@ -93,8 +107,17 @@ apiClient.interceptors.response.use(
       return apiClient(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError, null);
-      // Clear tokens and let the auth store handle logout
+      // Clear tokens AND flip the auth store so the navigator redirects to
+      // login. Previously only the tokens were cleared while isAuthenticated
+      // stayed true — a permanent soft-lock (audit 2026-08-20, finding F5).
       await secureStorage.clearTokens();
+      sessionExpiredListeners.forEach((listener) => {
+        try {
+          listener();
+        } catch (listenerError) {
+          // listener errors must not break the reject path
+        }
+      });
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;

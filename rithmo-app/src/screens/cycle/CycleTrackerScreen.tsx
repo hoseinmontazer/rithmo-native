@@ -15,14 +15,15 @@ import { useTheme } from '@hooks/useTheme';
 import { usePeriods } from '@hooks/queries/usePeriods';
 import { useProfile } from '@hooks/queries/useProfile';
 import { Card, Badge, Button, Icon, LoadingState, EmptyState } from '@components/ui';
-import { formatDate, formatDateISO } from '@utils/dateUtils';
+import { formatDateISO } from '@utils/dateUtils';
+import { toFa, faDateShort, faDate, faDateYear } from '@utils/persian';
 import type { CycleStackParamList } from '@navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type Props = NativeStackScreenProps<CycleStackParamList, 'CycleTracker'>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WEEK_DAYS = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];
 
 type ViewMode = 'calendar' | 'list';
 
@@ -177,7 +178,7 @@ function buildCycleDateMap(periods: any[]): Map<string, DayInfo> {
         if (!map.has(key)) {
           map.set(key, {
             type: nextStart < today ? 'late' : 'predicted_period',
-            label: nextStart < today ? 'Overdue Period' : 'Predicted Period',
+            label: nextStart < today ? 'دوره با تأخیر' : 'دوره پیش‌بینی‌شده',
           });
         }
         predCur.setDate(predCur.getDate() + 1);
@@ -295,8 +296,10 @@ function CycleCalendar({
     return days;
   }, [displayYear, displayMonth]);
 
-  const monthLabel = new Date(displayYear, displayMonth, 1)
-    .toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  // Jalali, via the canonical formatter. `toLocaleDateString('fa-IR')` does
+  // not convert calendars on Hermes — see utils/jalali.ts.
+  const monthLabel = faDateYear(new Date(displayYear, displayMonth, 1))
+    .split(' ').slice(1).join(' ');
 
   const isToday = (d: Date) => d.toDateString() === today.toDateString();
   const isFuture = (d: Date) => d > today;
@@ -310,7 +313,7 @@ function CycleCalendar({
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           style={[styles.monthNavBtn, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md }]}
         >
-          <Icon name="chevron-left" size={20} color={colors.textPrimary} />
+          <Icon name="chevron-right" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
 
         <Text style={[styles.monthTitle, { color: colors.textPrimary, fontSize: typography.base }]}>
@@ -326,7 +329,7 @@ function CycleCalendar({
             { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md, opacity: isFutureMonth ? 0.3 : 1 },
           ]}
         >
-          <Icon name="chevron-right" size={20} color={colors.textPrimary} />
+          <Icon name="chevron-left" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -462,7 +465,7 @@ function CycleCalendar({
                         },
                       ]}
                     >
-                      {day.getDate()}
+                      {toFa(day.getDate())}
                     </Text>
                   </View>
 
@@ -486,19 +489,19 @@ function CycleCalendar({
       <View style={[styles.legendContainer, { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, marginTop: spacing[3], paddingTop: spacing[3] }]}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: colors.menstrual }]} />
-          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>Menstrual</Text>
+          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>دوره</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: colors.follicular }]} />
-          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>Follicular</Text>
+          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>فولیکولار</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: colors.ovulation }]} />
-          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>Ovulation</Text>
+          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>تخمک‌گذاری</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: colors.luteal }]} />
-          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>Luteal / PMS</Text>
+          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>لوتئال</Text>
         </View>
       </View>
     </Card>
@@ -595,7 +598,7 @@ export default function CycleTrackerScreen() {
         {!isMale && (
           <View style={{ flex: 1 }}>
             <Button
-              label="Log Period"
+              label="ثبت دوره"
               onPress={() => navigation.navigate('LogPeriod')}
               size="md"
               fullWidth
@@ -694,18 +697,18 @@ export default function CycleTrackerScreen() {
                   <View style={styles.selectedHeaderRow}>
                     <View>
                       <Text style={[styles.selectedDateLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
-                        {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                        {faDate(selectedDate, { weekday: 'long', month: 'long', day: 'numeric' })}
                       </Text>
                       <Text style={[styles.selectedPhaseTitle, { color: colors.textPrimary, fontSize: typography.base }]}>
                         {selectedDayType === 'period'
-                          ? 'Menstrual Phase'
+                          ? 'روزهای دوره'
                           : selectedDayType === 'ovulation'
-                          ? 'Fertile / Ovulation Window'
+                          ? 'پنجره‌ی تخمک‌گذاری / باروری'
                           : selectedDayType === 'pms'
-                          ? 'Luteal / PMS Phase'
+                          ? 'لوتئال / پیش از دوره'
                           : selectedDayType === 'follicular'
-                          ? 'Follicular Phase'
-                          : 'Recorded Day'}
+                          ? 'فولیکولار'
+                          : 'روز ثبت‌شده'}
                       </Text>
                     </View>
 
@@ -725,8 +728,8 @@ export default function CycleTrackerScreen() {
                       <View style={styles.rowBetween}>
                         <View style={{ flex: 1 }}>
                           <Text style={[styles.periodDateSpan, { color: colors.textPrimary, fontSize: typography.sm }]}>
-                            {formatDate(selectedPeriod.start_date)}
-                            {selectedPeriod.end_date ? ` → ${formatDate(selectedPeriod.end_date)}` : ' → ongoing'}
+                            {faDateShort(selectedPeriod.start_date)}
+                            {selectedPeriod.end_date ? ` → ${faDateShort(selectedPeriod.end_date)}` : ' → در جریان'}
                           </Text>
                           {selectedPeriod.symptoms ? (
                             <View style={styles.tagWrap}>
@@ -760,7 +763,7 @@ export default function CycleTrackerScreen() {
               {selectedDate && !selectedPeriod && !selectedDayType && (
                 <View style={[styles.emptySelectedDay, { backgroundColor: colors.surface, borderRadius: borderRadius.lg, borderColor: colors.border, padding: spacing[4] }]}>
                   <Text style={[styles.emptySelectedText, { color: colors.textSecondary, fontSize: typography.sm }]}>
-                    No cycle activity recorded for {new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.
+                    برای {faDateShort(selectedDate)} فعالیت چرخه‌ای ثبت نشده است.
                   </Text>
                 </View>
               )}
@@ -768,13 +771,13 @@ export default function CycleTrackerScreen() {
           ) : (
             <EmptyState
               icon="calendar-blank-outline"
-              title={isMaleWithPartner ? 'No periods logged yet' : 'No cycles recorded yet'}
+              title={isMaleWithPartner ? 'هنوز دورهای ثبت نشده' : 'هنوز چرخه‌ای ثبت نشده'}
               description={
                 isMaleWithPartner
-                  ? "Your partner hasn't logged any periods yet."
-                  : 'Log your first period to start tracking your cycle.'
+                  ? 'شریکت هنوز دورهای ثبت نکرده است.'
+                  : 'برای شروع پیگیری چرخه‌ات، دورهی اولت را ثبت کن.'
               }
-              actionLabel={isMale ? undefined : 'Log Period'}
+              actionLabel={isMale ? undefined : 'ثبت دوره'}
               onAction={isMale ? undefined : () => navigation.navigate('LogPeriod')}
             />
           )}
@@ -803,17 +806,17 @@ export default function CycleTrackerScreen() {
                     <View style={{ flex: 1, marginRight: spacing[3] }}>
                       <View style={styles.cardHeaderRow}>
                         {isOngoing && (
-                          <Badge label="Active" variant="success" style={{ marginRight: spacing[2] }} />
+                          <Badge label="فعال" variant="success" style={{ marginRight: spacing[2] }} />
                         )}
                         <Text style={[styles.cycleRangeText, { color: colors.textPrimary, fontSize: typography.base }]}>
-                          {formatDate(period.start_date)}
-                          {period.end_date ? ` → ${formatDate(period.end_date)}` : ' → ongoing'}
+                          {faDateShort(period.start_date)}
+                          {period.end_date ? ` → ${faDateShort(period.end_date)}` : ' → در جریان'}
                         </Text>
                       </View>
 
                       {nextPeriod && (
                         <Text style={[styles.nextPredictedText, { color: colors.textSecondary, fontSize: typography.xs, marginTop: spacing[1] }]}>
-                          Next predicted: {formatDate(nextPeriod)}
+                          پیش‌بینی دوره بعدی: {faDateShort(nextPeriod)}
                         </Text>
                       )}
 
@@ -831,7 +834,7 @@ export default function CycleTrackerScreen() {
 
                       {period.medication ? (
                         <Text style={[styles.medicationText, { color: colors.textTertiary, fontSize: typography.xs, marginTop: spacing[1] }]}>
-                          Medication: {period.medication}
+                          دارو: {period.medication}
                         </Text>
                       ) : null}
                     </View>
@@ -840,14 +843,14 @@ export default function CycleTrackerScreen() {
                       {period.period_duration > 0 ? (
                         <View style={styles.durationPill}>
                           <Text style={[styles.durationValue, { color: colors.menstrual, fontSize: typography.xl }]}>
-                            {period.period_duration}
+                            {toFa(period.period_duration)}
                           </Text>
                           <Text style={[styles.durationUnit, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                            days
+                            روز
                           </Text>
                         </View>
                       ) : (
-                        <Badge label="ongoing" variant="neutral" />
+                        <Badge label="در جریان" variant="neutral" />
                       )}
 
                       {!isMaleWithPartner && (
@@ -867,13 +870,13 @@ export default function CycleTrackerScreen() {
           ) : (
             <EmptyState
               icon="calendar-blank-outline"
-              title={isMaleWithPartner ? 'No periods logged yet' : 'No cycles recorded yet'}
+              title={isMaleWithPartner ? 'هنوز دورهای ثبت نشده' : 'هنوز چرخه‌ای ثبت نشده'}
               description={
                 isMaleWithPartner
-                  ? "Your partner hasn't logged any periods yet."
-                  : 'Log your first period to start tracking your cycle.'
+                  ? 'شریکت هنوز دورهای ثبت نکرده است.'
+                  : 'برای شروع پیگیری چرخه‌ات، دورهی اولت را ثبت کن.'
               }
-              actionLabel={isMale ? undefined : 'Log Period'}
+              actionLabel={isMale ? undefined : 'ثبت دوره'}
               onAction={isMale ? undefined : () => navigation.navigate('LogPeriod')}
             />
           )}
@@ -883,7 +886,7 @@ export default function CycleTrackerScreen() {
       {/* Detailed Analysis Navigation Button */}
       <View style={{ marginTop: spacing[4] }}>
         <Button
-          label="View Detailed Analysis"
+          label="مشاهده تحلیل جامع"
           onPress={() => navigation.navigate('CycleAnalysis')}
           variant="outline"
           size="lg"

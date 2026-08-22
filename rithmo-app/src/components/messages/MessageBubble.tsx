@@ -11,7 +11,7 @@ interface MessageBubbleProps {
 export const MessageBubble = memo(function MessageBubble({ message, isMine }: MessageBubbleProps) {
   const { colors, spacing, borderRadius, typography } = useTheme();
 
-  const time = new Date(message.created_at).toLocaleTimeString('en-US', {
+  const time = new Date(message.created_at).toLocaleTimeString('fa-IR', {
     hour: '2-digit',
     minute: '2-digit',
   });

@@ -1,237 +1,196 @@
-export const palette = {
-  // Base & Neutrals
-  canvas:       '#FFFFFF',
-  canvasSubtle: '#F8F9FA',
-  canvasDark:   '#090A0F',
+/**
+ * Rhythmo Design System — Colors
+ *
+ * Brand: calm feminine health palette. The primary brand color is a deep
+ * rose (not black, not default-Material blue). Light mode uses a warm
+ * off-white canvas — never plain white screens.
+ *
+ * The phase colors (menstrual/follicular/ovulation/luteal) are the
+ * DATA-VISUALIZATION language — they stay stable across the redesign.
+ *
+ * Premium moments use the gold `premium` tokens (paywall, premium cards).
+ */
 
-  ink:          '#111827', // Slate 900
-  inkStrong:    '#111827',
-  inkMid:       '#374151', // Slate 700
-  body:         '#4B5563', // Slate 600
-  bodyMid:      '#4B5563',
-  mute:         '#6B7280', // Slate 500
-  muteSoft:     '#9CA3AF', // Slate 400
-  hairline:     '#E5E7EB', // Slate 200
-  hairlineSubtle:'#F3F4F6', // Slate 100
+const lightColors = {
+  // ── Neutrals (warm) ─────────────────────────────────────────────────────
+  ink:             '#241B20',
+  canvas:          '#FAF7F9',
+  canvasDark:      '#141114',
+  surface:         '#FFFFFF',
+  surfaceSecondary:'#F7F1F4',
+  surfaceSubtle:   '#F3EBEF',
+  border:          '#EFE4EA',
+  borderSubtle:    '#F5EEF2',
+  background:      '#FAF7F9',
 
-  // Restrained Chromatic Phase Palette (HSL-Calibrated)
-  roseCoral:    '#E11D48', // Menstrual / Period
-  roseSoft:     '#FFE4E6',
-  violetSoft:   '#7C3AED', // Follicular
-  violetTint:   '#EDE9FE',
-  amberWarm:    '#D97706', // Ovulation / Fertile window
-  amberTint:    '#FEF3C7',
-  azureCalm:    '#0284C7', // Luteal
-  azureTint:    '#E0F2FE',
-  emeraldClean: '#059669', // Wellness
-  emeraldTint:  '#D1FAE5',
+  // ── Brand (deep rose) ───────────────────────────────────────────────────
+  primary:         '#A64368',
+  primaryDark:     '#873452',
+  primaryLight:    '#F6E4EC',
+  primaryLighter:  '#FBF1F5',
+  primaryPressed:  '#873452',
+  textOnPrimary:   '#FFFFFF',
 
-  // Semantic mappings for backward compatibility
-  accentPurple:   '#7C3AED',
-  accentPink:     '#E11D48',
-  accentBlue:     '#0284C7',
-  accentBlueDeep: '#0284C7',
-  accentBlueInfo: '#0284C7',
-  accentOrange:   '#D97706',
-  accentGreen:    '#059669',
-  accentYellow:   '#D97706',
-  accentRed:      '#DC2626',
+  // ── Text ────────────────────────────────────────────────────────────────
+  textPrimary:     '#241B20',
+  textSecondary:   '#6E5E68',
+  // Raised from #9A8A93 (3.27:1 on surface, 3.07:1 on background) which
+  // failed WCAG AA for normal text. #7C6B77 gives 4.97:1 / 4.67:1 while
+  // staying clearly subordinate to textSecondary (6.06:1), so the hierarchy
+  // primary > secondary > tertiary is preserved rather than flattened.
+  textTertiary:    '#7C6B77',
+  textDisabled:    '#C4B6BE',
 
-  rose500:   '#E11D48',
-  violet500: '#7C3AED',
-  violet600: '#6D28D9',
-  amber500:  '#D97706',
-  blue400:   '#38BDF8',
-  blue500:   '#0284C7',
+  // ── Accent (violet — data/secondary accent) ─────────────────────────────
+  accent:          '#7C5CB8',
+  accentLight:     '#EFE9F8',
 
-  white: '#FFFFFF',
-  black: '#000000',
-} as const;
+  // ── Semantic ────────────────────────────────────────────────────────────
+  success:         '#2E9E6B',
+  successBg:       '#E4F4EC',
+  successDark:     '#1F7A4F',
+  warning:         '#D9822B',
+  warningBg:       '#FBF0E1',
+  error:           '#D64545',
+  errorBg:         '#FBE9E9',
+  info:            '#3E6FB0',
+  infoBg:          '#E8F0FA',
+  infoDark:        '#2C5488',
 
-export const lightColors = {
-  // Backgrounds & Canvas
-  background:       palette.canvas,
-  backgroundAlt:    palette.canvasSubtle,
-  surface:          palette.canvas,
-  surfaceSecondary: palette.canvasSubtle,
-  surfaceSubtle:    palette.hairlineSubtle,
-  surfaceElevated:  palette.canvas,
-  surfaceDark:      palette.ink,
-  overlay:          'rgba(17, 24, 39, 0.4)',
+  shadow:          '#8A7280',
 
-  // Borders & Dividers
-  border:           palette.hairline,
-  borderSubtle:     palette.hairlineSubtle,
-  borderStrong:     palette.ink,
-  divider:          palette.hairlineSubtle,
+  // ── Cycle phase palette (data language — stable) ────────────────────────
+  menstrual:       '#E11D48',
+  menstrualBg:     '#FDECEF',
+  menstrualBorder: '#F5B8C4',
+  follicular:      '#2E9BB5',
+  follicularBg:    '#E6F5F8',
+  follicularBorder:'#A8DCE6',
+  ovulation:       '#9A6BD0',
+  ovulationBg:     '#F3ECFA',
+  ovulationBorder: '#D4BEEC',
+  luteal:          '#E8A23D',
+  lutealBg:        '#FBF3E2',
+  lutealBorder:    '#F0D3A0',
 
-  // Brand / Actions
-  primary:          palette.ink,
-  primaryLight:     palette.hairlineSubtle,
-  primaryLighter:   palette.hairline,
-  primaryDark:      palette.black,
-  primaryPressed:   '#1F2937',
+  // ── Premium (gold) ──────────────────────────────────────────────────────
+  premium:         '#A67C2E',
+  premiumBg:       '#F8F1E2',
+  premiumBorder:   '#E7D5AE',
 
-  // Accent
-  accent:           palette.azureCalm,
-  accentLight:      palette.azureTint,
-  accentLighter:    'rgba(2, 132, 199, 0.04)',
+  // ── Restored legacy tokens (used by auth/support/AI/streak screens) ─────
+  divider:         '#F0E8EC',
+  ovulationColor:  '#9A6BD0',
+  shadowColor:     '#8A7280',
+  surfaceDark:     '#332530',
+  textOnDark:      '#F7F2F5',
+  violet500:       '#8B5CF6',
+  violet600:       '#7C3AED',
+};
 
-  // Wellness
-  wellness:         palette.emeraldClean,
-  wellnessBg:       palette.emeraldTint,
-  wellnessLight:    'rgba(5, 150, 105, 0.12)',
-  wellnessLighter:  'rgba(5, 150, 105, 0.05)',
+const darkColors = {
+  // ── Neutrals (warmed ink) ───────────────────────────────────────────────
+  ink:             '#EDE6EA',
+  canvas:          '#141114',
+  canvasDark:      '#0B090B',
+  surface:         '#1D181C',
+  surfaceSecondary:'#262025',
+  surfaceSubtle:   '#2C252B',
+  border:          '#372F36',
+  borderSubtle:    '#2E272D',
+  background:      '#141114',
 
-  // Ovulation & Fertile
-  ovulationColor:   palette.amberWarm,
-  ovulationLight:   palette.amberTint,
-  ovulationLighter: 'rgba(217, 119, 6, 0.04)',
+  // ── Brand (soft rose) ───────────────────────────────────────────────────
+  primary:         '#E5A3BE',
+  primaryDark:     '#D98FB3',
+  primaryLight:    '#3A2530',
+  primaryLighter:  '#302029',
+  primaryPressed:  '#D98FB3',
+  textOnPrimary:   '#2E1B26',
 
-  // Text Hierarchy
-  textPrimary:      palette.inkStrong,
-  textSecondary:    palette.body,
-  textTertiary:     palette.mute,
-  textMuted:        palette.muteSoft,
-  textDisabled:     palette.muteSoft,
-  textOnPrimary:    palette.white,
-  textOnDark:       palette.canvas,
+  // ── Text ────────────────────────────────────────────────────────────────
+  textPrimary:     '#EDE6EA',
+  textSecondary:   '#B3A6AF',
+  // Was #857A83 (4.26:1 on dark surface) — also short of AA. #9A8E97 gives
+  // 5.58:1, below textSecondary's 7.49:1.
+  textTertiary:    '#9A8E97',
+  textDisabled:    '#5C535A',
 
-  // Semantic Feedback
-  success:          palette.emeraldClean,
-  successBg:        palette.emeraldTint,
-  warning:          palette.amberWarm,
-  warningBg:        palette.amberTint,
-  error:            palette.accentRed,
-  errorBg:          '#FEE2E2',
-  info:             palette.azureCalm,
-  infoBg:           palette.azureTint,
+  // ── Accent ──────────────────────────────────────────────────────────────
+  accent:          '#B09ADB',
+  accentLight:     '#2C2438',
 
-  // Cycle Phase Chromatic Palette
-  menstrual:        palette.roseCoral,
-  menstrualBg:      palette.roseSoft,
-  menstrualBorder:  '#FDA4AF',
-  follicular:       palette.violetSoft,
-  follicularBg:     palette.violetTint,
-  follicularBorder: '#C4B5FD',
-  ovulation:        palette.amberWarm,
-  ovulationBg:      palette.amberTint,
-  ovulationBorder:  '#FCD34D',
-  luteal:           palette.azureCalm,
-  lutealBg:         palette.azureTint,
-  lutealBorder:     '#7DD3FC',
+  // ── Semantic ────────────────────────────────────────────────────────────
+  success:         '#5BC98F',
+  successBg:       '#1C3229',
+  successDark:     '#7FDCAE',
+  warning:         '#E8A23D',
+  warningBg:       '#3A2E1C',
+  error:           '#E57373',
+  errorBg:         '#3A2222',
+  info:            '#7FA8DC',
+  infoBg:          '#1F2A3A',
+  infoDark:        '#9CBCE8',
 
-  // Explicit Phase Aliases
-  phasePeriod:        palette.roseCoral,
-  phasePeriodBg:      palette.roseSoft,
-  phaseFollicular:    palette.violetSoft,
-  phaseFollicularBg:  palette.violetTint,
-  phaseOvulation:     palette.amberWarm,
-  phaseOvulationBg:   palette.amberTint,
-  phaseFertile:       palette.amberWarm,
-  phaseFertileBg:     palette.amberTint,
-  phaseLuteal:        palette.azureCalm,
-  phaseLutealBg:      palette.azureTint,
+  shadow:          '#000000',
 
-  // Compatibility tokens
-  violet500:        palette.violet500,
-  violet600:        palette.violet600,
-  rose500:          palette.rose500,
-  amber500:         palette.amber500,
-  blue400:          palette.blue400,
-  blue500:          palette.blue500,
+  // ── Cycle phase palette (data language — stable) ────────────────────────
+  menstrual:       '#F06284',
+  menstrualBg:     '#3A2228',
+  menstrualBorder: '#6E3442',
+  follicular:      '#5BC4DB',
+  follicularBg:    '#1C3238',
+  follicularBorder:'#33565F',
+  ovulation:       '#B893E3',
+  ovulationBg:     '#2D2440',
+  ovulationBorder: '#4D3A66',
+  luteal:          '#EDB563',
+  lutealBg:        '#3A3020',
+  lutealBorder:    '#6B5430',
 
-  shadowColor:      '#111827',
-  black:            palette.black,
-  white:            palette.white,
-} as const;
+  // ── Premium (gold) ──────────────────────────────────────────────────────
+  premium:         '#D9B25C',
+  premiumBg:       '#332A18',
+  premiumBorder:   '#57431E',
 
-export const darkColors = {
-  // Backgrounds - High contrast, low visual fatigue
-  background:       palette.canvasDark,
-  backgroundAlt:    '#111318',
-  surface:          '#161922',
-  surfaceSecondary: '#1E222D',
-  surfaceSubtle:    '#1A1D27',
-  surfaceElevated:  '#252A37',
-  surfaceDark:      '#0F1117',
-  overlay:          'rgba(0, 0, 0, 0.75)',
-
-  border:           '#272E3F',
-  borderSubtle:     '#1E222D',
-  borderStrong:     '#4B5563',
-  divider:          '#1E222D',
-
-  primary:          palette.canvas,
-  primaryLight:     '#1F2937',
-  primaryLighter:   '#374151',
-  primaryDark:      '#E5E7EB',
-  primaryPressed:   '#D1D5DB',
-
-  accent:           '#38BDF8',
-  accentLight:      'rgba(56, 189, 248, 0.15)',
-  accentLighter:    'rgba(56, 189, 248, 0.08)',
-
-  wellness:         '#34D399',
-  wellnessBg:       'rgba(52, 211, 153, 0.15)',
-  wellnessLight:    'rgba(52, 211, 153, 0.15)',
-  wellnessLighter:  'rgba(52, 211, 153, 0.08)',
-
-  ovulationColor:   '#FBBF24',
-  ovulationLight:   'rgba(251, 191, 36, 0.15)',
-  ovulationLighter: 'rgba(251, 191, 36, 0.08)',
-
-  textPrimary:      '#F9FAFB',
-  textSecondary:    '#D1D5DB',
-  textTertiary:     '#9CA3AF',
-  textMuted:        '#6B7280',
-  textDisabled:     '#4B5563',
-  textOnPrimary:    palette.ink,
-  textOnDark:       palette.canvas,
-
-  success:          '#34D399',
-  successBg:        'rgba(52, 211, 153, 0.15)',
-  warning:          '#FBBF24',
-  warningBg:        'rgba(251, 191, 36, 0.15)',
-  error:            '#F87171',
-  errorBg:          'rgba(248, 113, 113, 0.15)',
-  info:             '#38BDF8',
-  infoBg:           'rgba(56, 189, 248, 0.15)',
-
-  menstrual:        '#FB7185',
-  menstrualBg:      'rgba(251, 113, 133, 0.15)',
-  menstrualBorder:  '#E11D48',
-  follicular:       '#A78BFA',
-  follicularBg:     'rgba(167, 139, 250, 0.15)',
-  follicularBorder: '#7C3AED',
-  ovulation:        '#FBBF24',
-  ovulationBg:      'rgba(251, 191, 36, 0.15)',
-  ovulationBorder:  '#D97706',
-  luteal:           '#38BDF8',
-  lutealBg:         'rgba(56, 189, 248, 0.15)',
-  lutealBorder:     '#0284C7',
-
-  phasePeriod:        '#FB7185',
-  phasePeriodBg:      'rgba(251, 113, 133, 0.15)',
-  phaseFollicular:    '#A78BFA',
-  phaseFollicularBg:  'rgba(167, 139, 250, 0.15)',
-  phaseOvulation:     '#FBBF24',
-  phaseOvulationBg:   'rgba(251, 191, 36, 0.15)',
-  phaseFertile:       '#FBBF24',
-  phaseFertileBg:     'rgba(251, 191, 36, 0.15)',
-  phaseLuteal:        '#38BDF8',
-  phaseLutealBg:      'rgba(56, 189, 248, 0.15)',
-
-  violet500:        palette.violet500,
-  violet600:        palette.violet600,
-  rose500:          palette.rose500,
-  amber500:         palette.amber500,
-  blue400:          palette.blue400,
-  blue500:          palette.blue500,
-
-  shadowColor:      '#000000',
-  black:            palette.black,
-  white:            palette.white,
-} as const;
+  // ── Restored legacy tokens ──────────────────────────────────────────────
+  divider:         '#2E272D',
+  ovulationColor:  '#B893E3',
+  shadowColor:     '#000000',
+  surfaceDark:     '#241C23',
+  textOnDark:      '#F2ECF0',
+  violet500:       '#A78BFA',
+  violet600:       '#8B5CF6',
+};
 
 export type AppColors = typeof lightColors | typeof darkColors;
+
+const borderRadius = {
+  none:  0,
+  xs:    4,
+  sm:    6,
+  md:    10,
+  lg:    14,
+  xl:    20,
+  '2xl': 24,
+  '3xl': 32,
+  pill:  9999,
+  card:  14,
+  control: 10,
+  // Aliases kept for legacy components
+  full:   9999,
+  small:  6,
+  medium: 10,
+  large:  14,
+  xlarge: 20,
+};
+
+const shadows = {
+  none: {},
+  xs:   { shadowColor: '#000', shadowOffset: { width: 0, height: 1 },  shadowOpacity: 0.06, shadowRadius: 2,  elevation: 1 },
+  sm:   { shadowColor: '#000', shadowOffset: { width: 0, height: 2 },  shadowOpacity: 0.08, shadowRadius: 6,  elevation: 2 },
+  md:   { shadowColor: '#000', shadowOffset: { width: 0, height: 6 },  shadowOpacity: 0.10, shadowRadius: 12, elevation: 4 },
+  lg:   { shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.14, shadowRadius: 24, elevation: 8 },
+};
+
+export { lightColors, darkColors, borderRadius, shadows };

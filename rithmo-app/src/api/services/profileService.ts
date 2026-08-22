@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from '@constants/config';
 import type {
   UserProfile,
   UpdateProfileRequest,
+  ShareSettings,
   InvitationCode,
   AcceptInvitationRequest,
   RemovePartnerRequest,
@@ -32,4 +33,15 @@ export const profileService = {
 
   removePartner: (data: RemovePartnerRequest) =>
     apiClient.post<void>(API_ENDPOINTS.USER_PARTNER_REMOVE, data),
+
+  /** Either side of the link can end it unilaterally (no code needed). */
+  selfRevokePartner: () =>
+    apiClient.post<{ detail: string }>(API_ENDPOINTS.USER_PARTNER_SELF_REVOKE),
+
+  // ── Partner sharing controls (owner side) ────────────────────────────────
+  getShareSettings: () =>
+    apiClient.get<ShareSettings>(API_ENDPOINTS.USER_SHARE_SETTINGS),
+
+  patchShareSettings: (data: Partial<ShareSettings>) =>
+    apiClient.patch<ShareSettings>(API_ENDPOINTS.USER_SHARE_SETTINGS, data),
 };

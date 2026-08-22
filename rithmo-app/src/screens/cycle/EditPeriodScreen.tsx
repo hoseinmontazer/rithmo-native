@@ -17,6 +17,7 @@ import { Button, Icon, LoadingState, ErrorState } from '@components/ui';
 import { usePeriod, usePatchPeriod } from '@hooks/queries/usePeriods';
 import { useToast } from '../../context/ToastContext';
 import { formatDateISO } from '@utils/dateUtils';
+import { faDate } from '@utils/persian';
 import type { CycleScreenProps } from '@navigation/types';
 
 type Props = CycleScreenProps<'EditPeriod'>;
@@ -32,6 +33,17 @@ const COMMON_SYMPTOMS = [
   'insomnia',
 ];
 
+const SYMPTOM_LABELS: Record<string, string> = {
+  cramps: 'گرفتگی',
+  headache: 'سردرد',
+  fatigue: 'خستگی',
+  bloating: 'نفخ',
+  'mood swings': 'نوسان خلق',
+  backache: 'درد کمر',
+  nausea: 'تهوع',
+  insomnia: 'بی‌خوابی',
+};
+
 const COMMON_MEDS = [
   'ibuprofen',
   'paracetamol',
@@ -39,6 +51,14 @@ const COMMON_MEDS = [
   'aspirin',
   'naproxen',
 ];
+
+const MED_LABELS: Record<string, string> = {
+  ibuprofen: 'ایبوپروفن',
+  paracetamol: 'استامینوفن',
+  'heating pad': 'کیسه آب گرم',
+  aspirin: 'آسپرین',
+  naproxen: 'ناپروکسن',
+};
 
 // ── Date Picker Sheet ─────────────────────────────────────────────────────────
 function DatePickerSheet({
@@ -77,7 +97,7 @@ function DatePickerSheet({
     : dates;
 
   const fmt = (d: Date) =>
-    d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    faDate(d, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
   const isToday = (d: Date) => d.toDateString() === today.toDateString();
   const isSel = (d: Date) => d.toDateString() === cur.toDateString();
@@ -136,7 +156,7 @@ function DatePickerSheet({
                     </Text>
                     {isToday(d) && (
                       <Text style={[styles.todayTagText, { color: colors.menstrual, fontSize: typography.xs }]}>
-                        Today
+                        امروز
                       </Text>
                     )}
                   </View>
@@ -149,7 +169,7 @@ function DatePickerSheet({
           {/* Action */}
           <View style={[styles.modalActionFooter, { borderTopColor: colors.border, padding: spacing[4] }]}>
             <Button
-              label="Select This Date"
+              label="انتخاب این تاریخ"
               onPress={() => {
                 onSelect(cur);
                 onClose();
@@ -220,7 +240,7 @@ export default function EditPeriodScreen() {
   };
 
   const fmtDate = (d: Date) =>
-    d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    faDate(d, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
   const handleSave = () => {
     if (!startDate) return;
@@ -229,7 +249,7 @@ export default function EditPeriodScreen() {
       // End date is inclusive: it may equal the start date (1-day period),
       // but must not be before it — mirrors the backend contract.
       if (endDate < startDate) {
-        toast.warning('Invalid Date', 'End date must be on or after the start date.');
+        toast.warning('تاریخ نامعتبر', 'تاریخ پایان باید بعد از تاریخ شروع یا مساوی آن باشد.');
         return;
       }
     }
@@ -246,7 +266,7 @@ export default function EditPeriodScreen() {
       },
       {
         onSuccess: () => {
-          toast.success('Period Updated', 'Your changes have been saved.');
+          toast.success('به‌روزرسانی دوره', 'تغییراتت ذخیره شد.');
           navigation.goBack();
         },
         onError: (err: any) => {
@@ -254,14 +274,14 @@ export default function EditPeriodScreen() {
             err?.response?.data?.end_date?.[0] ||
             err?.response?.data?.start_date?.[0] ||
             err?.response?.data?.detail ||
-            'Failed to update period entry.';
-          toast.error('Update Failed', msg);
+            'به‌روزرسانی ثبت دوره ناموفق بود.';
+          toast.error('خطا در به‌روزرسانی', msg);
         },
       },
     );
   };
 
-  if (isLoading) return <LoadingState fullScreen message="Loading period entry…" />;
+  if (isLoading) return <LoadingState fullScreen message="در حال بارگذاری ثبت دوره…" />;
   if (isError) return <ErrorState fullScreen error={error} onRetry={refetch} />;
   if (!period || !startDate) return null;
 
@@ -288,14 +308,14 @@ export default function EditPeriodScreen() {
           {/* Header Introduction */}
           <View style={{ marginBottom: spacing[4] }}>
             <Text style={[styles.headerSubtitle, { color: colors.textSecondary, fontSize: typography.sm }]}>
-              Modify dates, symptoms, and medication for this cycle.
+              تاریخ‌ها، علائم و داروهای این دوره را ویرایش کن.
             </Text>
           </View>
 
           {/* ── 1. Start Date ──────────────────────────────────────── */}
           <View style={{ marginBottom: spacing[4] }}>
             <Text style={[styles.fieldSectionLabel, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[2] }]}>
-              START DATE
+              تاریخ شروع
             </Text>
             <TouchableOpacity
               onPress={() => setShowStartPicker(true)}
@@ -314,10 +334,10 @@ export default function EditPeriodScreen() {
                 <Icon name="calendar" size={20} color={colors.menstrual} />
                 <View>
                   <Text style={[styles.dateValueText, { color: colors.textPrimary, fontSize: typography.base }]}>
-                    {startDate ? fmtDate(startDate) : 'Select date'}
+                    {startDate ? fmtDate(startDate) : 'انتخاب تاریخ'}
                   </Text>
                   <Text style={[styles.dateSubtext, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                    Tap to change
+                    برای تغییر، لمس کن
                   </Text>
                 </View>
               </View>
@@ -329,11 +349,11 @@ export default function EditPeriodScreen() {
           <View style={{ marginBottom: spacing[5] }}>
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.fieldSectionLabel, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                END DATE
+                تاریخ پایان
               </Text>
               {isOngoing && (
                 <Text style={[styles.optionalTag, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                  Ongoing Period
+                  دوره در جریان
                 </Text>
               )}
             </View>
@@ -364,10 +384,10 @@ export default function EditPeriodScreen() {
                       },
                     ]}
                   >
-                    {endDate ? fmtDate(endDate) : 'Not ended yet (ongoing)'}
+                    {endDate ? fmtDate(endDate) : 'هنوز به پایان نرسیده (در جریان)'}
                   </Text>
                   <Text style={[styles.dateSubtext, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                    Earliest allowable: {fmtDate(minEndDay)}
+                    زودترین تاریخ مجاز: {fmtDate(minEndDay)}
                   </Text>
                 </View>
               </View>
@@ -391,10 +411,10 @@ export default function EditPeriodScreen() {
           <View style={{ marginBottom: spacing[5] }}>
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.fieldSectionLabel, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                SYMPTOMS
+                علائم
               </Text>
               <Text style={[styles.optionalTag, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                Optional
+                اختیاری
               </Text>
             </View>
 
@@ -428,7 +448,7 @@ export default function EditPeriodScreen() {
                         },
                       ]}
                     >
-                      {s}
+                      {SYMPTOM_LABELS[s] ?? s}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -448,7 +468,7 @@ export default function EditPeriodScreen() {
                   marginTop: spacing[2],
                 },
               ]}
-              placeholder="Other symptoms..."
+              placeholder="سایر علائم…"
               placeholderTextColor={colors.textTertiary}
               value={symptomsText}
               onChangeText={setSymptomsText}
@@ -461,10 +481,10 @@ export default function EditPeriodScreen() {
           <View style={{ marginBottom: spacing[6] }}>
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.fieldSectionLabel, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                MEDICATION
+                دارو
               </Text>
               <Text style={[styles.optionalTag, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                Optional
+                اختیاری
               </Text>
             </View>
 
@@ -498,7 +518,7 @@ export default function EditPeriodScreen() {
                         },
                       ]}
                     >
-                      {m}
+                      {MED_LABELS[m] ?? m}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -518,7 +538,7 @@ export default function EditPeriodScreen() {
                   marginTop: spacing[2],
                 },
               ]}
-              placeholder="Other medications..."
+              placeholder="سایر داروها…"
               placeholderTextColor={colors.textTertiary}
               value={medicationText}
               onChangeText={setMedicationText}
@@ -530,7 +550,7 @@ export default function EditPeriodScreen() {
           {/* ── Actions ────────────────────────────────────────────── */}
           <View style={{ gap: spacing[2] }}>
             <Button
-              label={busy ? 'Saving…' : 'Save Changes'}
+              label={busy ? 'در حال ذخیره…' : 'ذخیره تغییرات'}
               onPress={handleSave}
               disabled={busy}
               loading={busy}
@@ -538,7 +558,7 @@ export default function EditPeriodScreen() {
               fullWidth
             />
             <Button
-              label="Cancel"
+              label="انصراف"
               onPress={() => navigation.goBack()}
               variant="ghost"
               size="md"
@@ -551,7 +571,7 @@ export default function EditPeriodScreen() {
       {/* Start Date Picker */}
       <DatePickerSheet
         visible={showStartPicker}
-        title="Edit Start Date"
+        title="ویرایش تاریخ شروع"
         selected={startDate}
         onClose={() => setShowStartPicker(false)}
         onSelect={d => {
@@ -563,7 +583,7 @@ export default function EditPeriodScreen() {
       {/* End Date Picker */}
       <DatePickerSheet
         visible={showEndPicker}
-        title="Edit End Date"
+        title="ویرایش تاریخ پایان"
         selected={endDate}
         minDate={minEndDay}
         onClose={() => setShowEndPicker(false)}

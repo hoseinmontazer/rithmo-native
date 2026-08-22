@@ -1,54 +1,42 @@
 /**
- * PhasePill — Displays current cycle phase with semantic color coding
+ * PhasePill — cycle phase chip with semantic color coding.
+ *
+ * Persian labels (mission: no English headers, consistent terminology —
+ * چرخه/دوره), supports the full CyclePhase union (including expected /
+ * late / overdue / unknown), fa numerals.
  */
 import React, { memo } from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { useTheme } from '@hooks/useTheme';
+import { toFa } from '@utils/persian';
+import type { CyclePhase } from '@types/period.types';
 
 interface PhasePillProps {
-  phase: 'menstrual' | 'follicular' | 'ovulation' | 'luteal';
+  phase: CyclePhase;
   day?: number;
   style?: ViewStyle;
 }
 
-const PHASE_LABELS = {
-  menstrual: 'Menstrual Phase',
-  follicular: 'Follicular Phase',
-  ovulation: 'Ovulation',
-  luteal: 'Luteal Phase',
+type AccentKey = 'menstrual' | 'follicular' | 'ovulation' | 'luteal' | 'info' | 'warning' | 'primary';
+
+const PHASE_META: Record<CyclePhase, { label: string; accent: AccentKey }> = {
+  menstrual: { label: 'روزهای دوره', accent: 'menstrual' },
+  follicular: { label: 'فولیکولار', accent: 'follicular' },
+  ovulation: { label: 'تخمک‌گذاری', accent: 'ovulation' },
+  luteal:    { label: 'لوتئال', accent: 'luteal' },
+  expected:  { label: 'پیش‌بینی دوره', accent: 'info' },
+  late:      { label: 'شروع با تأخیر', accent: 'warning' },
+  overdue:   { label: 'دیرتر از پیش‌بینی', accent: 'warning' },
+  unknown:   { label: 'چرخه', accent: 'primary' },
 };
 
-export const PhasePill = memo(function PhasePill({
-  phase,
-  day,
-  style,
-}: PhasePillProps) {
+export const PhasePill = memo(function PhasePill({ phase, day, style }: PhasePillProps) {
   const { colors, spacing, typography, borderRadius } = useTheme();
 
-  const phaseColors = {
-    menstrual: colors.menstrual,
-    follicular: colors.follicular,
-    ovulation: colors.ovulation,
-    luteal: colors.luteal,
-  };
-
-  const phaseBgColors = {
-    menstrual: colors.menstrualBg,
-    follicular: colors.follicularBg,
-    ovulation: colors.ovulationBg,
-    luteal: colors.lutealBg,
-  };
-
-  const phaseBorderColors = {
-    menstrual: colors.menstrualBorder,
-    follicular: colors.follicularBorder,
-    ovulation: colors.ovulationBorder,
-    luteal: colors.lutealBorder,
-  };
-
-  const phaseColor = phaseColors[phase];
-  const phaseBg = phaseBgColors[phase];
-  const phaseBorder = phaseBorderColors[phase];
+  const meta = PHASE_META[phase] ?? PHASE_META.unknown;
+  const phaseColor   = (colors as unknown as Record<string, string>)[meta.accent] ?? colors.primary;
+  const phaseBg      = (colors as unknown as Record<string, string>)[`${meta.accent}Bg`] ?? phaseColor + '1A';
+  const phaseBorder  = (colors as unknown as Record<string, string>)[`${meta.accent}Border`] ?? phaseColor + '4D';
 
   return (
     <View
@@ -64,6 +52,7 @@ export const PhasePill = memo(function PhasePill({
         },
         style,
       ]}
+      accessibilityLabel={`مرحله‌ی ${meta.label}${day ? `، روز ${toFa(day)}` : ''}`}
     >
       <View style={[styles.dot, { backgroundColor: phaseColor }]} />
       <Text
@@ -77,8 +66,8 @@ export const PhasePill = memo(function PhasePill({
           },
         ]}
       >
-        {PHASE_LABELS[phase]}
-        {day !== undefined && ` · Day ${day}`}
+        {meta.label}
+        {day !== undefined && ` · روز ${toFa(day)}`}
       </Text>
     </View>
   );
@@ -97,4 +86,3 @@ const styles = StyleSheet.create({
   },
   text: {},
 });
-

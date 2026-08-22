@@ -1,3 +1,4 @@
+import { navTitle } from '@i18n';
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '@navigation/types';
@@ -11,6 +12,7 @@ const SettingsScreen       = React.lazy(() => import('@screens/profile/SettingsS
 const ChangePasswordScreen = React.lazy(() => import('@screens/profile/ChangePasswordScreen'));
 const DeleteAccountScreen  = React.lazy(() => import('@screens/profile/DeleteAccountScreen'));
 const UpgradeScreen        = React.lazy(() => import('@screens/profile/UpgradeScreen'));
+const SupportScreen        = React.lazy(() => import('@screens/support/SupportScreen'));
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
@@ -26,21 +28,22 @@ export function ProfileStack() {
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-      <Stack.Screen name="Profile"         component={ProfileScreen}        options={{ title: 'Profile' }} />
-      <Stack.Screen name="EditProfile"     component={EditProfileScreen}    options={{ title: 'Edit Profile' }} />
-      <Stack.Screen name="PartnerManage"   component={PartnerManageScreen}  options={{ title: 'Partner' }} />
+      <Stack.Screen name="Profile"         component={ProfileScreen}        options={{ title: navTitle('Profile') }} />
+      <Stack.Screen name="EditProfile"     component={EditProfileScreen}    options={{ title: navTitle('EditProfile') }} />
+      <Stack.Screen name="PartnerManage"   component={PartnerManageScreen}  options={{ title: navTitle('PartnerManage') }} />
       <Stack.Screen
         name="PartnerMessages"
         component={MessagesStack as React.ComponentType}
         options={{ headerShown: false }}
       />
-      <Stack.Screen name="Settings"        component={SettingsScreen}       options={{ title: 'Settings' }} />
-      <Stack.Screen name="ChangePassword"  component={ChangePasswordScreen} options={{ title: 'Change Password' }} />
-      <Stack.Screen name="DeleteAccount"   component={DeleteAccountScreen}  options={{ title: 'Delete Account' }} />
+      <Stack.Screen name="Settings"        component={SettingsScreen}       options={{ title: navTitle('Settings') }} />
+      <Stack.Screen name="ChangePassword"  component={ChangePasswordScreen} options={{ title: navTitle('ChangePassword') }} />
+      <Stack.Screen name="DeleteAccount"   component={DeleteAccountScreen}  options={{ title: navTitle('DeleteAccount') }} />
+      <Stack.Screen name="Support"         component={SupportScreen}       options={{ title: navTitle('Support') }} />
       <Stack.Screen
         name="Upgrade"
         component={UpgradeScreen as React.ComponentType}
-        options={{ title: 'Go Premium', presentation: 'modal' }}
+        options={{ title: navTitle('Upgrade'), presentation: 'modal' }}
       />
     </Stack.Navigator>
   );

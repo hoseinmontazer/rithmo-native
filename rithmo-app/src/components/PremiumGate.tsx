@@ -81,7 +81,7 @@ export function PremiumGate({ children, featureName, overlay = false }: PremiumG
               flex: 1,
             }}
           >
-            {featureName ? `${featureName} is Premium` : 'Premium feature'}
+            {featureName ? `${featureName} ویژه‌ی پرمیوم است` : 'امکان پرمیوم'}
           </Text>
           <TouchableOpacity
             onPress={handleUpgrade}
@@ -90,10 +90,10 @@ export function PremiumGate({ children, featureName, overlay = false }: PremiumG
               { backgroundColor: colors.primary, borderRadius: borderRadius.small },
             ]}
             accessibilityRole="button"
-            accessibilityLabel={`Unlock ${featureName ?? 'premium feature'}`}
+            accessibilityLabel={`باز کردن ${featureName ?? 'امکان پرمیوم'}`}
           >
             <Text style={{ color: colors.textOnPrimary, fontSize: typography.label, fontWeight: '700' }}>
-              Unlock
+              باز کردن
             </Text>
           </TouchableOpacity>
         </View>
@@ -127,7 +127,7 @@ export function PremiumGate({ children, featureName, overlay = false }: PremiumG
             marginBottom: spacing[2],
           }}
         >
-          {featureName ? `${featureName}` : 'Premium feature'}
+          {featureName ? `${featureName}` : 'امکان پرمیوم'}
         </Text>
 
         <Text
@@ -139,7 +139,7 @@ export function PremiumGate({ children, featureName, overlay = false }: PremiumG
             marginBottom: spacing[4],
           }}
         >
-          This feature is included in the Premium plan — a personalized health companion that deepens as you log.
+          این امکان در طرح پرمیوم گنجانده شده — همراه سلامتی شخصی که با ثبت‌های بیشتر، عمیق‌تر می‌شود.
         </Text>
 
         <TouchableOpacity
@@ -153,11 +153,11 @@ export function PremiumGate({ children, featureName, overlay = false }: PremiumG
             },
           ]}
           accessibilityRole="button"
-          accessibilityLabel="Upgrade to Premium"
+          accessibilityLabel="ارتقا به پرمیوم"
         >
           <Icon name="crown" size={16} color={colors.textOnPrimary} style={{ marginHorizontal: 4 }} />
           <Text style={{ color: colors.textOnPrimary, fontSize: typography.button, fontWeight: '700' }}>
-            Upgrade to Premium
+            ارتقا به پرمیوم
           </Text>
         </TouchableOpacity>
       </View>

@@ -25,15 +25,16 @@ import { useTheme } from '@hooks/useTheme';
 import { useProfile, usePatchProfile } from '@hooks/queries/useProfile';
 import { Button, Input, Card, LoadingState, StepperInput } from '@components/ui';
 import { extractErrorMessage } from '@utils/errorHandler';
+import { toFa } from '@utils/persian';
 import type { ProfileScreenProps } from '@navigation/types';
 
 type Props = ProfileScreenProps<'EditProfile'>;
 type Sex = 'female' | 'male' | 'other';
 
 const SEX_OPTIONS: { value: Sex; label: string; emoji: string }[] = [
-  { value: 'female', label: 'Female', emoji: '♀' },
-  { value: 'male',   label: 'Male',   emoji: '♂' },
-  { value: 'other',  label: 'Other',  emoji: '⚧' },
+  { value: 'female', label: 'زن',   emoji: '♀' },
+  { value: 'male',   label: 'مرد',  emoji: '♂' },
+  { value: 'other',  label: 'سایر', emoji: '⚧' },
 ];
 
 // Validation bounds
@@ -133,13 +134,13 @@ export default function EditProfileScreen() {
     const next: typeof errors = {};
     if (form.sex !== 'male') {
       if (form.preferred_cycle_length < CYCLE_MIN || form.preferred_cycle_length > CYCLE_MAX) {
-        next.preferred_cycle_length = `Must be ${CYCLE_MIN}–${CYCLE_MAX} days`;
+        next.preferred_cycle_length = `باید بین ${toFa(CYCLE_MIN)} تا ${toFa(CYCLE_MAX)} روز باشد`;
       }
       if (
         form.preferred_period_duration < PERIOD_MIN ||
         form.preferred_period_duration > PERIOD_MAX
       ) {
-        next.preferred_period_duration = `Must be ${PERIOD_MIN}–${PERIOD_MAX} days`;
+        next.preferred_period_duration = `باید بین ${toFa(PERIOD_MIN)} تا ${toFa(PERIOD_MAX)} روز باشد`;
       }
     }
     setErrors(next);
@@ -160,7 +161,7 @@ export default function EditProfileScreen() {
       });
       navigation.goBack();
     } catch (err) {
-      Alert.alert('Error', extractErrorMessage(err));
+      Alert.alert('خطا', extractErrorMessage(err));
     }
   }, [form, validate, patchProfile, navigation]);
 
@@ -187,27 +188,27 @@ export default function EditProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Personal Info ──────────────────────────────────────────── */}
-        <SectionLabel label="Personal Info" />
+        <SectionLabel label="اطلاعات شخصی" />
         <Card style={{ marginBottom: spacing[5] }}>
           <Input
-            label="First Name"
+            label="نام"
             value={form.first_name}
             onChangeText={(v) => set('first_name', v)}
-            placeholder="Enter first name"
+            placeholder="نام خود را وارد کن"
             leftIconName="account-outline"
             containerStyle={{ marginBottom: spacing[4] }}
           />
           <Input
-            label="Last Name"
+            label="نام خانوادگی"
             value={form.last_name}
             onChangeText={(v) => set('last_name', v)}
-            placeholder="Enter last name"
+            placeholder="نام خانوادگی خود را وارد کن"
             leftIconName="account-outline"
           />
         </Card>
 
         {/* ── Sex ────────────────────────────────────────────────────── */}
-        <SectionLabel label="Biological Sex" />
+        <SectionLabel label="جنسیت" />
         <Card style={{ marginBottom: spacing[5] }}>
           <View style={{ flexDirection: 'row', gap: spacing[2] }}>
             {SEX_OPTIONS.map((opt) => {
@@ -248,7 +249,7 @@ export default function EditProfileScreen() {
         {/* ── Cycle Preferences — hidden for male ────────────────────── */}
         {!isMale && (
           <>
-            <SectionLabel label="Cycle Preferences" />
+            <SectionLabel label="ترجیحات چرخه" />
             <Card style={{ marginBottom: spacing[3] }}>
               <Text
                 style={{
@@ -258,16 +259,16 @@ export default function EditProfileScreen() {
                   marginBottom: spacing[4],
                 }}
               >
-                Set your typical cycle and period length. These help personalise your predictions.
+                طول معمولی چرخه و دوره‌ات را مشخص کن. این به شخصی‌سازی پیش‌بینی‌ها کمک می‌کند.
               </Text>
 
               <StepperInput
-                label="Preferred Cycle Length"
+                label="طول ترجیحی چرخه"
                 value={form.preferred_cycle_length}
                 min={CYCLE_MIN}
                 max={CYCLE_MAX}
-                unit="days"
-                hint={`Normal range: ${CYCLE_MIN}–${CYCLE_MAX} days`}
+                unit="روز"
+                hint={`محدوده‌ی طبیعی: ${toFa(CYCLE_MIN)} تا ${toFa(CYCLE_MAX)} روز`}
                 error={errors.preferred_cycle_length}
                 onChange={(v) => set('preferred_cycle_length', v)}
               />
@@ -275,12 +276,12 @@ export default function EditProfileScreen() {
               <View style={{ height: spacing[4] }} />
 
               <StepperInput
-                label="Preferred Period Duration"
+                label="مدت ترجیحی دوره"
                 value={form.preferred_period_duration}
                 min={PERIOD_MIN}
                 max={PERIOD_MAX}
-                unit="days"
-                hint={`Normal range: ${PERIOD_MIN}–${PERIOD_MAX} days`}
+                unit="روز"
+                hint={`محدوده‌ی طبیعی: ${toFa(PERIOD_MIN)} تا ${toFa(PERIOD_MAX)} روز`}
                 error={errors.preferred_period_duration}
                 onChange={(v) => set('preferred_period_duration', v)}
               />
@@ -300,7 +301,7 @@ export default function EditProfileScreen() {
                     marginTop: spacing[2],
                   }}
                 >
-                  Analytics (Read-only)
+                  تحلیل‌ها (فقط خواندنی)
                 </Text>
                 <Card
                   style={{
@@ -317,18 +318,18 @@ export default function EditProfileScreen() {
                       lineHeight: 16,
                     }}
                   >
-                    Calculated from your logged periods. Cannot be edited.
+                    محاسبه‌شده از دوره‌های ثبت‌شده‌ات. قابل ویرایش نیست.
                   </Text>
                   {hasLegacyCycle && (
                     <ReadOnlyRow
-                      label="Avg cycle length"
-                      value={`${profile!.cycle_length} days`}
+                      label="میانگین طول چرخه"
+                      value={`${toFa(profile!.cycle_length)} روز`}
                     />
                   )}
                   {hasLegacyPeriod && (
                     <ReadOnlyRow
-                      label="Avg period duration"
-                      value={`${profile!.period_duration} days`}
+                      label="میانگین مدت دوره"
+                      value={`${toFa(profile!.period_duration)} روز`}
                     />
                   )}
                 </Card>
@@ -338,14 +339,14 @@ export default function EditProfileScreen() {
         )}
 
         <Button
-          label="Save Changes"
+          label="ذخیره تغییرات"
           onPress={handleSave}
           loading={isPending}
           fullWidth
           size="lg"
         />
         <Button
-          label="Cancel"
+          label="انصراف"
           onPress={() => navigation.goBack()}
           variant="ghost"
           fullWidth

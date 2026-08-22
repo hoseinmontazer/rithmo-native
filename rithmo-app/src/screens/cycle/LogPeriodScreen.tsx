@@ -19,6 +19,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCreatePeriod, usePatchPeriod } from '@hooks/queries/usePeriods';
 import { useToast } from '../../context/ToastContext';
 import { formatDateISO } from '@utils/dateUtils';
+import { faDate, faDateShort } from '@utils/persian';
 
 interface ActivePeriodError {
   error: string;
@@ -47,6 +48,25 @@ const COMMON_MEDS = [
   'naproxen',
 ];
 
+const SYMPTOM_LABELS: Record<string, string> = {
+  cramps: 'گرفتگی',
+  headache: 'سردرد',
+  fatigue: 'خستگی',
+  bloating: 'نفخ',
+  'mood swings': 'نوسان خلق',
+  backache: 'درد کمر',
+  nausea: 'تهوع',
+  insomnia: 'بی‌خوابی',
+};
+
+const MED_LABELS: Record<string, string> = {
+  ibuprofen: 'ایبوپروفن',
+  paracetamol: 'استامینوفن',
+  'heating pad': 'کیسه آب گرم',
+  aspirin: 'آسپرین',
+  naproxen: 'ناپروکسن',
+};
+
 // ── Custom Date Picker Sheet ──────────────────────────────────────────────────
 function CustomDatePickerSheet({
   visible,
@@ -70,7 +90,7 @@ function CustomDatePickerSheet({
   });
 
   const fmt = (d: Date) =>
-    d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    faDate(d, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
   const isToday = (d: Date) => d.toDateString() === today.toDateString();
   const isSel = (d: Date) => d.toDateString() === cur.toDateString();
@@ -88,7 +108,7 @@ function CustomDatePickerSheet({
           {/* Title */}
           <View style={[styles.modalHeaderRow, { borderBottomColor: colors.border, padding: spacing[4] }]}>
             <Text style={[styles.modalTitle, { color: colors.textPrimary, fontSize: typography.base }]}>
-              Select Start Date
+              انتخاب تاریخ شروع
             </Text>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Icon name="close" size={20} color={colors.textSecondary} />
@@ -129,7 +149,7 @@ function CustomDatePickerSheet({
                     </Text>
                     {isToday(d) && (
                       <Text style={[styles.todayTagText, { color: colors.menstrual, fontSize: typography.xs }]}>
-                        Today
+                        امروز
                       </Text>
                     )}
                   </View>
@@ -142,7 +162,7 @@ function CustomDatePickerSheet({
           {/* Action */}
           <View style={[styles.modalActionFooter, { borderTopColor: colors.border, padding: spacing[4] }]}>
             <Button
-              label="Select This Date"
+              label="انتخاب این تاریخ"
               onPress={() => {
                 onSelect(cur);
                 onClose();
@@ -209,7 +229,7 @@ function EndPeriodSheet({
   const noValidDates = validDates.length === 0;
 
   const fmt = (d: Date) =>
-    d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    faDate(d, { weekday: 'short', month: 'short', day: 'numeric' });
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -220,10 +240,10 @@ function EndPeriodSheet({
           <View style={[styles.endPeriodHeader, { padding: spacing[4], borderBottomColor: colors.border }]}>
             <View>
               <Text style={[styles.modalTitle, { color: colors.textPrimary, fontSize: typography.base }]}>
-                Previous Period is Active
+                دوره‌ی قبلی هنوز فعال است
               </Text>
               <Text style={[styles.modalSubtitle, { color: colors.textSecondary, fontSize: typography.xs, marginTop: 2 }]}>
-                Started {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                شروع: {faDateShort(startDate)}
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -237,8 +257,8 @@ function EndPeriodSheet({
               <Icon name="information-outline" size={16} color={colors.primary} />
               <Text style={[styles.endPeriodNoteText, { color: colors.textSecondary, fontSize: typography.xs }]}>
                 {noValidDates
-                  ? `Period started recently. Earliest allowable end date is ${fmt(minEnd)}.`
-                  : `Please specify the end date for your previous period (minimum 1 day duration).`}
+                  ? `دوره اخیرا شروع شده. زودترین تاریخ پایان مجاز: ${faDateShort(minEnd)}.`
+                  : `لطفا تاریخ پایان دوره‌ی قبلی را مشخص کن (حداقل ۱ روز).`}
               </Text>
             </View>
 
@@ -278,7 +298,7 @@ function EndPeriodSheet({
             {/* Actions */}
             <View style={{ gap: spacing[2] }}>
               <Button
-                label={noValidDates ? 'Keep Period Active' : 'End & Start New Period'}
+                label={noValidDates ? 'ادامه‌ی دوره‌ی فعال' : 'پایان و شروع دوره‌ی جدید'}
                 onPress={() => {
                   if (noValidDates) {
                     onClose();
@@ -292,7 +312,7 @@ function EndPeriodSheet({
 
               {!noValidDates && (
                 <Button
-                  label="Just End Previous Period"
+                  label="فقط پایان دوره‌ی قبل"
                   onPress={() => onEndOnly(formatDateISO(endDate))}
                   variant="outline"
                   size="md"
@@ -349,7 +369,7 @@ export default function LogPeriodScreen() {
       },
       {
         onSuccess: () => {
-          toast.success('Period Logged', 'Your cycle entry has been recorded.');
+          toast.success('ثبت دوره', 'ثبت چرخه‌ات انجام شد.');
           navigation.goBack();
         },
         onError: (error: any) => {
@@ -361,7 +381,7 @@ export default function LogPeriodScreen() {
               activePeriodStartDate: data.start_date,
             });
           } else {
-            toast.error('Failed to Log', data?.error || 'Please check your inputs.');
+            toast.error('ثبت ناموفق بود', data?.error || 'لطفا ورودی‌ها را بررسی کن.');
           }
         },
       },
@@ -382,10 +402,10 @@ export default function LogPeriodScreen() {
             },
             {
               onSuccess: () => {
-                toast.success('Period Logged', 'Previous period ended and new one recorded.');
+                toast.success('ثبت دوره', 'دوره‌ی قبل پایان یافت و دوره‌ی جدید ثبت شد.');
                 navigation.goBack();
               },
-              onError: () => toast.error('Error', 'Could not create new period.'),
+              onError: () => toast.error('خطا', 'نمی‌توان دوره‌ی جدید ساخت.'),
             },
           );
         },
@@ -393,8 +413,8 @@ export default function LogPeriodScreen() {
           const msg =
             err?.response?.data?.end_date?.[0] ||
             err?.response?.data?.error ||
-            'Could not end active period.';
-          toast.error('Error', msg);
+            'نمی‌توان دوره‌ی فعال را پایان داد.';
+          toast.error('خطا', msg);
         },
       },
     );
@@ -406,15 +426,15 @@ export default function LogPeriodScreen() {
       { id: endPeriodSheet.activePeriodId, data: { end_date: endDate } },
       {
         onSuccess: () => {
-          toast.success('Period Ended', 'Active period closed successfully.');
+          toast.success('پایان دوره', 'دوره‌ی فعال با موفقیت بسته شد.');
           navigation.goBack();
         },
         onError: (err: any) => {
           const msg =
             err?.response?.data?.end_date?.[0] ||
             err?.response?.data?.error ||
-            'Could not end active period.';
-          toast.error('Error', msg);
+            'نمی‌توان دوره‌ی فعال را پایان داد.';
+          toast.error('خطا', msg);
         },
       },
     );
@@ -449,7 +469,7 @@ export default function LogPeriodScreen() {
           {/* Header Introduction */}
           <View style={{ marginBottom: spacing[4] }}>
             <Text style={[styles.headerSubtitle, { color: colors.textSecondary, fontSize: typography.sm }]}>
-              Record the start date of your menstrual cycle.
+              تاریخ شروع دوره‌ی قاعدگیت را ثبت کن.
             </Text>
           </View>
 
@@ -474,7 +494,7 @@ export default function LogPeriodScreen() {
                 ]}
               >
                 <Text style={[styles.quickDateLabel, { color: isToday ? colors.menstrual : colors.textPrimary, fontSize: typography.sm, fontWeight: isToday ? '700' : '500' }]}>
-                  Today
+                  امروز
                 </Text>
               </TouchableOpacity>
 
@@ -491,7 +511,7 @@ export default function LogPeriodScreen() {
                 ]}
               >
                 <Text style={[styles.quickDateLabel, { color: isYesterday ? colors.menstrual : colors.textPrimary, fontSize: typography.sm, fontWeight: isYesterday ? '700' : '500' }]}>
-                  Yesterday
+                  دیروز
                 </Text>
               </TouchableOpacity>
 
@@ -508,7 +528,7 @@ export default function LogPeriodScreen() {
                 ]}
               >
                 <Text style={[styles.quickDateLabel, { color: isTwoDaysAgo ? colors.menstrual : colors.textPrimary, fontSize: typography.sm, fontWeight: isTwoDaysAgo ? '700' : '500' }]}>
-                  2 Days Ago
+                  ۲ روز پیش
                 </Text>
               </TouchableOpacity>
             </View>
@@ -532,8 +552,8 @@ export default function LogPeriodScreen() {
                 <Icon name="calendar-range" size={18} color={isCustom ? colors.menstrual : colors.textSecondary} />
                 <Text style={[styles.customDateLabel, { color: isCustom ? colors.menstrual : colors.textPrimary, fontSize: typography.sm, fontWeight: isCustom ? '700' : '500' }]}>
                   {isCustom
-                    ? startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
-                    : 'Choose another date…'}
+                    ? faDate(startDate, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+                    : 'انتخاب تاریخ دیگر…'}
                 </Text>
               </View>
               <Icon name="chevron-right" size={18} color={colors.textTertiary} />
@@ -551,10 +571,10 @@ export default function LogPeriodScreen() {
           <View style={{ marginBottom: spacing[5] }}>
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.fieldSectionLabel, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                SYMPTOMS
+                علائم
               </Text>
               <Text style={[styles.optionalTag, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                Optional
+                اختیاری
               </Text>
             </View>
 
@@ -588,7 +608,7 @@ export default function LogPeriodScreen() {
                         },
                       ]}
                     >
-                      {s}
+                      {SYMPTOM_LABELS[s] ?? s}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -608,7 +628,7 @@ export default function LogPeriodScreen() {
                   marginTop: spacing[2],
                 },
               ]}
-              placeholder="Other symptoms (e.g. fatigue, nausea)..."
+              placeholder="سایر علائم (مثلا خستگی، تهوع)…"
               placeholderTextColor={colors.textTertiary}
               value={symptomsText}
               onChangeText={setSymptomsText}
@@ -621,10 +641,10 @@ export default function LogPeriodScreen() {
           <View style={{ marginBottom: spacing[6] }}>
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.fieldSectionLabel, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                MEDICATION
+                دارو
               </Text>
               <Text style={[styles.optionalTag, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                Optional
+                اختیاری
               </Text>
             </View>
 
@@ -658,7 +678,7 @@ export default function LogPeriodScreen() {
                         },
                       ]}
                     >
-                      {m}
+                      {MED_LABELS[m] ?? m}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -678,7 +698,7 @@ export default function LogPeriodScreen() {
                   marginTop: spacing[2],
                 },
               ]}
-              placeholder="Other medications taken..."
+              placeholder="سایر داروهای مصرف‌شده…"
               placeholderTextColor={colors.textTertiary}
               value={medicationText}
               onChangeText={setMedicationText}
@@ -690,7 +710,7 @@ export default function LogPeriodScreen() {
           {/* ── Submit & Cancel Actions ───────────────────────────── */}
           <View style={{ gap: spacing[2] }}>
             <Button
-              label={busy ? 'Saving…' : 'Save Period Entry'}
+              label={busy ? 'در حال ذخیره…' : 'ذخیره‌ی ثبت دوره'}
               onPress={handleSubmit}
               disabled={busy}
               loading={busy}
@@ -698,7 +718,7 @@ export default function LogPeriodScreen() {
               fullWidth
             />
             <Button
-              label="Cancel"
+              label="انصراف"
               onPress={() => navigation.goBack()}
               variant="ghost"
               size="md"

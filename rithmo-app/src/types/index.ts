@@ -6,3 +6,4 @@ export * from './wellness.types';
 export * from './notification.types';
 export * from './ai.types';
 export * from './medication.types';
+export * from './intelligence.types';

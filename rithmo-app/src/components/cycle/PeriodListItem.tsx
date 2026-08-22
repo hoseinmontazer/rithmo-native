@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '@hooks/useTheme';
 import { Badge } from '@components/ui/Badge';
 import { formatDate, daysBetween } from '@utils/dateUtils';
+import { toFa } from '@utils/persian';
 import type { Period } from '@types/period.types';
 
 interface PeriodListItemProps {
@@ -53,9 +54,9 @@ export const PeriodListItem = memo(function PeriodListItem({ period, onPress }: 
         </View>
 
         {duration !== null ? (
-          <Badge label={`${duration}d`} variant="primary" />
+          <Badge label={`${toFa(duration)} روز`} variant="primary" />
         ) : (
-          <Badge label="Ongoing" variant="warning" />
+          <Badge label="در جریان" variant="warning" />
         )}
       </View>
 

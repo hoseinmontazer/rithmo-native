@@ -4,10 +4,30 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '@hooks/useTheme';
 import { usePeriod } from '@hooks/queries/usePeriods';
 import { Button, Card, Badge, LoadingState, ErrorState } from '@components/ui';
-import { formatDate, daysBetween } from '@utils/dateUtils';
+import { daysBetween } from '@utils/dateUtils';
+import { toFa, faDate } from '@utils/persian';
 import type { CycleScreenProps } from '@navigation/types';
 
 type Props = CycleScreenProps<'PeriodDetail'>;
+
+const SYMPTOM_LABELS: Record<string, string> = {
+  cramps: 'گرفتگی',
+  headache: 'سردرد',
+  fatigue: 'خستگی',
+  bloating: 'نفخ',
+  'mood swings': 'نوسان خلق',
+  backache: 'درد کمر',
+  nausea: 'تهوع',
+  insomnia: 'بی‌خوابی',
+};
+
+const MED_LABELS: Record<string, string> = {
+  ibuprofen: 'ایبوپروفن',
+  paracetamol: 'استامینوفن',
+  'heating pad': 'کیسه آب گرم',
+  aspirin: 'آسپرین',
+  naproxen: 'ناپروکسن',
+};
 
 /** Returns next period date only if it's meaningfully after end_date */
 function safeNextPeriod(period: any): string | null {
@@ -84,7 +104,7 @@ export default function PeriodDetailScreen() {
             fontSize: typography.sm,
             fontWeight: '700',
           }}>
-            Currently active — period is ongoing
+            در حال حاضر فعال — دوره در جریان است
           </Text>
         </View>
       )}
@@ -96,10 +116,10 @@ export default function PeriodDetailScreen() {
         <View style={styles.dateRow}>
           <View style={{ flex: 1 }}>
             <Text style={{ color: colors.textSecondary, fontSize: typography.xs, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: spacing[1] }}>
-              Start Date
+              تاریخ شروع
             </Text>
             <Text style={{ color: colors.textPrimary, fontSize: typography.xl, fontWeight: '800' }}>
-              {formatDate(period.start_date)}
+              {faDate(period.start_date)}
             </Text>
           </View>
 
@@ -107,15 +127,15 @@ export default function PeriodDetailScreen() {
 
           <View style={{ flex: 1, alignItems: 'flex-end' }}>
             <Text style={{ color: colors.textSecondary, fontSize: typography.xs, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: spacing[1] }}>
-              End Date
+              تاریخ پایان
             </Text>
             {period.end_date ? (
               <Text style={{ color: colors.textPrimary, fontSize: typography.xl, fontWeight: '800' }}>
-                {formatDate(period.end_date)}
+                {faDate(period.end_date)}
               </Text>
             ) : (
               <Text style={{ color: (colors as any).ovulationColor || colors.primary, fontSize: typography.base, fontWeight: '700' }}>
-                Ongoing
+                در جریان
               </Text>
             )}
           </View>
@@ -124,7 +144,7 @@ export default function PeriodDetailScreen() {
         {/* Duration badge */}
         {duration !== null && (
           <View style={{ flexDirection: 'row', marginTop: spacing[3] }}>
-            <Badge label={`${duration} days`} variant="primary" />
+            <Badge label={`${toFa(duration)} روز`} variant="primary" />
           </View>
         )}
       </Card>
@@ -132,25 +152,25 @@ export default function PeriodDetailScreen() {
       {/* ── Cycle info ────────────────────────────────────────────── */}
       <Card style={{ marginBottom: spacing[4] }}>
         <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700', marginBottom: spacing[1] }}>
-          Cycle Info
+          اطلاعات چرخه
         </Text>
 
         {period.cycle_length && (
-          <InfoRow label="Cycle Length" value={`${period.cycle_length} days`} />
+          <InfoRow label="طول چرخه" value={`${toFa(period.cycle_length)} روز`} />
         )}
         {period.period_duration && (
-          <InfoRow label="Period Duration" value={`${period.period_duration} days`} />
+          <InfoRow label="مدت دوره" value={`${toFa(period.period_duration)} روز`} />
         )}
         {period.predicted_end_date && (
-          <InfoRow label="Predicted End" value={formatDate(period.predicted_end_date)} />
+          <InfoRow label="پایان پیش‌بینی‌شده" value={faDate(period.predicted_end_date)} />
         )}
         {/* Only show next period if it's a valid date after end_date */}
         {nextPeriod && (
-          <InfoRow label="Next Period" value={formatDate(nextPeriod)} />
+          <InfoRow label="دوره‌ی بعدی" value={faDate(nextPeriod)} />
         )}
         {!period.cycle_length && !period.period_duration && !nextPeriod && (
           <Text style={{ color: colors.textSecondary, fontSize: typography.sm, paddingVertical: spacing[2] }}>
-            Cycle info will appear after your period ends.
+            اطلاعات چرخه پس از پایان دوره نمایش داده می‌شود.
           </Text>
         )}
       </Card>
@@ -159,11 +179,11 @@ export default function PeriodDetailScreen() {
       {symptoms.length > 0 && (
         <Card style={{ marginBottom: spacing[4] }}>
           <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700', marginBottom: spacing[3] }}>
-            Symptoms
+            علائم
           </Text>
           <View style={styles.chipRow}>
             {symptoms.map((s: string) => (
-              <Badge key={s} label={s} variant="error" style={{ marginRight: spacing[2], marginBottom: spacing[2] }} />
+              <Badge key={s} label={SYMPTOM_LABELS[s] ?? s} variant="error" style={{ marginRight: spacing[2], marginBottom: spacing[2] }} />
             ))}
           </View>
         </Card>
@@ -173,11 +193,11 @@ export default function PeriodDetailScreen() {
       {meds.length > 0 && (
         <Card style={{ marginBottom: spacing[6] }}>
           <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700', marginBottom: spacing[3] }}>
-            Medication
+            دارو
           </Text>
           <View style={styles.chipRow}>
             {meds.map((m: string) => (
-              <Badge key={m} label={m} variant="info" style={{ marginRight: spacing[2], marginBottom: spacing[2] }} />
+              <Badge key={m} label={MED_LABELS[m] ?? m} variant="info" style={{ marginRight: spacing[2], marginBottom: spacing[2] }} />
             ))}
           </View>
         </Card>
@@ -186,13 +206,13 @@ export default function PeriodDetailScreen() {
       {/* ── Actions — view/edit only, NO delete ───────────────────── */}
       <View style={{ gap: spacing[3] }}>
         <Button
-          label="Edit Period"
+          label="ویرایش دوره"
           onPress={() => navigation.navigate('EditPeriod', { periodId })}
           size="lg"
           fullWidth
         />
         <Button
-          label="Back to History"
+          label="بازگشت به تاریخچه"
           onPress={() => navigation.goBack()}
           variant="outline"
           size="lg"

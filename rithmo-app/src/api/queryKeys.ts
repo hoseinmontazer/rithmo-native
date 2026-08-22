@@ -9,6 +9,7 @@ export const queryKeys = {
   profile: {
     all: () => ['profile'] as const,
     invitation: () => ['profile', 'invitation'] as const,
+    shareSettings: () => ['profile', 'shareSettings'] as const,
   },
   periods: {
     all: () => ['periods'] as const,
@@ -26,6 +27,10 @@ export const queryKeys = {
   },
   wellness: {
     all: () => ['wellness'] as const,
+    // The window is part of the identity — a 30-day list and a 90-day list
+    // are different data and must not share a cache entry.
+    list: (bounds?: { days?: number; limit?: number }) =>
+      ['wellness', 'list', bounds?.days ?? 'all', bounds?.limit ?? 'all'] as const,
     detail: (id: number) => ['wellness', id] as const,
     analytics: (days: number) => ['wellness', 'analytics', days] as const,
     streaks: () => ['wellness', 'streaks'] as const,
@@ -66,7 +71,20 @@ export const queryKeys = {
     correlations: () => ['dashboard', 'correlations'] as const,
     comparison:   () => ['dashboard', 'comparison']   as const,
   },
+  intelligence: {
+    all: () => ['intelligence'] as const,
+    today: () => ['intelligence', 'today'] as const,
+    insights: (includeInsufficient?: boolean) =>
+      ['intelligence', 'insights', includeInsufficient ? 'all' : 'supported'] as const,
+    progress: () => ['intelligence', 'progress'] as const,
+    partnerToday: () => ['intelligence', 'partner', 'today'] as const,
+  },
   subscription: {
     status: () => ['subscription', 'status'] as const,
+  },
+  support: {
+    all: () => ['support'] as const,
+    list: () => ['support', 'list'] as const,
+    detail: (id: number) => ['support', 'detail', id] as const,
   },
 } as const;

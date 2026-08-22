@@ -31,10 +31,10 @@ export default function ResetPasswordConfirmScreen() {
 
   const validate = useCallback((): boolean => {
     const next: Partial<typeof form> = {};
-    if (!form.new_password) {next.new_password = 'Password is required';}
-    if (form.new_password.length < 8) {next.new_password = 'Minimum 8 characters';}
+    if (!form.new_password) {next.new_password = 'رمز عبور الزامی است';}
+    if (form.new_password.length < 8) {next.new_password = 'حداقل ۸ کاراکتر';}
     if (form.new_password !== form.re_new_password) {
-      next.re_new_password = 'Passwords do not match';
+      next.re_new_password = 'رمز عبور یکسان نیست';
     }
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -51,11 +51,11 @@ export default function ResetPasswordConfirmScreen() {
         new_password: form.new_password,
         re_new_password: form.re_new_password,
       });
-      Alert.alert('Success', 'Password reset successfully!', [
-        { text: 'Sign In', onPress: () => navigation.navigate('Login') },
+      Alert.alert('موفقیت', 'رمز عبور با موفقیت بازنشانی شد!', [
+        { text: 'ورود', onPress: () => navigation.navigate('Login') },
       ]);
     } catch (err) {
-      Alert.alert('Error', extractErrorMessage(err));
+      Alert.alert('خطا', extractErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -73,35 +73,35 @@ export default function ResetPasswordConfirmScreen() {
         <Text style={{ fontSize: 48, textAlign: 'center' }}>🔐</Text>
 
         <Text style={[styles.title, { color: colors.textPrimary, fontSize: typography['2xl'], fontWeight: '700', marginTop: spacing[4], marginBottom: spacing[2] }]}>
-          Set New Password
+          تعیین رمز عبور جدید
         </Text>
 
         <Text style={[styles.subtitle, { color: colors.textSecondary, fontSize: typography.base, marginBottom: spacing[6] }]}>
-          Choose a strong password with at least 8 characters.
+          یک رمز عبور قوی با حداقل ۸ کاراکتر انتخاب کن.
         </Text>
 
         <Input
-          label="New Password"
+          label="رمز عبور جدید"
           value={form.new_password}
           onChangeText={(v) => set('new_password', v)}
           isPassword
           error={errors.new_password}
-          leftIconName="lock-closed-outline"
+          leftIconName="lock-outline"
           containerStyle={{ marginBottom: spacing[4] }}
         />
 
         <Input
-          label="Confirm Password"
+          label="تکرار رمز عبور"
           value={form.re_new_password}
           onChangeText={(v) => set('re_new_password', v)}
           isPassword
           error={errors.re_new_password}
-          leftIconName="lock-closed-outline"
+          leftIconName="lock-outline"
           containerStyle={{ marginBottom: spacing[6] }}
         />
 
         <Button
-          label="Reset Password"
+          label="بازیابی رمز عبور"
           onPress={handleSubmit}
           loading={loading}
           fullWidth
@@ -109,7 +109,7 @@ export default function ResetPasswordConfirmScreen() {
         />
 
         <Button
-          label="Back to Login"
+          label="بازگشت به ورود"
           onPress={() => navigation.navigate('Login')}
           variant="ghost"
           fullWidth

@@ -9,10 +9,17 @@ import type {
   UpdateWellnessLogRequest,
 } from '@types/wellness.types';
 
-export function useWellnessLogs() {
+/**
+ * Wellness logs for a bounded window.
+ *
+ * The bound is part of the query key: two screens asking for different
+ * windows must not share a cache entry, or the first one to load would
+ * hand the other a truncated or oversized list.
+ */
+export function useWellnessLogs(bounds?: { days?: number; limit?: number }) {
   return useQuery<WellnessLog[]>({
-    queryKey: queryKeys.wellness.all(),
-    queryFn: () => wellnessService.listLogs(),
+    queryKey: queryKeys.wellness.list(bounds),
+    queryFn: () => wellnessService.listLogs(bounds),
   });
 }
 
@@ -33,6 +40,12 @@ export function useCreateOrUpdateWellnessLog() {
       queryClient.invalidateQueries({ queryKey: queryKeys.wellness.today() });
       queryClient.invalidateQueries({ queryKey: queryKeys.wellness.streaks() });
       queryClient.invalidateQueries({ queryKey: ['wellness', 'analytics'] });
+      // A new log changes what the engine knows: today's evidence, the
+      // accrual ledger, and whether a signal is still being learned. Home
+      // now reads ALL of that from `intelligence.today`, so without this the
+      // screen she returns to after logging would still show the state from
+      // before she logged. Prefix key — covers today/insights/progress.
+      queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.all() });
     },
   });
 }

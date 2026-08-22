@@ -1,15 +1,16 @@
 /**
- * OnboardingScreen — 4-step post-registration setup
+ * OnboardingScreen — role-first post-registration setup
  *
- * Purpose:
- *   1. Capture user intent (why did they install Rhythmo)
- *   2. Assess cycle regularity self-perception
- *   3. Surface recurring symptoms awareness
- *   4. Log first period start date → creates first Period record
- *      so the user enters the app with cycle context already populated
+ * Step 1 asks WHO this Rhythmo is for:
+ *   - Cycle owner  → classic 4 steps (intent, regularity, symptoms,
+ *     first period date → creates the first Period record)
+ *   - Partner      → one intro step about the partner experience and
+ *     privacy defaults, then straight into the app
  *
- * On completion, sets AsyncStorage key 'onboarding_complete' = '1'
- * and navigates to the main app.
+ * On completion the screen persists:
+ *   - server profile: user_role ('owner'|'partner') + onboarding_completed
+ *   - local: AsyncStorage 'onboarding_complete' = '1' and
+ *     'onboarding_role' = 'owner'|'partner'
  *
  * Design:
  *   - No sliders, no long forms
@@ -18,7 +19,7 @@
  *   - All questions are optional except Step 4 (period date)
  *     — skipping is gracefully handled
  */
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -26,8 +27,6 @@ import {
   StyleSheet,
   Animated,
   ScrollView,
-  Alert,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -36,9 +35,13 @@ import { useTheme } from '@hooks/useTheme';
 import { useCreatePeriod } from '@hooks/queries/usePeriods';
 import { profileService } from '@api/services/profileService';
 import { formatDateISO } from '@utils/dateUtils';
+import type { UpdateProfileRequest } from '@types/profile.types';
+import { ONBOARDING_ROLE_KEY } from '@hooks/useRole';
+import { track } from '@analytics';
 
-const TOTAL_STEPS = 4;
 const ONBOARDING_KEY = 'onboarding_complete';
+
+type OnboardingRole = 'owner' | 'partner';
 
 // ── Step option picker ────────────────────────────────────────────────────────
 
@@ -48,9 +51,10 @@ interface OptionItemProps {
   selected: boolean;
   onPress: () => void;
   accent: string;
+  sub?: string;
 }
 
-function OptionItem({ label, emoji, selected, onPress, accent }: OptionItemProps) {
+function OptionItem({ label, emoji, selected, onPress, accent, sub }: OptionItemProps) {
   const { colors, typography } = useTheme();
   return (
     <TouchableOpacity
@@ -66,9 +70,16 @@ function OptionItem({ label, emoji, selected, onPress, accent }: OptionItemProps
       ]}
     >
       <Text style={styles.optionEmoji}>{emoji}</Text>
-      <Text style={[styles.optionLabel, { color: colors.textPrimary, fontSize: typography.base }]}>
-        {label}
-      </Text>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.optionLabel, { color: colors.textPrimary, fontSize: typography.base }]}>
+          {label}
+        </Text>
+        {sub ? (
+          <Text style={[styles.optionSub, { color: colors.textSecondary, fontSize: typography.sm }]}>
+            {sub}
+          </Text>
+        ) : null}
+      </View>
       {selected && (
         <View style={[styles.checkDot, { backgroundColor: accent }]}>
           <Icon name="check" size={12} color="#fff" />
@@ -100,7 +111,7 @@ function ProgressDots({ current, total, accent }: { current: number; total: numb
   );
 }
 
-// ── Step 4: date picker (simple calendar-free approach) ───────────────────────
+// ── Period date options ───────────────────────────────────────────────────────
 
 const DAYS_AGO_OPTIONS = [
   { label: 'امروز',           days: 0 },
@@ -130,6 +141,9 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
   const { colors, spacing, typography } = useTheme();
   const { mutateAsync: createPeriod } = useCreatePeriod();
 
+  const [role, setRole] = useState<OnboardingRole | null>(null);
+
+  useEffect(() => { track('onboarding_started'); }, []);
   const [step, setStep] = useState(1);
   const [intent, setIntent] = useState<string | null>(null);
   const [regularity, setRegularity] = useState<string | null>(null);
@@ -138,6 +152,8 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
   const [saving, setSaving] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const totalSteps = role === 'partner' ? 2 : 5;
 
   const goToNextStep = useCallback(() => {
     // Fade out
@@ -148,50 +164,74 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
     });
   }, [fadeAnim]);
 
-  const handleComplete = useCallback(async () => {
+  const finish = useCallback(async (finalRole: OnboardingRole, createFirstPeriod: boolean, periodAgo: number | null) => {
     setSaving(true);
     try {
-      // 1. Persist onboarding preferences to UserProfile
-      const profileUpdates: Record<string, string> = {};
-      if (intent) profileUpdates.onboarding_intent = intent;
-      if (regularity) profileUpdates.onboarding_regularity = regularity;
-      if (hasSymptoms) profileUpdates.onboarding_symptoms = hasSymptoms;
-      if (Object.keys(profileUpdates).length > 0) {
-        try {
-          await profileService.patchProfile(profileUpdates);
-        } catch {
-          // Non-blocking: ensure onboarding completes even if offline/patch fails
-        }
+      // 1. Persist role + onboarding preferences to UserProfile.
+      const profileUpdates: UpdateProfileRequest = {
+        user_role: finalRole,
+        onboarding_completed: true,
+      };
+      if (finalRole === 'owner') {
+        if (intent) profileUpdates.onboarding_intent = intent;
+        if (regularity) profileUpdates.onboarding_regularity = regularity;
+        if (hasSymptoms) profileUpdates.onboarding_symptoms = hasSymptoms;
+      }
+      try {
+        await profileService.patchProfile(profileUpdates);
+      } catch {
+        // Non-blocking: ensure onboarding completes even if the patch fails.
       }
 
-      // 2. Create the first period record if user specified when it started
-      if (periodDaysAgo !== null) {
-        const startDate = daysAgoToISO(periodDaysAgo);
+      // 2. Create the first period record (owners only).
+      if (createFirstPeriod && periodAgo !== null) {
+        const startDate = daysAgoToISO(periodAgo);
         await createPeriod({ start_date: startDate });
       }
-      await AsyncStorage.setItem(ONBOARDING_KEY, '1');
+      await AsyncStorage.multiSet([
+        [ONBOARDING_KEY, '1'],
+        [ONBOARDING_ROLE_KEY, finalRole],
+      ]);
+      track('onboarding_completed', { role: finalRole });
       onComplete();
     } catch (err) {
-      // Period creation may fail if period already exists — that's fine
-      await AsyncStorage.setItem(ONBOARDING_KEY, '1');
+      // Period creation may fail if a period already exists — that's fine.
+      await AsyncStorage.multiSet([
+        [ONBOARDING_KEY, '1'],
+        [ONBOARDING_ROLE_KEY, finalRole],
+      ]);
       onComplete();
     } finally {
       setSaving(false);
     }
-  }, [intent, regularity, hasSymptoms, periodDaysAgo, createPeriod, onComplete]);
+  }, [intent, regularity, hasSymptoms, createPeriod, onComplete]);
+
+  const handleComplete = useCallback(() => {
+    if (role === 'partner') {
+      // Partner path: no cycle data of their own is created.
+      finish('partner', false, null);
+    } else {
+      finish('owner', true, periodDaysAgo);
+    }
+  }, [role, periodDaysAgo, finish]);
 
   const handleSkip = useCallback(async () => {
-    await AsyncStorage.setItem(ONBOARDING_KEY, '1');
+    // Skipping keeps the user on the default (owner) experience.
+    await AsyncStorage.multiSet([
+      [ONBOARDING_KEY, '1'],
+      [ONBOARDING_ROLE_KEY, 'owner'],
+    ]);
     onComplete();
   }, [onComplete]);
 
   const accent = colors.primary;
+  const ctaLabel = role === 'partner' && step === 2 ? 'شروع ریتمو' : 'ادامه';
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       {/* Progress + Skip */}
       <View style={[styles.topBar, { paddingHorizontal: spacing[5], paddingTop: spacing[4] }]}>
-        <ProgressDots current={step} total={TOTAL_STEPS} accent={accent} />
+        <ProgressDots current={step} total={totalSteps} accent={accent} />
         <TouchableOpacity onPress={handleSkip}>
           <Text style={{ color: colors.textSecondary, fontSize: typography.sm, fontWeight: '500' }}>
             رد کردن
@@ -206,8 +246,58 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
       >
         <Animated.View style={{ opacity: fadeAnim }}>
 
-          {/* ── Step 1: Intent ─────────────────────────────────────────── */}
+          {/* ── Step 1: Role (who is this for?) ─────────────────────────── */}
           {step === 1 && (
+            <View>
+              <Text style={[styles.stepQ, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
+                ریتمو برای چه کسی است؟
+              </Text>
+              <Text style={[styles.stepSub, { color: colors.textSecondary, fontSize: typography.base }]}>
+                با این انتخاب، تجربه‌ات را می‌سازیم.
+              </Text>
+              <View style={{ gap: 10, marginTop: spacing[6] }}>
+                <OptionItem
+                  label="خودم — چرخه‌ی خودم را ردیابی می‌کنم"
+                  sub="ثبت دوره، پیش‌بینی و درک بدنم"
+                  emoji="🌸"
+                  selected={role === 'owner'}
+                  onPress={() => { setRole('owner'); setStep(2); }}
+                  accent={accent}
+                />
+                <OptionItem
+                  label="شریکم — می‌خواهم چرخه‌ی شریکم را دنبال کنم"
+                  sub="دنبال‌کردن چرخه‌ی شریکت، فقط با اجازه‌ی خودش"
+                  emoji="👥"
+                  selected={role === 'partner'}
+                  onPress={() => { setRole('partner'); setStep(2); }}
+                  accent={accent}
+                />
+              </View>
+            </View>
+          )}
+
+          {/* ── Partner intro (partner path, step 2) ────────────────────── */}
+          {step === 2 && role === 'partner' && (
+            <View>
+              <Text style={[styles.stepQ, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
+                تجربه‌ی شریک در ریتمو
+              </Text>
+              <Text style={[styles.stepSub, { color: colors.textSecondary, fontSize: typography.base }]}>
+                تو فقط آن‌چه شریکت برای اشتراک‌گذاری فعال کرده می‌بیند. کنترل همیشه دست خودش است.
+              </Text>
+              <View style={{ gap: 10, marginTop: spacing[6] }}>
+                <OptionItem label="وضعیت دوره — فقط اگر شریکت فعال کند" emoji="📅" selected={false} onPress={() => {}} accent={accent} />
+                <OptionItem label="پیش‌بینی‌ها — اختیاری، طبق تنظیمات شریکت" emoji="🔮" selected={false} onPress={() => {}} accent={accent} />
+                <OptionItem label="داده‌های حساس بدون اجازه نمایش داده نمی‌شوند" emoji="🔒" selected={false} onPress={() => {}} accent={accent} />
+              </View>
+              <Text style={[styles.stepSub, { color: colors.textTertiary, fontSize: typography.sm, marginTop: spacing[5] }]}>
+                بعداً می‌توانی شریکت را دعوت کنی و لینک بسازی.
+              </Text>
+            </View>
+          )}
+
+          {/* ── Owner step 2: Intent ─────────────────────────────────────── */}
+          {step === 2 && role === 'owner' && (
             <View>
               <Text style={[styles.stepQ, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
                 چرا ریتمو را نصب کردی؟
@@ -236,19 +326,19 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
             </View>
           )}
 
-          {/* ── Step 2: Regularity ───────────────────────────────────────── */}
-          {step === 2 && (
+          {/* ── Owner step 3: Regularity ─────────────────────────────────── */}
+          {step === 3 && role === 'owner' && (
             <View>
               <Text style={[styles.stepQ, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
-                سیکل ماهانه‌ات معمولاً چقدر منظم است؟
+                چرخه‌ی ماهانه‌ات معمولا‌ چقدر منظم است؟
               </Text>
               <Text style={[styles.stepSub, { color: colors.textSecondary, fontSize: typography.base }]}>
                 بر اساس تجربه خودت پاسخ بده.
               </Text>
               <View style={{ gap: 10, marginTop: spacing[6] }}>
                 {[
-                  { value: 'very_regular',   emoji: '🟢', label: 'خیلی منظم — تقریباً همیشه ۲۸ روز' },
-                  { value: 'mostly_regular', emoji: '🟡', label: 'نسبتاً منظم — چند روز تفاوت دارد' },
+                  { value: 'very_regular',   emoji: '🟢', label: 'خیلی منظم — تقریبا‌ همیشه ۲۸ روز' },
+                  { value: 'mostly_regular', emoji: '🟡', label: 'نسبتا‌ منظم — چند روز تفاوت دارد' },
                   { value: 'irregular',      emoji: '🟠', label: 'نامنظم — خیلی متغیر است' },
                   { value: 'unknown',        emoji: '❓', label: 'نمی‌دانم' },
                 ].map(opt => (
@@ -265,8 +355,8 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
             </View>
           )}
 
-          {/* ── Step 3: Symptoms ─────────────────────────────────────────── */}
-          {step === 3 && (
+          {/* ── Owner step 4: Symptoms ───────────────────────────────────── */}
+          {step === 4 && role === 'owner' && (
             <View>
               <Text style={[styles.stepQ, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
                 هر ماه علائم یا احساسات تکراری داری؟
@@ -278,7 +368,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
                 {[
                   { value: 'yes_noticeable',  emoji: '📌', label: 'بله — قابل توجه است' },
                   { value: 'yes_subtle',      emoji: '🔅', label: 'بله — ولی خیلی مشخص نیست' },
-                  { value: 'no',              emoji: '✨', label: 'نه، معمولاً یکنواخت است' },
+                  { value: 'no',              emoji: '✨', label: 'نه، معمولا‌ یکنواخت است' },
                   { value: 'not_sure',        emoji: '🤔', label: 'مطمئن نیستم' },
                 ].map(opt => (
                   <OptionItem
@@ -294,14 +384,14 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
             </View>
           )}
 
-          {/* ── Step 4: Last period date ──────────────────────────────────── */}
-          {step === 4 && (
+          {/* ── Owner step 5: Last period date ───────────────────────────── */}
+          {step === 5 && role === 'owner' && (
             <View>
               <Text style={[styles.stepQ, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
                 آخرین دوره‌ات چه وقت شروع شد؟
               </Text>
               <Text style={[styles.stepSub, { color: colors.textSecondary, fontSize: typography.base }]}>
-                ریتمو از اینجا شروع می‌کند به محاسبه سیکل.
+                ریتمو از اینجا شروع می‌کند به محاسبه‌ی چرخه‌ات.
               </Text>
               <View style={{ gap: 8, marginTop: spacing[6] }}>
                 {DAYS_AGO_OPTIONS.map(opt => (
@@ -316,7 +406,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
                 ))}
               </View>
               <TouchableOpacity
-                onPress={() => { setPeriodDaysAgo(null); handleComplete(); }}
+                onPress={() => { setPeriodDaysAgo(null); finish('owner', true, null); }}
                 style={{ marginTop: 12, paddingVertical: 10, alignItems: 'center' }}
               >
                 <Text style={{ color: colors.textTertiary, fontSize: typography.sm }}>
@@ -331,10 +421,11 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
 
       {/* ── Bottom CTA ──────────────────────────────────────────────────── */}
       <View style={[styles.bottomBar, { paddingHorizontal: spacing[5], paddingBottom: spacing[8] }]}>
-        {step < TOTAL_STEPS ? (
+        {step < totalSteps ? (
           <TouchableOpacity
             onPress={goToNextStep}
-            style={[styles.nextBtn, { backgroundColor: accent }]}
+            disabled={step === 1 && role === null}
+            style={[styles.nextBtn, { backgroundColor: accent, opacity: step === 1 && role === null ? 0.45 : 1 }]}
             activeOpacity={0.87}
           >
             <Text style={[styles.nextBtnText, { color: '#fff', fontSize: typography.base }]}>
@@ -350,7 +441,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
             activeOpacity={0.87}
           >
             <Text style={[styles.nextBtnText, { color: '#fff', fontSize: typography.base }]}>
-              {saving ? 'در حال ذخیره...' : 'شروع ریتمو'}
+              {saving ? 'در حال ذخیره...' : ctaLabel}
             </Text>
             {!saving && <Icon name="check" size={18} color="#fff" />}
           </TouchableOpacity>
@@ -375,7 +466,6 @@ const styles = StyleSheet.create({
   dot: {
     height: 4,
     borderRadius: 2,
-    transition: 'width 0.2s',
   },
   stepQ: {
     fontWeight: '900',
@@ -400,6 +490,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontWeight: '500',
     lineHeight: 22,
+  },
+  optionSub: {
+    lineHeight: 18,
+    marginTop: 2,
   },
   checkDot: {
     width: 20,

@@ -6,7 +6,7 @@ import { useMessages } from '@hooks/queries/useNotifications';
 import { useProfile } from '@hooks/queries/useProfile';
 import { useAuth } from '@hooks/useAuth';
 import { LoadingState, ErrorState, EmptyState, Card, Icon } from '@components/ui';
-import { formatDate } from '@utils/dateUtils';
+import { faDateShort, toFa } from '@utils/persian';
 import type { Message } from '@types/notification.types';
 import type { MessagesScreenProps } from '@navigation/types';
 
@@ -36,14 +36,14 @@ export default function MessagesListScreen() {
         [p.first_name, p.last_name].filter(Boolean).join(' ').trim() ||
         p.username ||
         p.email ||
-        `Partner ${id.slice(0, 6)}`;
+        `شریک ${id.slice(0, 6)}`;
       if (id) { map.set(id, name); }
     });
     return map;
   }, [profile]);
 
   const resolvePartnerName = useCallback(
-    (partnerId: string) => partnerNameMap.get(partnerId) ?? `Partner ${partnerId.slice(0, 6)}`,
+    (partnerId: string) => partnerNameMap.get(partnerId) ?? `شریک ${partnerId.slice(0, 6)}`,
     [partnerNameMap],
   );
 
@@ -69,7 +69,7 @@ export default function MessagesListScreen() {
         onPress={() => navigation.navigate('Conversation', { partnerId: item.partnerId, partnerName })}
         activeOpacity={0.7}
         accessibilityRole="button"
-        accessibilityLabel={`Conversation with ${partnerName}`}
+        accessibilityLabel={`گفتگو با ${partnerName}`}
       >
         <Card style={{ marginBottom: spacing[3] }}>
           <View style={styles.row}>
@@ -82,14 +82,14 @@ export default function MessagesListScreen() {
                   {partnerName}
                 </Text>
                 <Text style={{ color: colors.textDisabled, fontSize: typography.xs }}>
-                  {formatDate(item.lastMsg.created_at)}
+                  {faDateShort(item.lastMsg.created_at)}
                 </Text>
               </View>
               <Text
                 style={{ color: colors.textSecondary, fontSize: typography.sm, marginTop: 2 }}
                 numberOfLines={1}
               >
-                {isMine ? 'You: ' : ''}{item.lastMsg.message}
+                {isMine ? 'تو: ' : ''}{item.lastMsg.message}
               </Text>
             </View>
             {!item.lastMsg.is_read && !isMine && (
@@ -103,7 +103,7 @@ export default function MessagesListScreen() {
 
   const keyExtractor = useCallback((item: { partnerId: string }) => item.partnerId, []);
 
-  if (isLoading) {return <LoadingState fullScreen message="Loading messages…" />;}
+  if (isLoading) {return <LoadingState fullScreen message="در حال بارگذاری پیام‌ها…" />;}
   if (isError)   {return <ErrorState fullScreen error={error} onRetry={refetch} />;}
 
   return (
@@ -117,12 +117,12 @@ export default function MessagesListScreen() {
         ListHeaderComponent={
           <View style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.border, marginBottom: spacing[4] }]}>
             <View>
-              <Text style={[styles.eyebrow, { color: colors.primary }]}>Messages</Text>
+              <Text style={[styles.eyebrow, { color: colors.primary }]}>پیام‌ها</Text>
               <Text style={[styles.title, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
-                Partner inbox
+                صندوق پیام‌های شریک
               </Text>
               <Text style={{ color: colors.textSecondary, fontSize: typography.sm, fontWeight: '600' }}>
-                {conversations.length} conversations
+                {toFa(conversations.length)} گفتگو
               </Text>
             </View>
             <View style={[styles.heroIcon, { backgroundColor: colors.primaryLighter }]}>
@@ -136,8 +136,8 @@ export default function MessagesListScreen() {
         ListEmptyComponent={
           <EmptyState
             icon="💬"
-            title="No messages yet"
-            description="Link with a partner to start messaging."
+            title="هنوز پیامی نیست"
+            description="با یک شریک پیوند بخور تا گفتگو را شروع کنی."
           />
         }
         removeClippedSubviews

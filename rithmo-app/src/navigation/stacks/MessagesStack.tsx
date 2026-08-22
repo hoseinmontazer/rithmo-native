@@ -1,3 +1,4 @@
+import { navTitle } from '@i18n';
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { MessagesStackParamList } from '@navigation/types';
@@ -20,7 +21,7 @@ export function MessagesStack() {
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-      <Stack.Screen name="MessagesList"  component={MessagesListScreen}  options={{ title: 'Messages' }} />
+      <Stack.Screen name="MessagesList"  component={MessagesListScreen}  options={{ title: navTitle('MessagesList') }} />
       <Stack.Screen name="Conversation"  component={ConversationScreen}  options={({ route }) => ({ title: route.params.partnerName })} />
     </Stack.Navigator>
   );

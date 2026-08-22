@@ -28,7 +28,7 @@ import {
   useSubmitAIFeedback,
 } from '@hooks/queries/useAI';
 import { LoadingState, ErrorState, EmptyState } from '@components/ui';
-import { formatDate } from '@utils/dateUtils';
+import { toFa, faDateShort } from '@utils/persian';
 import { extractErrorMessage } from '@utils/errorHandler';
 import { usePremiumStatus } from '@hooks/queries/useSubscription';
 import { PremiumGate } from '@components/PremiumGate';
@@ -39,9 +39,9 @@ import type { AISuggestion } from '../../types/ai.types';
 // ─────────────────────────────────────────────────────────────────────────────
 function confidenceLabel(c?: number): string {
   if (!c) { return ''; }
-  if (c >= 0.85) { return 'High confidence'; }
-  if (c >= 0.6)  { return 'Medium confidence'; }
-  return 'Low confidence';
+  if (c >= 0.85) { return 'دقت بالا'; }
+  if (c >= 0.6)  { return 'دقت متوسط'; }
+  return 'دقت پایین';
 }
 
 function confidenceColor(c: number, colors: ReturnType<typeof useTheme>['colors']): string {
@@ -107,7 +107,7 @@ function ModelStatusBadge() {
     >
       <View style={[s.modelBadgeDot, { backgroundColor: color }]} />
       <Text style={[s.modelBadgeText, { color, fontSize: typography.xs }]}>
-        AI {isReady ? 'Ready' : 'Loading'} · v{status.model_version}
+        هوشمند: {isReady ? 'آماده' : 'در حال بارگذاری'} · نسخه {toFa(status.model_version)}
       </Text>
     </View>
   );
@@ -161,7 +161,7 @@ function ConfidenceRing({ confidence, size = 52 }: { confidence: number; size?: 
         },
       ]}
     >
-      <Text style={[s.confRingValue, { color }]}>{pct}</Text>
+      <Text style={[s.confRingValue, { color }]}>{toFa(pct)}</Text>
       <Text style={[s.confRingPct, { color }]}>%</Text>
     </View>
   );
@@ -189,7 +189,7 @@ function FeedbackRow({
         <View style={[s.feedbackPill, { backgroundColor: colors.success + '18' }]}>
           <Text style={s.feedbackEmoji}>👍</Text>
           <Text style={[s.feedbackPillText, { color: colors.success, fontSize: typography.xs }]}>
-            Helpful
+            مفید بود
           </Text>
         </View>
       </View>
@@ -202,7 +202,7 @@ function FeedbackRow({
         <View style={[s.feedbackPill, { backgroundColor: colors.error + '18' }]}>
           <Text style={s.feedbackEmoji}>👎</Text>
           <Text style={[s.feedbackPillText, { color: colors.error, fontSize: typography.xs }]}>
-            Not helpful
+            مفید نبود
           </Text>
         </View>
         {item.corrected_label ? (
@@ -217,7 +217,7 @@ function FeedbackRow({
   return (
     <View style={[s.feedbackRow, { marginTop: spacing[3] }]}>
       <Text style={[s.feedbackPrompt, { color: mutedText, fontSize: typography.xs }]}>
-        Was this helpful?
+        آیا مفید بود؟
       </Text>
       <TouchableOpacity
         onPress={() => onFeedback(item.id, true)}
@@ -230,11 +230,11 @@ function FeedbackRow({
             paddingHorizontal: spacing[3],
           },
         ]}
-        accessibilityLabel="Helpful"
+        accessibilityLabel="مفید بود"
       >
         <Text style={s.feedbackEmoji}>👍</Text>
         <Text style={[s.feedbackBtnText, { color: colors.success, fontSize: typography.xs }]}>
-          Yes
+          بله
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -248,11 +248,11 @@ function FeedbackRow({
             paddingHorizontal: spacing[3],
           },
         ]}
-        accessibilityLabel="Not helpful"
+        accessibilityLabel="مفید نبود"
       >
         <Text style={s.feedbackEmoji}>👎</Text>
         <Text style={[s.feedbackBtnText, { color: colors.error, fontSize: typography.xs }]}>
-          No
+          خیر
         </Text>
       </TouchableOpacity>
     </View>
@@ -310,7 +310,7 @@ function HistoryCard({
               {item.label}
             </Text>
             <Text style={[s.historyDate, { color: colors.textTertiary, fontSize: typography.xs }]}>
-              {formatDate(item.created_at)}
+              {faDateShort(item.created_at)}
             </Text>
           </View>
 
@@ -327,7 +327,7 @@ function HistoryCard({
                   { color: confidenceColor(item.confidence, colors) },
                 ]}
               >
-                {Math.round(item.confidence * 100)}%
+                {toFa(Math.round(item.confidence * 100))}%
               </Text>
             </View>
           )}
@@ -406,34 +406,34 @@ function NegativeFeedbackModal({ visible, onClose, onSubmit, loading }: Feedback
           {/* Handle */}
           <View style={[s.modalHandle, { backgroundColor: colors.border }]} />
 
-          <Eyebrow label="Feedback" />
+          <Eyebrow label="بازخورد" />
           <Text style={[s.modalTitle, { color: colors.textPrimary, fontSize: typography.xl }]}>
-            Help improve the AI 🤖
+            به بهبود پیشنهادهای ریتمو کمک کن 🤖
           </Text>
           <Text style={[s.modalSub, { color: colors.textSecondary, fontSize: typography.sm, marginBottom: spacing[5] }]}>
-            Optionally tell us what a better suggestion would look like.
+            اگر می‌خواهی، بگو یک پیشنهاد بهتر چه شکلی باشد.
           </Text>
 
           {/* Category field */}
           <Text style={[s.modalFieldLabel, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[2] }]}>
-            Better category (optional)
+            دسته‌ی بهتر (اختیاری)
           </Text>
           <TextInput
             value={label}
             onChangeText={setLabel}
-            placeholder="e.g. High stress: meditation recommended"
+            placeholder="مثلاً: استرس بالا — مدیتیشن توصیه می‌شود"
             placeholderTextColor={colors.textDisabled}
             style={[...inputBase, { marginBottom: spacing[4] }]}
           />
 
           {/* Suggestion field */}
           <Text style={[s.modalFieldLabel, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[2] }]}>
-            Better suggestion (optional)
+            پیشنهاد بهتر (اختیاری)
           </Text>
           <TextInput
             value={text}
             onChangeText={setText}
-            placeholder="e.g. Try 10 minutes of meditation instead"
+            placeholder="مثلاً: ۱۰ دقیقه مدیتیشن به‌جای آن امتحان کن"
             placeholderTextColor={colors.textDisabled}
             multiline
             numberOfLines={3}
@@ -458,13 +458,13 @@ function NegativeFeedbackModal({ visible, onClose, onSubmit, loading }: Feedback
             accessibilityState={{ disabled: loading }}
           >
             <Text style={[s.modalSubmitText, { color: colors.textOnPrimary, fontSize: typography.base }]}>
-              {loading ? 'Submitting…' : 'Submit Feedback'}
+              {loading ? 'در حال ارسال…' : 'ارسال بازخورد'}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={onClose} activeOpacity={0.75} style={s.modalSkipBtn}>
             <Text style={[s.modalSkipText, { color: colors.textTertiary, fontSize: typography.sm }]}>
-              Skip — just mark as not helpful
+              رد کردن — فقط نامفید علامت بزن
             </Text>
           </TouchableOpacity>
         </View>
@@ -513,7 +513,7 @@ function HeroSuggestionCard({
           <View style={s.heroEyebrowLeft}>
             <View style={[s.heroBadge, { backgroundColor: accentColor + '25' }]}>
               <Text style={[s.heroBadgeText, { color: accentColor }]}>
-                {isSafetyAlert ? '⚠ Safety Alert' : current.fallback ? 'Wellness Tip' : "Today's AI Insight"}
+                {isSafetyAlert ? '⚠ هشدار ایمنی' : current.fallback ? 'نکته‌ی سلامتی' : 'پیشنهاد هوشمند امروز'}
               </Text>
             </View>
           </View>
@@ -637,7 +637,7 @@ export default function AISuggestionsScreen() {
       try {
         await submitFeedback({ id, data: { feedback: true } });
       } catch (err) {
-        Alert.alert('Error', extractErrorMessage(err));
+        Alert.alert('خطا', extractErrorMessage(err));
       }
     },
     [submitFeedback],
@@ -658,7 +658,7 @@ export default function AISuggestionsScreen() {
         setModalVisible(false);
         setPendingNegId(null);
       } catch (err) {
-        Alert.alert('Error', extractErrorMessage(err));
+        Alert.alert('خطا', extractErrorMessage(err));
       }
     },
     [pendingNegId, submitFeedback],
@@ -677,7 +677,7 @@ export default function AISuggestionsScreen() {
   }, [pendingNegId, submitFeedback]);
 
   if (cLoading || hLoading) {
-    return <LoadingState fullScreen message="Loading AI insights…" />;
+    return <LoadingState fullScreen message="در حال بارگذاری پیشنهادهای هوشمند…" />;
   }
   if (cError) {
     return <ErrorState fullScreen error={cErr} onRetry={refetch} />;
@@ -716,7 +716,7 @@ export default function AISuggestionsScreen() {
                     { color: colors.textPrimary, fontSize: typography['2xl'] },
                   ]}
                 >
-                  AI Companion
+                  همراه هوشمند
                 </Text>
               </View>
               <ModelStatusBadge />
@@ -734,8 +734,8 @@ export default function AISuggestionsScreen() {
             <View style={[s.emptyWrap, { marginBottom: spacing[8] }]}>
               <EmptyState
                 icon="🤖"
-                title="No insight yet"
-                description="Log your cycle and wellness data to receive personalised AI health insights."
+                title="هنوز پیشنهادی نداریم"
+                description="دوره و داده‌های سلامتت را ثبت کن تا پیشنهادهای شخصی‌سازی‌شده بر اساس خودت داشته باشی."
               />
             </View>
           )}
@@ -745,20 +745,20 @@ export default function AISuggestionsScreen() {
             <>
               {!isPremium && (
                 <View style={[s.premiumGateWrap, { marginBottom: spacing[5] }]}>
-                  <PremiumGate featureName="AI confidence & rationale" />
+                  <PremiumGate featureName="دقت و دلیل پیشنهادهای هوشمند" />
                 </View>
               )}
 
               <View style={[s.historyHeadingRow, { marginBottom: spacing[4] }]}>
                 <View>
-                  <Eyebrow label="Archive" />
+                  <Eyebrow label="بایگانی" />
                   <Text
                     style={[
                       s.historyHeadingTitle,
                       { color: colors.textPrimary, fontSize: typography.lg },
                     ]}
                   >
-                    Past Insights
+                    پیشنهادهای قبلی
                   </Text>
                 </View>
                 <View
@@ -771,7 +771,7 @@ export default function AISuggestionsScreen() {
                   ]}
                 >
                   <Text style={[s.historyCountText, { color: colors.textSecondary, fontSize: typography.xs }]}>
-                    {historyList.length}
+                    {toFa(historyList.length)}
                   </Text>
                 </View>
               </View>

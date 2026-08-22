@@ -23,17 +23,14 @@ export type MainTabParamList = {
 export type HomeStackParamList = {
   Home:            undefined;
   Notifications:   undefined;
-  AISuggestions:   undefined;
 };
 
 // ── Cycle Stack ───────────────────────────────────────────────────────────────
 export type CycleStackParamList = {
   CycleTracker:    undefined;
-  PeriodDetail:    { periodId: number };
   EditPeriod:      { periodId: number };
   LogPeriod:       undefined;
   CycleAnalysis:   undefined;
-  OvulationDetail: undefined;
 };
 
 // ── Wellness / Log Stack ──────────────────────────────────────────────────────
@@ -59,6 +56,7 @@ export type ProfileStackParamList = {
   Settings:        undefined;
   ChangePassword:  undefined;
   DeleteAccount:   undefined;
+  Support:         undefined;
   Upgrade:         { featureName?: string };  // paywall — featureName shown in headline
 };
 

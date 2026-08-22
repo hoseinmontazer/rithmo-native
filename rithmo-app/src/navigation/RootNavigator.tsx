@@ -15,7 +15,10 @@ import { useAuthStore } from '@store/authStore';
 import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
 import { useTheme } from '@hooks/useTheme';
+import { useProfile } from '@hooks/queries/useProfile';
 import OnboardingScreen from '@screens/onboarding/OnboardingScreen';
+import { flushAnalytics, setCurrentScreen, track } from '@analytics';
+import { installAnalyticsDevSink } from '@analytics/devSink';
 
 const ONBOARDING_KEY = 'onboarding_complete';
 
@@ -38,6 +41,14 @@ export function RootNavigator() {
   // Track whether onboarding has been completed (null = not yet checked)
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
+  // Analytics: install the dev sink and record the launch once.
+  useEffect(() => {
+    installAnalyticsDevSink();
+    track('app_opened', { cold_start: true });
+    // Best-effort flush on unmount so a short session still reports.
+    return () => { flushAnalytics(); };
+  }, []);
+
   // Initialize auth on mount
   useEffect(() => {
     initialize().catch((error) => {
@@ -47,17 +58,40 @@ export function RootNavigator() {
     });
   }, [initialize]);
 
-  // Check onboarding flag when the user is authenticated
+  // Has this ACCOUNT completed onboarding — not just this install.
+  //
+  // This used to read AsyncStorage alone, so a reinstall or a new device
+  // replayed onboarding for an account that had long since finished. That is
+  // not merely annoying: onboarding PATCHes `user_role`, so replaying it on
+  // a partner's account could overwrite their role with 'owner' and hand
+  // them the owner application. The server value is authoritative; the local
+  // flag remains as the fast path and as the offline fallback.
+  const { data: profile, isSuccess: profileLoaded, isError: profileFailed } = useProfile();
+
   useEffect(() => {
     if (!isAuthenticated) {
       // Reset when user logs out so it re-checks on next login
       setOnboardingDone(null);
       return;
     }
+    if (profile?.onboarding_completed) {
+      setOnboardingDone(true);
+      // Keep the local flag in step so the next launch skips the round-trip.
+      AsyncStorage.setItem(ONBOARDING_KEY, '1').catch(() => { /* non-fatal */ });
+      return;
+    }
+    // Decide only once the profile has DEFINITIVELY settled.
+    //
+    // Gating on `isLoading` is not enough: a react-query that is disabled or
+    // already settled reports isLoading === false while holding no data, so
+    // the AsyncStorage fallback ran before the server was ever consulted and
+    // replayed onboarding for a completed account. `isSuccess || isError` is
+    // the only state that actually means "the server has answered".
+    if (!profileLoaded && !profileFailed) { return; }
     AsyncStorage.getItem(ONBOARDING_KEY)
       .then((val) => setOnboardingDone(val === '1'))
       .catch(() => setOnboardingDone(true)); // on storage error, skip onboarding
-  }, [isAuthenticated]);
+  }, [isAuthenticated, profile?.onboarding_completed, profileLoaded, profileFailed]);
 
   if (isInitializing) {
     return <SplashFallback />;
@@ -65,6 +99,21 @@ export function RootNavigator() {
 
   return (
     <NavigationContainer
+      // One place records the active route, so no screen has to remember to
+      // report itself and none of them can disagree about the route name.
+      onStateChange={(state) => {
+        try {
+          let route: any = state?.routes?.[state.index ?? 0];
+          while (route?.state) {
+            const child = route.state;
+            route = child.routes?.[child.index ?? 0];
+          }
+          if (route?.name) {
+            setCurrentScreen(route.name);
+            track('screen_viewed', { route: route.name });
+          }
+        } catch { /* navigation introspection must never break navigation */ }
+      }}
       theme={{
         dark: isDark,
         colors: {
