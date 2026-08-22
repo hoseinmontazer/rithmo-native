@@ -24,9 +24,9 @@ const { height: SCREEN_H } = Dimensions.get('window');
 const HERO_H = SCREEN_H * 0.22;
 
 const SEX_OPTIONS: { value: Sex; label: string }[] = [
-  { value: 'female', label: 'Female' },
-  { value: 'male',   label: 'Male'   },
-  { value: 'other',  label: 'Other'  },
+  { value: 'female', label: 'زن' },
+  { value: 'male',   label: 'مرد'   },
+  { value: 'other',  label: 'سایر'  },
 ];
 
 export default function RegisterScreen() {
@@ -46,11 +46,11 @@ export default function RegisterScreen() {
 
   const validate = useCallback((): boolean => {
     const next: Partial<typeof form> = {};
-    if (!form.username.trim())              {next.username    = 'Username is required';}
-    if (!form.email.trim())                 {next.email       = 'Email is required';}
-    if (!form.password)                     {next.password    = 'Password is required';}
-    if (form.password.length < 8)           {next.password    = 'Minimum 8 characters';}
-    if (form.password !== form.re_password) {next.re_password = 'Passwords do not match';}
+    if (!form.username.trim())              {next.username    = 'نام کاربری الزامی است';}
+    if (!form.email.trim())                 {next.email       = 'ایمیل الزامی است';}
+    if (!form.password)                     {next.password    = 'رمز عبور الزامی است';}
+    if (form.password.length < 8)           {next.password    = 'حداقل ۸ کاراکتر';}
+    if (form.password !== form.re_password) {next.re_password = 'رمز عبور یکسان نیست';}
     setErrors(next);
     return Object.keys(next).length === 0;
   }, [form]);
@@ -61,12 +61,12 @@ export default function RegisterScreen() {
     try {
       await authService.register(form);
       Alert.alert(
-        'Account Created',
-        'Check your email to activate your account.',
-        [{ text: 'Sign In', onPress: () => navigation.navigate('Login') }],
+        'حساب کاربری ساخته شد',
+        'برای فعال‌سازی حساب، ایمیلت را بررسی کن.',
+        [{ text: 'ورود', onPress: () => navigation.navigate('Login') }],
       );
     } catch (err) {
-      Alert.alert('Registration Failed', extractErrorMessage(err));
+      Alert.alert('ثبت‌نام ناموفق بود', extractErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -77,7 +77,13 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      // Android's windowSoftInputMode is already `adjustResize`, so the OS
+      // shrinks the window when the keyboard opens. Adding behavior="height"
+      // on top of that makes KeyboardAvoidingView shrink it a SECOND time,
+      // and the two compensations fight as the keyboard animates — which is
+      // the visible jumping on this screen. iOS does not resize, so it still
+      // needs padding.
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {/* ── Mini hero ─────────────────────────────────────────────── */}
       <View
@@ -90,10 +96,10 @@ export default function RegisterScreen() {
         <View style={[styles.ring, { width: 160, height: 160, borderColor: colors.primary + '28' }]} />
         <View style={styles.brandBlock}>
           <Text style={[styles.appName, { color: colors.primary, fontSize: typography['2xl'] }]}>
-            Rithmo
+            ریتمو
           </Text>
           <Text style={{ color: colors.textSecondary, fontSize: typography.sm, marginTop: 2 }}>
-            Create your account
+            حساب کاربری بساز
           </Text>
         </View>
       </View>
@@ -121,40 +127,40 @@ export default function RegisterScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Input
-          label="Username"
+          label="نام کاربری"
           value={form.username}
           onChangeText={v => set('username', v)}
           autoCapitalize="none"
           error={errors.username}
-          leftIconName="person-outline"
+          leftIconName="account-outline"
           containerStyle={{ marginBottom: spacing[4] }}
         />
         <Input
-          label="Email"
+          label="ایمیل"
           value={form.email}
           onChangeText={v => set('email', v)}
           autoCapitalize="none"
           keyboardType="email-address"
           error={errors.email}
-          leftIconName="mail-outline"
+          leftIconName="email-outline"
           containerStyle={{ marginBottom: spacing[4] }}
         />
         <Input
-          label="Password"
+          label="رمز عبور"
           value={form.password}
           onChangeText={v => set('password', v)}
           isPassword
           error={errors.password}
-          leftIconName="lock-closed-outline"
+          leftIconName="lock-outline"
           containerStyle={{ marginBottom: spacing[4] }}
         />
         <Input
-          label="Confirm Password"
+          label="تکرار رمز عبور"
           value={form.re_password}
           onChangeText={v => set('re_password', v)}
           isPassword
           error={errors.re_password}
-          leftIconName="lock-closed-outline"
+          leftIconName="lock-outline"
           containerStyle={{ marginBottom: spacing[5] }}
         />
 
@@ -167,7 +173,7 @@ export default function RegisterScreen() {
             marginBottom: spacing[3],
           }}
         >
-          Sex
+          جنسیت
         </Text>
         <View style={[styles.sexRow, { marginBottom: spacing[7] }]}>
           {SEX_OPTIONS.map(opt => {
@@ -206,7 +212,7 @@ export default function RegisterScreen() {
         </View>
 
         <Button
-          label="Create Account"
+          label="ساخت حساب کاربری"
           onPress={handleRegister}
           loading={loading}
           fullWidth
@@ -219,8 +225,8 @@ export default function RegisterScreen() {
           accessibilityRole="button"
         >
           <Text style={{ color: colors.textSecondary, fontSize: typography.sm }}>
-            Already have an account?{' '}
-            <Text style={{ color: colors.primary, fontWeight: '600' }}>Sign In</Text>
+            قبلا حساب کاربری داری؟{' '}
+            <Text style={{ color: colors.primary, fontWeight: '600' }}>ورود</Text>
           </Text>
         </TouchableOpacity>
       </ScrollView>

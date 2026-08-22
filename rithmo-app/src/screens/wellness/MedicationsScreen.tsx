@@ -6,6 +6,7 @@
  * Preserves all underlying OpenFDA search, validation, intake logging (1–5),
  * and mutation hooks.
  */
+import { faDateShort } from '@utils/persian';
 import React, { useCallback, useState, useMemo } from 'react';
 import {
   View,
@@ -24,6 +25,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { PROFILE_ICONS } from '@design-system/iconography';
+import { toFa } from '@utils/persian';
+import { medicationFrequencyLabel } from '@i18n';
 import { useTheme } from '@hooks/useTheme';
 import { Card, Badge, Button } from '@components/ui';
 import {
@@ -502,7 +506,7 @@ function LogEffectivenessModal({ target, onClose, onSubmit, loading }: LogModalP
                 accessibilityLabel={`اثربخشی ${score} از ۵`}
               >
                 <Text style={{ color: colors.primary, fontWeight: '800', fontSize: typography.base }}>
-                  {score}
+                  {toFa(score)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -593,7 +597,7 @@ export default function MedicationsScreen() {
               داروها و مکمل‌ها
             </Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary, fontSize: typography.sm }]}>
-              {activeMeds.length} داروی فعال
+              {toFa(activeMeds.length)} داروی فعال
             </Text>
           </View>
           <Button
@@ -613,7 +617,11 @@ export default function MedicationsScreen() {
           <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing[4] }} />
         ) : activeMeds.length === 0 ? (
           <Card elevated={false} style={{ padding: spacing[6], alignItems: 'center', marginBottom: spacing[4] }}>
-            <Icon name="pill-off" size={32} color={colors.textTertiary} />
+            {/* `pill-off` is not a MaterialCommunityIcons glyph — it rendered as a
+                missing-character box and logged a prop-type warning. The empty state
+                is already carried by the copy below; the plain `pill` in tertiary
+                colour is the icon that exists. */}
+            <Icon name={PROFILE_ICONS.medications} size={32} color={colors.textTertiary} />
             <Text style={{ color: colors.textSecondary, fontSize: typography.sm, marginTop: spacing[2], textAlign: 'center' }}>
               هنوز دارویی ثبت نشده است.{'\n'}برای افزودن، دکمه افزودن دارو را بزنید.
             </Text>
@@ -629,7 +637,13 @@ export default function MedicationsScreen() {
                       {medName}
                     </Text>
                     <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2 }}>
-                      {med.dosage} · {med.frequency}
+                      {/* `unit` exists on the model but is not in the API
+                          response, and `dosage` is free text the user writes
+                          herself ("۵۰۰ میلی‌گرم"), so it is rendered as given.
+                          `frequency` IS a machine enum and must be mapped —
+                          it was reaching the Persian UI as "daily". */}
+                      {[toFa(med.dosage), medicationFrequencyLabel(med.frequency)]
+                        .filter(Boolean).join(' · ')}
                     </Text>
                     {!!(med as any).reason && (
                       <Text style={{ color: colors.textTertiary, fontSize: typography.xs, marginTop: 2 }}>
@@ -695,7 +709,7 @@ export default function MedicationsScreen() {
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View>
                   <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '600' }}>
-                    {new Date(log.date_taken).toLocaleDateString('fa-IR')}
+                    {faDateShort(log.date_taken)}
                   </Text>
                   <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2 }}>
                     دوز: {log.dosage_taken}
@@ -725,10 +739,10 @@ export default function MedicationsScreen() {
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View>
                   <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '600' }}>
-                    ساعت {r.reminder_time}
+                    ساعت {toFa(String(r.reminder_time).slice(0, 5))}
                   </Text>
                   <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2 }}>
-                    {r.days_of_week.length} روز در هفته
+                    {toFa(r.days_of_week.length)} روز در هفته
                   </Text>
                 </View>
                 <Badge label={r.is_active ? 'فعال' : 'غیرفعال'} variant={r.is_active ? 'success' : 'neutral'} />

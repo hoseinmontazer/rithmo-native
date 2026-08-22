@@ -26,6 +26,8 @@ export const API_ENDPOINTS = {
   USER_PROFILE: '/api/user/profile/',
   USER_INVITATION: '/api/user/invitation/',
   USER_PARTNER_REMOVE: '/api/user/partner/remove/',
+  USER_PARTNER_SELF_REVOKE: '/api/user/partner/self-revoke/',
+  USER_SHARE_SETTINGS: '/api/user/share-settings/',
 
   // Periods
   PERIODS: '/api/periods/',
@@ -37,6 +39,17 @@ export const API_ENDPOINTS = {
 
   // Analytics (newer endpoints)
   ANALYTICS_CYCLE: '/api/analytics/cycle/',
+
+  // Personal intelligence — the server-side pattern/guidance engine.
+  // Insights and recommendations are computed there, not on the device,
+  // so the phone, notifications and the partner view can never disagree
+  // about what the user's data says.
+  INTELLIGENCE_TODAY: '/api/intelligence/today/',
+  INTELLIGENCE_INSIGHTS: '/api/intelligence/insights/',
+  INTELLIGENCE_INSIGHT_DISMISS: '/api/intelligence/insights/',
+  INTELLIGENCE_ACTIONS: '/api/intelligence/actions/',
+  INTELLIGENCE_PROGRESS: '/api/intelligence/progress/',
+  INTELLIGENCE_PARTNER_TODAY: '/api/intelligence/partner/today/',
 
   // Ovulation — nested under analytics/, not a top-level router (there was
   // never a bare "/api/ovulation/" route; this pointed at a 404).
@@ -84,6 +97,9 @@ export const API_ENDPOINTS = {
   // Subscriptions
   SUBSCRIPTION_STATUS: '/api/subscriptions/status/',
   STRIPE_WEBHOOK:      '/api/subscriptions/webhook/',
+
+  // Support (user-facing tickets; internal notes are server-side only)
+  SUPPORT_TICKETS: '/api/support/tickets/',
 } as const;
 
 export const KEYCHAIN_SERVICE = 'com.rithmo.auth';

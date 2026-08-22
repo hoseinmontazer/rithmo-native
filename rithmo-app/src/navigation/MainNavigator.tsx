@@ -9,7 +9,7 @@
  */
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import type { MainTabParamList } from './types';
 import { HomeStack }     from './stacks/HomeStack';
 import { CycleStack }    from './stacks/CycleStack';
@@ -17,29 +17,34 @@ import { WellnessStack } from './stacks/WellnessStack';
 import { InsightsStack } from './stacks/InsightsStack';
 import { ProfileStack }  from './stacks/ProfileStack';
 import { useUnreadNotifications } from '@hooks/queries/useNotifications';
-import { TabIcon } from '@components/ui';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { TAB_ICONS, TAB_ICONS_ACTIVE, ICON_SIZE, type TabKey } from '@design-system/iconography';
 import { useTheme } from '@hooks/useTheme';
-import icons from '../assets/icons';
+import { useRole } from '@hooks/useRole';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 // ── Tab item ──────────────────────────────────────────────────────────────────
 
 interface TabItemProps {
-  source: ReturnType<typeof require>;
+  /** Semantic destination, not a drawing. See design-system/iconography. */
+  tab: TabKey;
   label: string;
   focused: boolean;
   color: string;
   badge?: number;
 }
 
-function TabItem({ source, label, focused, color, badge }: TabItemProps) {
+function TabItem({ tab, label, focused, color, badge }: TabItemProps) {
   const { colors } = useTheme();
+  // Weight carries selection as well as colour — tint alone was the only
+  // state cue before, and tint alone is not a sufficient one.
+  const glyph = focused ? TAB_ICONS_ACTIVE[tab] : TAB_ICONS[tab];
 
   return (
     <View style={styles.tabItem}>
       <View style={styles.iconWrap}>
-        <TabIcon source={source} size={24} color={color} />
+        <Icon name={glyph} size={ICON_SIZE.tab} color={color} />
 
         {/* Unread badge */}
         {badge !== undefined && badge > 0 && (
@@ -65,11 +70,15 @@ function TabItem({ source, label, focused, color, badge }: TabItemProps) {
 
 // ── Log tab centre button ─────────────────────────────────────────────────────
 
-function LogTabIcon({ focused, color }: { focused: boolean; color: string }) {
+function LogTabIcon({ focused }: { focused: boolean }) {
   const { colors } = useTheme();
   return (
     <View style={[styles.logTabWrap, { backgroundColor: focused ? colors.primary : colors.primaryLight }]}>
-      <TabIcon source={icons.wellness} size={22} color={focused ? '#fff' : colors.primary} />
+      <Icon
+        name={focused ? TAB_ICONS_ACTIVE.log : TAB_ICONS.log}
+        size={26}
+        color={focused ? '#FFFFFF' : colors.primary}
+      />
     </View>
   );
 }
@@ -79,9 +88,23 @@ function LogTabIcon({ focused, color }: { focused: boolean; color: string }) {
 export function MainNavigator() {
   const { data: unreadNotifs } = useUnreadNotifications();
   const { colors }             = useTheme();
+  const { isResolved, isPartner } = useRole();
+
+  // Do not mount the tab navigator until the role is known.
+  //
+  // React Navigation keeps a screen mounted once it has rendered, so a
+  // first render under the default 'owner' assumption permanently handed a
+  // linked partner the owner's application. Waiting here is the only place
+  // the decision can be made once and correctly.
+  if (!isResolved) {
+    return (
+      <View style={[styles.roleGate, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   const TAB_H      = Platform.OS === 'ios' ? 80 : 64;
-  const tabColor   = colors.primary;
 
   return (
     <Tab.Navigator
@@ -101,8 +124,10 @@ export function MainNavigator() {
           shadowRadius:     12,
           elevation:        16,
         },
-        tabBarActiveTintColor:   tabColor,
-        tabBarInactiveTintColor: tabColor,
+        tabBarActiveTintColor:   colors.primary,
+        // Was identical to the active colour, so a selected tab looked the
+        // same as an unselected one apart from the label weight.
+        tabBarInactiveTintColor: colors.textTertiary,
       }}
     >
       {/* ── Home ──────────────────────────────────────────────────────── */}
@@ -112,7 +137,7 @@ export function MainNavigator() {
         options={{
           tabBarIcon: ({ focused, color }) => (
             <TabItem
-              source={icons.home}
+              tab="home"
               label="خانه"
               focused={focused}
               color={color}
@@ -122,15 +147,20 @@ export function MainNavigator() {
         }}
       />
 
-      {/* ── Cycle ─────────────────────────────────────────────────────── */}
+      {/* ── Owner-only tabs ───────────────────────────────────────────
+          A partner has no cycle of their own and must never be offered
+          "log your period" or the owner's pattern feed. These are omitted
+          rather than hidden, so there is no route for them to reach. */}
+      {!isPartner && (
+        <>
       <Tab.Screen
         name="CycleTab"
         component={CycleStack}
         options={{
           tabBarIcon: ({ focused, color }) => (
             <TabItem
-              source={icons.search}
-              label="سیکل"
+              tab="cycle"
+              label="چرخه"
               focused={focused}
               color={color}
             />
@@ -149,7 +179,7 @@ export function MainNavigator() {
           },
         })}
         options={{
-          tabBarIcon: ({ focused }) => <LogTabIcon focused={focused} color="" />,
+          tabBarIcon: ({ focused }) => <LogTabIcon focused={focused} />,
         }}
       />
 
@@ -160,7 +190,7 @@ export function MainNavigator() {
         options={{
           tabBarIcon: ({ focused, color }) => (
             <TabItem
-              source={icons.search}
+              tab="patterns"
               label="الگوها"
               focused={focused}
               color={color}
@@ -169,6 +199,9 @@ export function MainNavigator() {
         }}
       />
 
+        </>
+      )}
+
       {/* ── Profile ───────────────────────────────────────────────────── */}
       <Tab.Screen
         name="ProfileTab"
@@ -176,7 +209,7 @@ export function MainNavigator() {
         options={{
           tabBarIcon: ({ focused, color }) => (
             <TabItem
-              source={icons.profile}
+              tab="profile"
               label="من"
               focused={focused}
               color={color}
@@ -191,6 +224,7 @@ export function MainNavigator() {
 // ── styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  roleGate: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',

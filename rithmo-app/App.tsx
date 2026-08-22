@@ -3,42 +3,31 @@
  * Root component: wires up QueryClient, safe-area, and navigation.
  */
 import React, { useEffect } from 'react';
-import { StatusBar, useColorScheme, Appearance } from 'react-native';
+import { StatusBar, useColorScheme, Appearance, I18nManager } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@api/queryClient';
 import { RootNavigator } from '@navigation/RootNavigator';
 import { useAuthStore } from '@store/authStore';
-import { useThemeStore } from '@store/themeStore';
-import { QUERY_STALE_TIME_MS, QUERY_CACHE_TIME_MS } from '@constants/config';
+import { useThemeStore, hydrateThemeStore } from '@store/themeStore';
 import { ErrorBoundary } from '@components/ErrorBoundary';
 import { ToastProvider } from './src/context/ToastContext';
 import { ConfirmProvider } from './src/context/ConfirmContext';
 
+// ── Persian-first: full RTL layout (Android; iOS follows locale) ─────────────
+I18nManager.forceRTL(true);
+
+// ── Restore the persisted theme choice (audit M6) before first render ───────
+hydrateThemeStore();
+
 // ── React Query client ────────────────────────────────────────────────────────
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: QUERY_STALE_TIME_MS,
-      gcTime:    QUERY_CACHE_TIME_MS,
-      retry: (failureCount, error: unknown) => {
-        // Don't retry on 401/403/404
-        const status = (error as { response?: { status: number } })?.response?.status;
-        if (status === 401 || status === 403 || status === 404) return false;
-        return failureCount < 2;
-      },
-      refetchOnWindowFocus: false,
-    },
-    mutations: {
-      retry: false,
-    },
-  },
-});
+// Lives in its own module so the auth store can clear it when the signed-in
+// identity changes — see src/api/queryClient.ts.
 
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
   const initialize  = useAuthStore((s) => s.initialize);
   const { isDark, mode, setMode } = useThemeStore();
-  const systemScheme = useColorScheme();
 
   // Bootstrap: restore auth session from secure storage on mount
   useEffect(() => {

@@ -1,3 +1,4 @@
+import { navTitle } from '@i18n';
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { WellnessStackParamList } from '@navigation/types';
@@ -23,10 +24,10 @@ export function WellnessStack() {
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-      <Stack.Screen name="QuickLog"          component={QuickLogScreen}          options={{ title: 'ثبت امروز', headerShown: false }} />
-      <Stack.Screen name="WellnessDashboard" component={WellnessDashboardScreen} options={{ title: 'Wellness' }} />
-      <Stack.Screen name="LogWellness"       component={LogWellnessScreen}       options={{ title: 'Full Log' }} />
-      <Stack.Screen name="Medications"       component={MedicationsScreen}       options={{ title: 'داروها' }} />
+      <Stack.Screen name="QuickLog"          component={QuickLogScreen}          options={{ title: navTitle('QuickLog'), headerShown: false }} />
+      <Stack.Screen name="WellnessDashboard" component={WellnessDashboardScreen} options={{ title: navTitle('WellnessDashboard') }} />
+      <Stack.Screen name="LogWellness"       component={LogWellnessScreen}       options={{ title: navTitle('LogWellness') }} />
+      <Stack.Screen name="Medications"       component={MedicationsScreen}       options={{ title: navTitle('Medications') }} />
     </Stack.Navigator>
   );
 }

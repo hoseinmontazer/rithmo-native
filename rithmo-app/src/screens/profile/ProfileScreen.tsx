@@ -1,3 +1,11 @@
+/**
+ * ProfileScreen — حساب و تنظیمات
+ *
+ * Persian-first profile (mission: no English headers, Persian numerals,
+ * consistent terminology). The premium row is a clear "premium moment"
+ * with gold styling; honest copy — premium unlocks deterministic personal
+ * analytics, not "AI".
+ */
 import React, { useCallback } from 'react';
 import {
   View,
@@ -8,11 +16,15 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useRole } from '@hooks/useRole';
 import { useTheme } from '@hooks/useTheme';
 import { useAuth } from '@hooks/useAuth';
 import { useProfile } from '@hooks/queries/useProfile';
-import { LoadingState, ErrorState, Divider, AppIcon } from '@components/ui';
-import icons from '../../assets/icons';
+import { useSubscription } from '@hooks/queries/useSubscription';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { LoadingState, ErrorState, Divider } from '@components/ui';
+import { PROFILE_ICONS, ICON_SIZE } from '@design-system/iconography';
+import { toFa, faDateShort } from '@utils/persian';
 import type { ProfileScreenProps } from '@navigation/types';
 
 type Props = ProfileScreenProps<'Profile'>;
@@ -27,17 +39,23 @@ function initials(first?: string, last?: string, username?: string) {
 }
 
 function sexLabel(sex?: string) {
-  if (sex === 'female') {return '🌸 Female';}
-  if (sex === 'male')   {return '🌿 Male';}
-  if (sex === 'other')  {return '🌈 Other';}
+  if (sex === 'female') {return '🌸 زن';}
+  if (sex === 'male')   {return '🌿 مرد';}
+  if (sex === 'other')  {return '🌈 دیگر';}
   return '—';
+}
+
+function planLabel(plan?: string | null): string {
+  if (plan === 'monthly') {return 'ماهانه';}
+  if (plan === 'annual' || plan === 'yearly') {return 'سالانه';}
+  return plan || 'فعال';
 }
 
 // ── sub-components ────────────────────────────────────────────────────────────
 
 /** Menu row with PNG icon — no border on the icon container */
 function MenuRow({
-  iconSource,
+  icon,
   label,
   sub,
   accentColor,
@@ -45,7 +63,8 @@ function MenuRow({
   danger,
   last,
 }: {
-  iconSource: ReturnType<typeof require>;
+  /** MaterialCommunityIcons name — see design-system/iconography. */
+  icon: string;
   label: string;
   sub?: string;
   accentColor: string;
@@ -63,6 +82,7 @@ function MenuRow({
         activeOpacity={0.72}
         style={[styles.menuRow, { paddingVertical: spacing[4] }]}
         accessibilityRole="button"
+        accessibilityLabel={label}
       >
         {/* Icon container — no border */}
         <View
@@ -76,7 +96,7 @@ function MenuRow({
             marginRight: spacing[3],
           }}
         >
-          <AppIcon source={iconSource} size={26} />
+          <Icon name={icon} size={ICON_SIZE.lg} color={accentColor} />
         </View>
 
         <View style={{ flex: 1 }}>
@@ -90,7 +110,14 @@ function MenuRow({
           )}
         </View>
 
-        <Text style={{ color: colors.textTertiary, fontSize: 18, fontWeight: '300' }}>›</Text>
+        {/*
+          Was the literal character ›. Two problems on an RTL screen: it is a
+          bidi-mirrored glyph, so its box and direction depend on the surrounding
+          paragraph rather than on the layout, which let it collide with the
+          right-aligned label; and it pointed the wrong way for RTL forward
+          navigation. A vector chevron has a fixed box and one direction.
+        */}
+        <Icon name="chevron-left" size={ICON_SIZE.md} color={colors.textTertiary} />
       </TouchableOpacity>
       {!last && <Divider />}
     </>
@@ -99,12 +126,13 @@ function MenuRow({
 
 /** Stat pill with PNG icon — no border on icon */
 function StatPill({
-  iconSource,
+  icon,
   label,
   value,
   accent,
 }: {
-  iconSource: ReturnType<typeof require>;
+  /** MaterialCommunityIcons name — see design-system/iconography. */
+  icon: string;
   label: string;
   value: string;
   accent: string;
@@ -122,7 +150,7 @@ function StatPill({
         gap: 2,
       }}
     >
-      <AppIcon source={iconSource} size={24} />
+      <Icon name={icon} size={ICON_SIZE.tab} color={accent} />
       <Text style={{ color: accent, fontSize: typography.lg, fontWeight: '800' }}>
         {value}
       </Text>
@@ -143,7 +171,6 @@ function SectionHeader({ label }: { label: string }) {
         fontSize: typography.xs,
         fontWeight: '700',
         letterSpacing: 0.8,
-        textTransform: 'uppercase',
         marginBottom: spacing[2],
         marginTop: spacing[5],
         paddingHorizontal: spacing[5],
@@ -184,11 +211,15 @@ export default function ProfileScreen() {
   const { colors, spacing, typography } = useTheme();
   const { user, logout } = useAuth();
   const { data: profile, isLoading, isError, error, refetch } = useProfile();
+  const { data: premium } = useSubscription();
+  // Hoisted above the early returns below — hooks must run in the same
+  // order on every render.
+  const { isPartner } = useRole();
 
   const handleLogout = useCallback(() => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: logout },
+    Alert.alert('خروج از حساب', 'آیا مطمئنی می‌خواهی خارج شوی؟', [
+      { text: 'انصراف', style: 'cancel' },
+      { text: 'خروج', style: 'destructive', onPress: logout },
     ]);
   }, [logout]);
 
@@ -196,10 +227,29 @@ export default function ProfileScreen() {
   if (isError)   {return <ErrorState fullScreen error={error} onRetry={refetch} />;}
 
   const hasPartner  = (profile?.partners?.length ?? 0) > 0;
+  /*
+   * Owner-only surfaces are gated on ROLE, not on sex.
+   *
+   * These blocks used to test `sex === 'male'`, which conflated two
+   * different things. A partner is any gender — the product says so
+   * explicitly — so a female partner was shown the cycle-length and
+   * period-length stat pills and the «ثبت و تاریخچه» rows, none of which
+   * describe her. Worse, those rows navigate into `LogTab`, a tab that
+   * MainNavigator does not register for partners at all, so the only thing
+   * they could do was fail.
+   *
+   * `sex === 'male'` is kept as an additional guard purely so a male owner
+   * (an account that predates the role field) is not shown cycle stats it
+   * has no data for.
+   */
   const isMale      = profile?.sex === 'male';
+  const isCycleOwner = !isPartner && !isMale;
   const displayName = profile?.first_name && profile?.last_name
     ? `${profile.first_name} ${profile.last_name}`
-    : profile?.first_name || user?.username || 'User';
+    : profile?.first_name || user?.username || 'کاربر';
+
+  const cycleValue  = profile?.preferred_cycle_length ?? profile?.cycle_length ?? 28;
+  const periodValue = profile?.preferred_period_duration ?? profile?.period_duration ?? 5;
 
   return (
     <ScrollView
@@ -236,7 +286,7 @@ export default function ProfileScreen() {
             elevation: 8,
           }}
         >
-          <Text style={{ color: '#fff', fontSize: typography['2xl'], fontWeight: '900' }}>
+          <Text style={{ color: colors.textOnPrimary, fontSize: typography['2xl'], fontWeight: '900' }}>
             {initials(profile?.first_name, profile?.last_name, user?.username)}
           </Text>
         </View>
@@ -266,43 +316,43 @@ export default function ProfileScreen() {
           </Text>
         </View>
 
-        {/* Stats row */}
+        {/* Stats row (fa numerals) */}
         <View style={{ flexDirection: 'row', gap: spacing[3], marginTop: spacing[5], width: '100%' }}>
-          {!isMale && (
+          {isCycleOwner && (
             <StatPill
               key="cycle"
-              iconSource={icons.menstruation}
-              label={profile?.preferred_cycle_length != null ? 'Cycle' : 'Avg Cycle'}
-              value={`${profile?.preferred_cycle_length ?? profile?.cycle_length ?? 28}d`}
+              icon={PROFILE_ICONS.cycleLength}
+              label={profile?.preferred_cycle_length != null ? 'طول چرخه' : 'میانگین چرخه'}
+              value={`${toFa(cycleValue)} روز`}
               accent={colors.menstrual}
             />
           )}
-          {!isMale && (
+          {isCycleOwner && (
             <StatPill
               key="period"
-              iconSource={icons.fertilization}
-              label={profile?.preferred_period_duration != null ? 'Period' : 'Avg Period'}
-              value={`${profile?.preferred_period_duration ?? profile?.period_duration ?? 5}d`}
+              icon={PROFILE_ICONS.periodLength}
+              label={profile?.preferred_period_duration != null ? 'طول دوره' : 'میانگین دوره'}
+              value={`${toFa(periodValue)} روز`}
               accent={colors.luteal}
             />
           )}
           <StatPill
             key="partners"
-            iconSource={icons.collaborate}
-            label="Partners"
-            value={String(profile?.partners?.length ?? 0)}
+            icon={PROFILE_ICONS.partners}
+            label="شرکاء"
+            value={toFa(profile?.partners?.length ?? 0)}
             accent={colors.primary}
           />
         </View>
       </View>
 
       {/* ── Partner ────────────────────────────────────────────────────── */}
-      <SectionHeader label="Partner" />
+      <SectionHeader label="شریک" />
       <MenuCard>
         {hasPartner ? (
           <>
             {profile!.partners!.map((p, i) => (
-              <React.Fragment key={p.id}>
+              <React.Fragment key={p.partner_user_id ?? p.username}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: spacing[3] }}>
                   <View
                     style={{
@@ -315,7 +365,7 @@ export default function ProfileScreen() {
                       marginRight: spacing[3],
                     }}
                   >
-                    <AppIcon source={icons.collaborate} size={26} />
+                    <Icon name={PROFILE_ICONS.partnerManage} size={ICON_SIZE.lg} color={colors.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: typography.base }}>
@@ -326,7 +376,7 @@ export default function ProfileScreen() {
                     </Text>
                   </View>
                   <View style={{ backgroundColor: colors.success + '18', borderRadius: 8, paddingHorizontal: spacing[2], paddingVertical: 3 }}>
-                    <Text style={{ color: colors.success, fontSize: 10, fontWeight: '800' }}>LINKED</Text>
+                    <Text style={{ color: colors.success, fontSize: 10, fontWeight: '800' }}>ارتباط فعال</Text>
                   </View>
                 </View>
                 {i < profile!.partners!.length - 1 && <Divider />}
@@ -334,9 +384,9 @@ export default function ProfileScreen() {
             ))}
             <Divider />
             <MenuRow
-              iconSource={icons.collaborate}
-              label="Manage Partner"
-              sub="Unlink or update partner connection"
+              icon={PROFILE_ICONS.partnerManage}
+              label="مدیریت شریک"
+              sub="قطع یا به‌روزرسانی ارتباط شریک"
               accentColor={colors.primary}
               onPress={() => navigation.navigate('PartnerManage')}
               last
@@ -344,9 +394,9 @@ export default function ProfileScreen() {
           </>
         ) : (
           <MenuRow
-            iconSource={icons.collaborate}
-            label="Link a Partner"
-            sub="Invite your partner to connect"
+            icon={PROFILE_ICONS.partnerManage}
+            label="اتصال شریک"
+            sub="دعوت شریک برای اتصال به ریتمو"
             accentColor={colors.primary}
             onPress={() => navigation.navigate('PartnerManage')}
             last
@@ -355,47 +405,156 @@ export default function ProfileScreen() {
       </MenuCard>
 
       {/* ── Account ────────────────────────────────────────────────────── */}
-      <SectionHeader label="Account" />
+      {/* ── Logging & history ──────────────────────────────────────────
+          These two screens have working, tested backends but no way in.
+          WellnessDashboard lost its entry when F-02 removed Home's
+          «روزهای اخیر» strip; Medications never had one. Restored as rows
+          on the existing account hub rather than as a new navigation
+          paradigm — one discoverable entry each, nothing more. */}
+      {isCycleOwner && (
+        <>
+          <SectionHeader label="ثبت و تاریخچه" />
+          <MenuCard>
+            <MenuRow
+              icon={PROFILE_ICONS.history}
+              label="تاریخچه سلامت"
+              sub="گزارش‌های روزانه‌ات، روز به روز"
+              accentColor={colors.primary}
+              onPress={() => navigation.navigate('LogTab' as never, { screen: 'WellnessDashboard' } as never)}
+            />
+            <MenuRow
+              icon={PROFILE_ICONS.medications}
+              label="داروها و مکمل‌ها"
+              sub="یادآور و سابقه‌ی مصرف"
+              accentColor={colors.luteal}
+              onPress={() => navigation.navigate('LogTab' as never, { screen: 'Medications' } as never)}
+              last
+            />
+          </MenuCard>
+        </>
+      )}
+
+      <SectionHeader label="حساب" />
       <MenuCard>
         <MenuRow
-          iconSource={icons.userInfoWriting}
-          label="Edit Profile"
-          sub="Name, sex, cycle settings"
+          icon={PROFILE_ICONS.editProfile}
+          label="ویرایش پروفایل"
+          sub="نام، جنسیت، تنظیمات چرخه"
           accentColor={colors.primary}
           onPress={() => navigation.navigate('EditProfile')}
         />
         <MenuRow
-          iconSource={icons.secure}
-          label="Change Password"
-          sub="Update your login password"
+          icon={PROFILE_ICONS.password}
+          label="تغییر رمز عبور"
+          sub="به‌روزرسانی رمز ورودت"
           accentColor={colors.ovulationColor}
           onPress={() => navigation.navigate('ChangePassword')}
         />
         <MenuRow
-          iconSource={icons.settings}
-          label="Settings"
-          sub="Notifications, theme, preferences"
+          icon={PROFILE_ICONS.settings}
+          label="تنظیمات"
+          sub="اعلان‌ها، ظاهر برنامه و ترجیحات"
           accentColor={colors.follicular}
           onPress={() => navigation.navigate('Settings')}
           last
         />
       </MenuCard>
 
-      {/* ── Session ────────────────────────────────────────────────────── */}
-      <SectionHeader label="Session" />
+      {/* ── Premium (gold moment) ─────────────────────────────────────── */}
+      <SectionHeader label="اشتراک" />
+      <MenuCard>
+        {premium && premium.is_active ? (
+          <MenuRow
+            icon={PROFILE_ICONS.premium}
+            label={`پریمیوم — ${planLabel(premium.plan)}`}
+            sub={premium.current_period_end
+              ? `فعال تا ${faDateShort(premium.current_period_end)}`
+              : 'فعال'}
+            accentColor={colors.premium}
+            onPress={() => navigation.navigate('Upgrade', {})}
+            last
+          />
+        ) : (
+          <View style={{ paddingVertical: spacing[3] }}>
+            {/* The WHOLE card is the target.
+                It used to be a plain View with only the small «ارتقاء»
+                label wrapped in a Touchable — a ~40x16pt hit area, far
+                under the 48dp minimum. Tapping the obvious place (the
+                card) did nothing, so the only route to subscribing was
+                effectively unreachable. */}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('Upgrade', {})}
+              accessibilityRole="button"
+              accessibilityLabel="ارتقاء به پریمیوم"
+              style={{
+                backgroundColor: colors.premiumBg,
+                borderColor: colors.premiumBorder,
+                borderWidth: 1,
+                borderRadius: 16,
+                padding: spacing[4],
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+            >
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 13,
+                  backgroundColor: colors.premium + '22',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: spacing[3],
+                }}
+              >
+                <Icon name={PROFILE_ICONS.premium} size={ICON_SIZE.lg} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700' }}>
+                  اشتراک پریمیوم
+                </Text>
+                <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2, lineHeight: 16 }}>
+                  بینش عمیق، همبستگی‌ها و مقایسه هفتگی — همه از داده‌های خودت محاسبه‌شده
+                </Text>
+              </View>
+              {/* Affordance only — the card itself carries the press. */}
+              <Text style={{ color: colors.premium, fontSize: typography.xs, fontWeight: '800' }}>
+                ارتقاء
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </MenuCard>
+
+      {/* ── Support ───────────────────────────────────────────────────── */}
+      <SectionHeader label="پشتیبانی" />
       <MenuCard>
         <MenuRow
-          iconSource={icons.logout}
-          label="Sign Out"
-          sub="See you soon"
+          icon={PROFILE_ICONS.support}
+          label="کمک و پشتیبانی"
+          sub="صورتحساب، حریم خصوصی و مسائل شریک — سریع جواب می‌دهیم"
+          accentColor={colors.warning}
+          onPress={() => navigation.navigate('Support')}
+          last
+        />
+      </MenuCard>
+
+      {/* ── Session ────────────────────────────────────────────────────── */}
+      <SectionHeader label="جلسه" />
+      <MenuCard>
+        <MenuRow
+          icon={PROFILE_ICONS.logout}
+          label="خروج"
+          sub="به‌زودی دوباره می‌بینمت"
           accentColor={colors.warning}
           danger
           onPress={handleLogout}
         />
         <MenuRow
-          iconSource={icons.delete}
-          label="Delete Account"
-          sub="Permanently remove all your data"
+          icon={PROFILE_ICONS.deleteAccount}
+          label="حذف حساب"
+          sub="حذف دائمی تمام داده‌های تو"
           accentColor={colors.error}
           danger
           onPress={() => navigation.navigate('DeleteAccount')}

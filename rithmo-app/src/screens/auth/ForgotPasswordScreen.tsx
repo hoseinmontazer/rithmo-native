@@ -24,7 +24,7 @@ export default function ForgotPasswordScreen() {
       await authService.resetPassword({ email: email.trim() });
       setSent(true);
     } catch (err) {
-      Alert.alert('Error', extractErrorMessage(err));
+      Alert.alert('خطا', extractErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -42,24 +42,24 @@ export default function ForgotPasswordScreen() {
         <Text style={{ fontSize: 48, textAlign: 'center' }}>🔑</Text>
 
         <Text style={[styles.title, { color: colors.textPrimary, fontSize: typography['2xl'], fontWeight: '700', marginTop: spacing[4], marginBottom: spacing[2] }]}>
-          Reset Password
+          بازیابی رمز عبور
         </Text>
 
         {sent ? (
           <View style={[styles.successBox, { backgroundColor: colors.success + '18', borderRadius: 12, padding: spacing[5], marginTop: spacing[4] }]}>
             <Text style={{ color: colors.success, fontSize: typography.base, textAlign: 'center', lineHeight: 22 }}>
-              ✅  Check your email for a password reset link.
+              ✅  برای لینک بازیابی رمز عبور، ایمیلت را بررسی کن.
             </Text>
-            <Button label="Back to Login" onPress={() => navigation.navigate('Login')} variant="outline" fullWidth style={{ marginTop: spacing[5] }} />
+            <Button label="بازگشت به ورود" onPress={() => navigation.navigate('Login')} variant="outline" fullWidth style={{ marginTop: spacing[5] }} />
           </View>
         ) : (
           <>
             <Text style={[styles.subtitle, { color: colors.textSecondary, fontSize: typography.base, marginBottom: spacing[6] }]}>
-              Enter your email address and we'll send you a reset link.
+              ایمیل خود را وارد کن تا لینک بازیابی برایت بفرستیم.
             </Text>
 
             <Input
-              label="Email"
+              label="ایمیل"
               placeholder="your@email.com"
               value={email}
               onChangeText={setEmail}
@@ -70,8 +70,8 @@ export default function ForgotPasswordScreen() {
               containerStyle={{ marginBottom: spacing[6] }}
             />
 
-            <Button label="Send Reset Link" onPress={handleSubmit} loading={loading} fullWidth size="lg" />
-            <Button label="Back to Login" onPress={() => navigation.goBack()} variant="ghost" fullWidth style={{ marginTop: spacing[3] }} />
+            <Button label="ارسال لینک بازیابی" onPress={handleSubmit} loading={loading} fullWidth size="lg" />
+            <Button label="بازگشت به ورود" onPress={() => navigation.goBack()} variant="ghost" fullWidth style={{ marginTop: spacing[3] }} />
           </>
         )}
       </ScrollView>

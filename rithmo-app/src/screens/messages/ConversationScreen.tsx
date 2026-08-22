@@ -36,7 +36,7 @@ export default function ConversationScreen() {
       // Scroll to bottom after send
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (err) {
-      Alert.alert('Error', extractErrorMessage(err));
+      Alert.alert('خطا', extractErrorMessage(err));
       setText(trimmed); // restore on failure
     }
   }, [text, sending, sendMessage, partnerId]);
@@ -47,7 +47,7 @@ export default function ConversationScreen() {
 
   const keyExtractor = useCallback((item: Message) => String(item.id), []);
 
-  if (isLoading) {return <LoadingState fullScreen message="Loading conversation…" />;}
+  if (isLoading) {return <LoadingState fullScreen message="در حال بارگذاری گفتگو…" />;}
   if (isError)   {return <ErrorState fullScreen error={error} onRetry={refetch} />;}
 
   return (
@@ -96,19 +96,19 @@ export default function ConversationScreen() {
               maxHeight: 100,
             },
           ]}
-          placeholder="Type a message…"
+          placeholder="پیام بنویس…"
           placeholderTextColor={colors.textDisabled}
           value={text}
           onChangeText={setText}
           multiline
           returnKeyType="send"
           onSubmitEditing={handleSend}
-          accessibilityLabel="Message input"
+          accessibilityLabel="ورودی پیام"
         />
         <TouchableOpacity
           onPress={handleSend}
           disabled={!text.trim() || sending}
-          accessibilityLabel="Send message"
+          accessibilityLabel="ارسال پیام"
           style={[
             styles.sendBtn,
             {

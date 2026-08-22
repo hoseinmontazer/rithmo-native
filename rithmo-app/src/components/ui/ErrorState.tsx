@@ -21,14 +21,14 @@ export const ErrorState = memo(function ErrorState({ error, onRetry, fullScreen 
         <Icon name="alert-circle-outline" size={28} color={colors.error} />
       </View>
       <Text style={[styles.title, { color: colors.textPrimary, fontSize: typography.title, marginTop: spacing[3] }]}>
-        Something went wrong
+        مشکلی پیش آمد
       </Text>
       <Text style={[styles.message, { color: colors.textSecondary, fontSize: typography.bodySmall, marginTop: spacing[2] }]}>
         {message}
       </Text>
       {onRetry && (
         <Button
-          label="Try Again"
+          label="تلاش دوباره"
           onPress={onRetry}
           variant="secondary"
           size="sm"

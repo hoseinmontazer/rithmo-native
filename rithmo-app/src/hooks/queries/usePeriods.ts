@@ -26,6 +26,10 @@ export function useCreatePeriod() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.periods.all() });
       queryClient.invalidateQueries({ queryKey: queryKeys.ovulation.latest() });
+      // A period changes cycle context, phase, predictions and the observed
+      // cycle count in the accrual ledger — all of which Home reads from
+      // the intelligence layer.
+      queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.all() });
     },
   });
 }
@@ -38,6 +42,7 @@ export function useUpdatePeriod() {
     onSuccess: (updated) => {
       queryClient.setQueryData(queryKeys.periods.detail(updated.id), updated);
       queryClient.invalidateQueries({ queryKey: queryKeys.periods.list() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.all() });
     },
   });
 }
@@ -50,6 +55,7 @@ export function usePatchPeriod() {
     onSuccess: (updated) => {
       queryClient.setQueryData(queryKeys.periods.detail(updated.id), updated);
       queryClient.invalidateQueries({ queryKey: queryKeys.periods.list() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.all() });
     },
   });
 }

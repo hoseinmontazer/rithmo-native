@@ -136,7 +136,7 @@ export const QuickLogWidget = memo(function QuickLogWidget({
           />
           <View style={styles.greeting}>
             <Text style={[styles.greetingText, { color: colors.textSecondary, fontSize: typography.xs }]}>
-              Welcome back,
+              خوش برگشتی،
             </Text>
             <Text style={[styles.userName, { color: colors.textPrimary, fontSize: typography.md }]}>
               {userName}

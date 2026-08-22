@@ -18,7 +18,13 @@
       "@store/*": ["src/store/*"],
       "@theme/*": ["src/theme/*"],
       "@types/*": ["src/types/*"],
-      "@utils/*": ["src/utils/*"]
+      "@utils/*": ["src/utils/*"],
+      "@i18n": ["src/i18n"],
+      "@i18n/*": ["src/i18n/*"],
+      "@analytics": ["src/analytics"],
+      "@analytics/*": ["src/analytics/*"],
+      "@design-system": ["src/design-system"],
+      "@design-system/*": ["src/design-system/*"]
     }
   },
   "include": ["src", "index.js", "App.tsx"],

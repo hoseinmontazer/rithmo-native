@@ -7,9 +7,11 @@ import {
   Alert,
   TouchableOpacity,
   Share,
+  Switch,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@hooks/useTheme';
+import { useRole } from '@hooks/useRole';
 import {
   useProfile,
   useInvitationCode,
@@ -17,12 +19,29 @@ import {
   useAcceptInvitation,
   useGenerateRemoveCode,
   useRemovePartner,
+  useShareSettings,
+  useUpdateShareSettings,
+  useSelfRevokePartner,
 } from '@hooks/queries/useProfile';
 import { Button, Input, Icon, LoadingState } from '@components/ui';
 import { extractErrorMessage } from '@utils/errorHandler';
+import { toFa } from '@utils/persian';
 import type { ProfileScreenProps } from '@navigation/types';
 
 type Props = ProfileScreenProps<'PartnerManage'>;
+
+type ShareSettingKey =
+  | 'share_period_status'
+  | 'share_upcoming_period'
+  | 'share_mood'
+  | 'share_wellness_status';
+
+const SHARE_SETTING_ROWS: { key: ShareSettingKey; label: string; hint: string }[] = [
+  { key: 'share_period_status', label: 'وضعیت و فاز چرخه', hint: 'روز چرخه، فاز فعلی و تاریخ‌های ثبت‌شده‌ی دوره' },
+  { key: 'share_upcoming_period', label: 'دوره‌ی پیش‌رو', hint: 'تاریخ پیش‌بینی‌شده‌ی دوره‌ی بعدی' },
+  { key: 'share_mood', label: 'خلق‌وخو', hint: 'ثبت‌های روزانه‌ی خلق‌وخو' },
+  { key: 'share_wellness_status', label: 'جزئیات سلامت', hint: 'انرژی، شدت درد و علائم' },
+];
 
 export default function PartnerManageScreen() {
   const navigation = useNavigation<Props['navigation']>();
@@ -38,21 +57,26 @@ export default function PartnerManageScreen() {
   const [removeCode,   setRemoveCode]   = useState('');
   const [removeStep,   setRemoveStep]   = useState<'idle' | 'confirm'>('idle');
 
+  const { isPartner } = useRole();
+  const { data: shareSettings } = useShareSettings();
+  const { mutateAsync: updateShareSettings, isPending: updatingSettings } = useUpdateShareSettings();
+  const { mutateAsync: selfRevoke, isPending: revoking } = useSelfRevokePartner();
+
   const hasPartner = (profile?.partners?.length ?? 0) > 0;
 
   const handleGenerateCode = useCallback(async () => {
     try {
       await generateCode();
     } catch (err) {
-      Alert.alert('Error', extractErrorMessage(err));
+      Alert.alert('خطا', extractErrorMessage(err));
     }
   }, [generateCode]);
 
   const handleShare = useCallback(async (code: string) => {
     try {
       await Share.share({
-        message: `Join me on Rithmo! Use this code to link our accounts: ${code}`,
-        title: 'Rithmo Partner Invitation',
+        message: `به ریتمو بپیوند! با این کد حساب‌های ما را پیوند کن: ${code}`,
+        title: 'دعوت‌نامه‌ی شریک ریتمو',
       });
     } catch {
       /* user cancelled */
@@ -64,9 +88,9 @@ export default function PartnerManageScreen() {
     try {
       await acceptInvitation({ code_to_accept: codeToAccept.trim() });
       setCodeToAccept('');
-      Alert.alert('Connected! 🎉', 'Your partner has been linked successfully.');
+      Alert.alert('اتصال برقرار شد! 🎉', 'شریکت با موفقیت پیوند خورد.');
     } catch (err) {
-      Alert.alert('Error', extractErrorMessage(err));
+      Alert.alert('خطا', extractErrorMessage(err));
     }
   }, [codeToAccept, acceptInvitation]);
 
@@ -76,7 +100,7 @@ export default function PartnerManageScreen() {
       setRemoveCode(result?.remove_code ?? '');
       setRemoveStep('confirm');
     } catch (err) {
-      Alert.alert('Error', extractErrorMessage(err));
+      Alert.alert('خطا', extractErrorMessage(err));
     }
   }, [generateRemoveCode]);
 
@@ -86,11 +110,44 @@ export default function PartnerManageScreen() {
       await removePartner({ remove_code: removeCode.trim() });
       setRemoveStep('idle');
       setRemoveCode('');
-      Alert.alert('Done', 'Partner removed successfully.');
+      Alert.alert('تمام شد', 'شریک با موفقیت حذف شد.');
     } catch (err) {
-      Alert.alert('Error', extractErrorMessage(err));
+      Alert.alert('خطا', extractErrorMessage(err));
     }
   }, [removeCode, removePartner]);
+
+  const handleToggleSetting = useCallback(
+    async (key: ShareSettingKey, value: boolean) => {
+      try {
+        await updateShareSettings({ [key]: value });
+      } catch (err) {
+        Alert.alert('خطا', extractErrorMessage(err));
+      }
+    },
+    [updateShareSettings],
+  );
+
+  const handleSelfRevoke = useCallback(() => {
+    Alert.alert(
+      'پایان پیوند؟',
+      'از شریکت جدا می‌شوی. این عمل بلافاصله اجرا شده و قابل بازگشت نیست.',
+      [
+        { text: 'انصراف', style: 'cancel' },
+        {
+          text: 'پایان پیوند',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await selfRevoke();
+              Alert.alert('تمام شد', 'دیگر به شریکت متصل نیستی.');
+            } catch (err) {
+              Alert.alert('خطا', extractErrorMessage(err));
+            }
+          },
+        },
+      ],
+    );
+  }, [selfRevoke]);
 
   if (profileLoading) {return <LoadingState fullScreen />;}
 
@@ -103,7 +160,7 @@ export default function PartnerManageScreen() {
       {/* ── Connected partner ──────────────────────────────────────────── */}
       {hasPartner && (
         <View style={{ marginBottom: spacing[5] }}>
-          <SectionLabel label="Connected Partner" colors={colors} spacing={spacing} typography={typography} />
+          <SectionLabel label={isPartner ? 'شریکت' : 'شریک متصل'} colors={colors} spacing={spacing} typography={typography} />
 
           <View
             style={[
@@ -122,7 +179,7 @@ export default function PartnerManageScreen() {
             <View style={{ padding: spacing[4] }}>
               {profile!.partners!.map((p) => (
                 <View
-                  key={p.id}
+                  key={p.partner_user_id ?? p.username}
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -179,7 +236,7 @@ export default function PartnerManageScreen() {
                     }}
                   >
                     <Text style={{ color: colors.success, fontSize: 10, fontWeight: '800' }}>
-                      LINKED
+                      متصل
                     </Text>
                   </View>
                 </View>
@@ -202,12 +259,33 @@ export default function PartnerManageScreen() {
               >
                 <Icon name="message-text-outline" size={18} color="#fff" />
                 <Text style={{ color: '#fff', fontSize: typography.sm, fontWeight: '700' }}>
-                  Open Messages
+                  باز کردن پیام‌ها
                 </Text>
               </TouchableOpacity>
 
               {/* Remove flow */}
-              {removeStep === 'idle' ? (
+              {isPartner ? (
+                <View>
+                  <Text
+                    style={{
+                      color: colors.textSecondary,
+                      fontSize: typography.sm,
+                      marginBottom: spacing[3],
+                      lineHeight: 20,
+                    }}
+                  >
+                    آنچه شریکت انتخاب کند با تو به اشتراک بگذارد، می‌بینی.
+                    در هر لحظه می‌توانی پیوند را قطع کنی.
+                  </Text>
+                  <Button
+                    label={revoking ? 'در حال قطع…' : 'قطع پیوند'}
+                    onPress={handleSelfRevoke}
+                    loading={revoking}
+                    variant="danger"
+                    fullWidth
+                  />
+                </View>
+              ) : removeStep === 'idle' ? (
                 <TouchableOpacity
                   onPress={handleStartRemove}
                   disabled={genRemoving}
@@ -226,7 +304,7 @@ export default function PartnerManageScreen() {
                 >
                   <Icon name="account-remove-outline" size={18} color={colors.error} />
                   <Text style={{ color: colors.error, fontSize: typography.sm, fontWeight: '600' }}>
-                    {genRemoving ? 'Generating code…' : 'Remove Partner'}
+                    {genRemoving ? 'در حال ساخت کد…' : 'حذف شریک'}
                   </Text>
                 </TouchableOpacity>
               ) : (
@@ -239,23 +317,23 @@ export default function PartnerManageScreen() {
                       lineHeight: 20,
                     }}
                   >
-                    Enter the remove code to confirm unlinking:
+                    کد حذف را برای تأیید قطع پیوند وارد کن:
                   </Text>
                   <Input
                     value={removeCode}
                     onChangeText={setRemoveCode}
-                    placeholder="Remove code"
+                    placeholder="کد حذف"
                     containerStyle={{ marginBottom: spacing[3] }}
                   />
                   <Button
-                    label="Confirm Remove"
+                    label="تأیید حذف"
                     onPress={handleConfirmRemove}
                     variant="danger"
                     loading={removing}
                     fullWidth
                   />
                   <Button
-                    label="Cancel"
+                    label="انصراف"
                     onPress={() => { setRemoveStep('idle'); setRemoveCode(''); }}
                     variant="ghost"
                     fullWidth
@@ -271,7 +349,7 @@ export default function PartnerManageScreen() {
       {/* ── Invite a partner ───────────────────────────────────────────── */}
       {!hasPartner && (
         <View style={{ marginBottom: spacing[5] }}>
-          <SectionLabel label="Invite Your Partner" colors={colors} spacing={spacing} typography={typography} />
+          <SectionLabel label="دعوت از شریک" colors={colors} spacing={spacing} typography={typography} />
 
           <View
             style={[
@@ -316,7 +394,7 @@ export default function PartnerManageScreen() {
                       marginBottom: spacing[1],
                     }}
                   >
-                    Generate an invitation code
+                    ساخت کد دعوت
                   </Text>
                   <Text
                     style={{
@@ -325,7 +403,7 @@ export default function PartnerManageScreen() {
                       lineHeight: 20,
                     }}
                   >
-                    Share the code with your partner so they can link their Rithmo account to yours.
+                    کد را با شریکت به اشتراک بگذار تا حساب ریتموی خودش را به حساب تو پیوند کند.
                   </Text>
                 </View>
               </View>
@@ -353,7 +431,7 @@ export default function PartnerManageScreen() {
                         marginBottom: spacing[2],
                       }}
                     >
-                      Your Invitation Code
+                      کد دعوت شما
                     </Text>
                     <Text
                       style={{
@@ -372,7 +450,7 @@ export default function PartnerManageScreen() {
                         marginTop: spacing[2],
                       }}
                     >
-                      Expires in: {Math.floor(invitation.expires_in / 3600)}h {Math.floor((invitation.expires_in % 3600) / 60)}m
+                      انقضا: {toFa(Math.floor(invitation.expires_in / 3600))} ساعت {toFa(Math.floor((invitation.expires_in % 3600) / 60))} دقیقه
                     </Text>
                   </View>
 
@@ -391,13 +469,13 @@ export default function PartnerManageScreen() {
                   >
                     <Icon name="share-outline" size={18} color="#fff" />
                     <Text style={{ color: '#fff', fontSize: typography.sm, fontWeight: '700' }}>
-                      Share Code
+                      اشتراک‌گذاری کد
                     </Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <Button
-                  label="Generate Code"
+                  label="ساخت کد"
                   onPress={handleGenerateCode}
                   loading={generating}
                   fullWidth
@@ -411,7 +489,7 @@ export default function PartnerManageScreen() {
       {/* ── Accept a partner's code ────────────────────────────────────── */}
       {!hasPartner && (
         <View style={{ marginBottom: spacing[5] }}>
-          <SectionLabel label="Accept Partner's Code" colors={colors} spacing={spacing} typography={typography} />
+          <SectionLabel label="پذیرش کد شریک" colors={colors} spacing={spacing} typography={typography} />
 
           <View
             style={[
@@ -456,7 +534,7 @@ export default function PartnerManageScreen() {
                       marginBottom: spacing[1],
                     }}
                   >
-                    Have a code?
+                    کدی داری؟
                   </Text>
                   <Text
                     style={{
@@ -465,14 +543,14 @@ export default function PartnerManageScreen() {
                       lineHeight: 20,
                     }}
                   >
-                    Enter the invitation code your partner shared with you.
+                    کد دعوتی که شریکت برای تو فرستاده را وارد کن.
                   </Text>
                 </View>
               </View>
 
               <Input
-                label="Invitation Code"
-                placeholder="Enter code"
+                label="کد دعوت"
+                placeholder="کد را وارد کن"
                 value={codeToAccept}
                 onChangeText={setCodeToAccept}
                 autoCapitalize="none"
@@ -480,12 +558,91 @@ export default function PartnerManageScreen() {
                 containerStyle={{ marginBottom: spacing[3] }}
               />
               <Button
-                label="Link Partner"
+                label="پیوند شریک"
                 onPress={handleAccept}
                 loading={accepting}
                 disabled={!codeToAccept.trim()}
                 fullWidth
               />
+            </View>
+          </View>
+        </View>
+      )}
+      {/* ── Sharing consent (owner controls what partner sees) ─────────── */}
+      {hasPartner && !isPartner && shareSettings && (
+        <View style={{ marginBottom: spacing[5] }}>
+          <SectionLabel label="آنچه شریکت می‌بیند" colors={colors} spacing={spacing} typography={typography} />
+
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderRadius: 20,
+                overflow: 'hidden',
+              },
+            ]}
+          >
+            <View style={{ height: 3, backgroundColor: colors.success }} />
+            <View style={{ padding: spacing[4] }}>
+              <Text
+                style={{
+                  color: colors.textSecondary,
+                  fontSize: typography.sm,
+                  lineHeight: 20,
+                  marginBottom: spacing[3],
+                }}
+              >
+                انتخاب کن شریکت چه بخش‌هایی از داده‌هایت را ببیند.
+                تغییرات بلافاصله اعمال و از سمت سرور اجرا می‌شوند.
+              </Text>
+
+              {SHARE_SETTING_ROWS.map((row, index) => (
+                <View
+                  key={row.key}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingVertical: spacing[2],
+                    borderBottomWidth:
+                      index < SHARE_SETTING_ROWS.length - 1
+                        ? StyleSheet.hairlineWidth
+                        : 0,
+                    borderBottomColor: colors.borderSubtle,
+                  }}
+                >
+                  <View style={{ flex: 1, marginRight: spacing[3] }}>
+                    <Text
+                      style={{
+                        color: colors.textPrimary,
+                        fontSize: typography.sm,
+                        fontWeight: '700',
+                        marginBottom: 2,
+                      }}
+                    >
+                      {row.label}
+                    </Text>
+                    <Text
+                      style={{
+                        color: colors.textSecondary,
+                        fontSize: typography.xs,
+                        lineHeight: 16,
+                      }}
+                    >
+                      {row.hint}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={shareSettings[row.key]}
+                    onValueChange={(value) => handleToggleSetting(row.key, value)}
+                    disabled={updatingSettings}
+                    trackColor={{ true: colors.primary, false: colors.borderSubtle }}
+                    thumbColor={colors.surface}
+                  />
+                </View>
+              ))}
             </View>
           </View>
         </View>

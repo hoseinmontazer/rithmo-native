@@ -1,20 +1,38 @@
 /**
- * HomeScreen — Rhythmo
+ * HomeScreen — one story, not a stack of cards.
  *
- * Product intent: cycle-pattern intelligence, not a dashboard of widgets.
+ * Four sections, in descending weight:
  *
- * Hierarchy:
- *   1. Header (name, date, notification)
- *   2. CycleContextCard — What is my cycle doing right now?
- *   3. TodayStateCard   — What did I feel today?
- *   4. PatternCard      — What patterns has Rhythmo noticed? (data-state-aware)
- *   5. Upcoming         — Next predicted event
+ *   CONTEXT   flat strip     — where am I
+ *   STORY     elevated card  — what was noticed, why, and what to do
+ *   SECONDARY collapsed rows — optional, subordinate
+ *   ACCRUAL   quiet card     — what is known, what is nearly known
  *
- * No gamification (streaks removed).
- * No generic AI suggestions on home screen.
- * No QuickActionsGrid duplicating the nav bar.
+ * What changed and why (F-02):
+ *
+ * - **Insight and action are one card.** They were two cards of equal
+ *   weight, so the user had to infer that the recommendation came from the
+ *   observation — and that inference is the whole product claim. See
+ *   StoryCard.
+ * - **Context is a strip, not a card.** Home opened with two elevated
+ *   elements competing to be the headline, the first of which carried
+ *   generic wellness advice true of everyone.
+ * - **Secondary actions collapsed.** Three identical cards put six CTAs on
+ *   one screen; nothing was primary because everything looked primary.
+ * - **The quick-action row is gone.** «ثبت امروز» duplicated the reflection
+ *   action 200px below it, and both went to QuickLog — which is also the
+ *   centre tab. Three routes to one screen.
+ * - **Accrual added.** The loop broke at feedback: logging produced no
+ *   visible consequence. The evidence ledger is the answer to "why log
+ *   again", and every number in it is real.
+ *
+ * Data: ONE query. `/api/intelligence/today/` already carries cycle context,
+ * insight, actions, evidence and baselines, so the separate
+ * `/api/analytics/cycle/` and `/api/wellness/` calls this screen used to
+ * make were removed rather than added to.
  */
-import React, { useCallback, useMemo } from 'react';
+
+import React, { useCallback, useMemo, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -28,167 +46,135 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { useAuth } from '@hooks/useAuth';
-import {
-  useCycleAnalysis,
-  usePeriods,
-} from '@hooks/queries/usePeriods';
 import { useUnreadNotifications } from '@hooks/queries/useNotifications';
-import {
-  useTodayWellnessLog,
-  useWellnessLogs,
-} from '@hooks/queries/useWellness';
 import { useProfile } from '@hooks/queries/useProfile';
+import { useToday } from '@hooks/queries/useIntelligence';
 import type { HomeScreenProps } from '@navigation/types';
-import type { CycleAnalysis, CyclePhase } from '@types/period.types';
-import { CycleContextCard }  from './components/CycleContextCard';
-import { TodayStateCard }    from './components/TodayStateCard';
-import { PatternCard, deriveDataState } from './components/PatternCard';
-import type { WellnessLog } from '@types/wellness.types';
+import type { GuidedAction } from '@types/intelligence.types';
+import { getBrandGradient } from '@theme/brand';
+import { toFa, faDate } from '@utils/persian';
+import {
+  GradientSurface,
+  ErrorState,
+  ContextSkeleton,
+  StoryCardSkeleton,
+  AccrualSkeleton,
+} from '@components/ui';
+import { track } from '@analytics';
+import { CycleContextStrip } from './components/CycleContextStrip';
+import { StoryCard } from './components/StoryCard';
+import { SecondaryActions } from './components/SecondaryActions';
+import { AccrualLedger } from './components/AccrualLedger';
 
 type Props = HomeScreenProps<'Home'>;
 
-/**
- * Map the backend's current_status.phase (source of truth) onto the
- * display phases.  IMPORTANT: the fallback is 'unknown', never
- * 'follicular' — when the backend reports nothing (no data, no partner,
- * or an unexpected value) the UI must show a no-data state, not invent a
- * phase.
- */
-const normalisePhase = (raw?: string): CyclePhase => {
-  const s = (raw ?? '').toLowerCase();
-  if (s.includes('menstrual') || s.includes('period')) { return 'menstrual'; }
-  if (s.includes('ovulat'))                             { return 'ovulation'; }
-  if (s.includes('luteal'))                             { return 'luteal'; }
-  if (s.includes('follicular'))                         { return 'follicular'; }
-  if (s === 'expected')                                 { return 'expected'; }
-  if (s === 'late')                                     { return 'late'; }
-  if (s === 'overdue')                                  { return 'overdue'; }
-  return 'unknown';
-};
-
-// ── Upcoming section ──────────────────────────────────────────────────────────
-
-function UpcomingRow({
-  label,
-  date,
-  accent,
-}: { label: string; date: string | null; accent: string }) {
-  const { colors, typography } = useTheme();
-  if (!date) { return null; }
+/** A quiet section label. Deliberately lighter than any card title. */
+function SectionLabel({ children }: { children: string }) {
+  const { colors, typography, spacing } = useTheme();
   return (
-    <View style={[styles.upcomingRow, { backgroundColor: colors.surface }]}>
-      <View style={[styles.upcomingDot, { backgroundColor: accent }]} />
-      <Text style={[styles.upcomingLabel, { color: colors.textSecondary, fontSize: typography.bodySmall }]}>
-        {label}
-      </Text>
-      <Text style={[styles.upcomingDate, { color: colors.textPrimary, fontSize: typography.bodySmall }]}>
-        {date}
-      </Text>
-    </View>
+    <Text
+      style={{
+        color: colors.textTertiary,
+        fontSize: typography.caption,
+        fontWeight: '600',
+        marginBottom: spacing[2],
+      }}
+    >
+      {children}
+    </Text>
   );
 }
 
-// ── Main screen ───────────────────────────────────────────────────────────────
-
 export default function HomeScreen() {
   const navigation = useNavigation<Props['navigation']>();
-  const { colors, spacing, typography, borderRadius } = useTheme();
+  const { colors, spacing, typography, borderRadius, isDark } = useTheme();
   const { user } = useAuth();
+  const gradient = getBrandGradient(isDark);
 
-  // ── Profile ───────────────────────────────────────────────────────────────
   const { data: profile, refetch: refetchProfile } = useProfile();
-  const isMale = profile?.sex === 'male' || user?.sex === 'male';
-  const shouldFetchCycle = profile !== undefined;
+  const shouldFetch = profile !== undefined;
 
-  // ── Data queries ──────────────────────────────────────────────────────────
   const {
-    data: cycleData,
-    isLoading: cycleLoading,
-    refetch: refetchCycle,
-    isError: cycleError,
-  } = useCycleAnalysis({
-    role: isMale ? 'partner' : undefined,
-    enabled: shouldFetchCycle,
-  });
+    data: today,
+    isLoading: todayLoading,
+    isError: todayError,
+    refetch: refetchToday,
+  } = useToday(shouldFetch);
 
-  const { data: periodsList,    refetch: refetchPeriods }  = usePeriods(isMale ? 'partner' : undefined);
-  const { data: unreadNotifs }                             = useUnreadNotifications();
-  const { data: todayWellness,  refetch: refetchToday }    = useTodayWellnessLog();
-  const { data: allLogs,        refetch: refetchLogs }     = useWellnessLogs();
+  const { data: unreadNotifs } = useUnreadNotifications();
 
-  // ── Refresh ───────────────────────────────────────────────────────────────
-  const [refreshing, setRefreshing] = React.useState(false);
-
+  const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.allSettled([
-      refetchProfile(),
-      refetchCycle(),
-      refetchPeriods(),
-      refetchToday(),
-      refetchLogs(),
-    ]);
+    await Promise.allSettled([refetchProfile(), refetchToday()]);
     setRefreshing(false);
-  }, [refetchProfile, refetchCycle, refetchPeriods, refetchToday, refetchLogs]);
+  }, [refetchProfile, refetchToday]);
 
-  // ── Derived: cycle status ─────────────────────────────────────────────────
-  const cycleStatus = (cycleData as CycleAnalysis | undefined)?.current_status;
+  // ── Derived ───────────────────────────────────────────────────────────────
+  const state = today?.state ?? null;
+  const learningMode = today?.learning_mode ?? false;
 
-  const phase = normalisePhase(cycleStatus?.phase);
-  const cycleDay: number | null = cycleStatus?.cycle_day ?? null;
-  const daysUntilPeriod: number | null = cycleStatus?.days_until_next_period ?? null;
-  const daysOverdue: number | null = cycleStatus?.days_overdue ?? null;
-  const isOnPeriod: boolean = cycleStatus?.is_on_period ?? false;
-  // A 0-period user still gets a 200 response — the honest no-data signal
-  // is phase === 'unknown', not the absence of a response body.
-  const hasCycleData = phase !== 'unknown';
+  const { primaryAction, secondaryActions } = useMemo(() => {
+    const actions: GuidedAction[] = today?.actions ?? [];
+    return {
+      primaryAction: actions.find((a) => a.slot === 'primary') ?? null,
+      // Everything that is not the headline, in a stable order.
+      secondaryActions: actions.filter((a) => a.slot !== 'primary'),
+    };
+  }, [today?.actions]);
 
-  // ── Derived: data state for PatternCard ───────────────────────────────────
-  const periodCount = Array.isArray(periodsList) ? (periodsList as any[]).length : 0;
-  const logCount    = Array.isArray(allLogs)     ? (allLogs     as any[]).length : 0;
-  const dataState   = deriveDataState(periodCount, logCount);
+  // ── Analytics ─────────────────────────────────────────────────────────────
+  const reportedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!today) { return; }
+    const key = `${today.state.today}:${today.actions.length}`;
+    if (reportedRef.current === key) { return; }
+    reportedRef.current = key;
+    track('home_viewed', {
+      learning_mode: today.learning_mode,
+      has_primary_insight: Boolean(today.primary_insight),
+      action_count: today.actions.length,
+    });
+    if (today.primary_insight) {
+      track('insight_viewed', {
+        insight_key: today.primary_insight.key,
+        insight_kind: today.primary_insight.kind,
+        confidence: today.primary_insight.confidence,
+      });
+    }
+  }, [today]);
 
-  // ── Derived: next predicted period date ───────────────────────────────────
-  const nextPeriodDate: string | null = useMemo(() => {
-    const raw = (cycleData as any)?.next_predicted_date;
-    if (!raw) { return null; }
-    try {
-      return new Date(raw).toLocaleDateString('fa-IR', { month: 'long', day: 'numeric' });
-    } catch { return null; }
-  }, [cycleData]);
-
-  // ── Navigation handlers ───────────────────────────────────────────────────
+  // ── Navigation ────────────────────────────────────────────────────────────
   const goToQuickLog = useCallback(() => {
     navigation.navigate('LogTab' as any, { screen: 'QuickLog' } as any);
   }, [navigation]);
-
-  const goToCycle = useCallback(() => {
-    navigation.navigate('CycleTab' as any);
-  }, [navigation]);
-
-  const goToInsights = useCallback(() => {
-    navigation.navigate('InsightsTab' as any);
-  }, [navigation]);
-
-  const goToNotifications = useCallback(() => {
-    navigation.navigate('Notifications');
-  }, [navigation]);
-
-  const goToWellnessDashboard = useCallback(() => {
-    navigation.navigate('LogTab' as any, { screen: 'WellnessDashboard' } as any);
-  }, [navigation]);
-
+  const goToCycle = useCallback(() => navigation.navigate('CycleTab' as any), [navigation]);
+  const goToInsights = useCallback(() => navigation.navigate('InsightsTab' as any), [navigation]);
+  const goToNotifications = useCallback(() => navigation.navigate('Notifications'), [navigation]);
   const goToLogPeriod = useCallback(() => {
     navigation.navigate('CycleTab' as any, { screen: 'LogPeriod' } as any);
   }, [navigation]);
 
-  // ── Header date ───────────────────────────────────────────────────────────
-  const dateStr = useMemo(() =>
-    new Date().toLocaleDateString('fa-IR', {
-      weekday: 'long', month: 'long', day: 'numeric',
-    }),
-  []);
+  /**
+   * Only data-collection actions have somewhere to go; the rest are done in
+   * the world, so their card records completion directly rather than
+   * pretending to open something.
+   */
+  const openAction = useCallback((action: GuidedAction) => {
+    if (action.intervention === 'log_today') { goToQuickLog(); return; }
+    if (action.intervention === 'log_period') { goToLogPeriod(); return; }
+  }, [goToQuickLog, goToLogPeriod]);
 
+  const actionOpener = useCallback(
+    (action: GuidedAction) =>
+      action.intervention === 'log_today' || action.intervention === 'log_period'
+        ? openAction
+        : undefined,
+    [openAction],
+  );
+
+  // ── Header ────────────────────────────────────────────────────────────────
+  const dateStr = useMemo(() => faDate(new Date()), []);
   const userName = profile?.first_name || user?.username || '';
   const unreadCount: number = (unreadNotifs as any)?.count ?? 0;
 
@@ -209,169 +195,159 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* ── Header ──────────────────────────────────────────────────── */}
-        <View style={[styles.header, { paddingTop: spacing[3], marginBottom: spacing[5] }]}>
-          <View>
-            <Text style={[styles.dateText, { color: colors.textTertiary, fontSize: typography.caption }]}>
+        {/* ── Header ────────────────────────────────────────────────── */}
+        <GradientSurface
+          colors={[gradient.heroFrom, gradient.heroTo]}
+          borderRadius={borderRadius['2xl']}
+          style={styles.hero}
+        >
+          <View style={styles.heroTopRow}>
+            <Text
+              style={{
+                color: 'rgba(255,255,255,0.75)',
+                fontSize: typography.caption,
+                fontWeight: '600',
+              }}
+            >
               {dateStr}
             </Text>
-            {userName ? (
-              <Text style={[styles.greeting, { color: colors.textPrimary, fontSize: typography.heading }]}>
-                سلام، {userName}
-              </Text>
-            ) : (
-              <Text style={[styles.greeting, { color: colors.textPrimary, fontSize: typography.heading }]}>
-                ریتمو
-              </Text>
-            )}
+            <TouchableOpacity
+              onPress={goToNotifications}
+              style={[styles.bellBtn, { borderRadius: borderRadius.lg }]}
+              accessibilityRole="button"
+              accessibilityLabel={`اعلان‌ها${unreadCount > 0 ? `، ${toFa(unreadCount)} خوانده‌نشده` : ''}`}
+            >
+              <Icon name="bell-outline" size={20} color="#FFFFFF" />
+              {unreadCount > 0 ? (
+                <View
+                  style={[
+                    styles.unreadDot,
+                    { backgroundColor: colors.menstrual, borderColor: gradient.heroTo },
+                  ]}
+                />
+              ) : null}
+            </TouchableOpacity>
           </View>
-
-          {/* Notification bell */}
-          <TouchableOpacity
-            onPress={goToNotifications}
-            style={[styles.bellBtn, {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderRadius: borderRadius.medium,
-            }]}
-            accessibilityLabel={`اعلان‌ها${unreadCount > 0 ? `, ${unreadCount} خوانده‌نشده` : ''}`}
-          >
-            <Icon name="bell-outline" size={20} color={colors.textSecondary} />
-            {unreadCount > 0 && (
-              <View style={[styles.unreadDot, { backgroundColor: colors.menstrual }]} />
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Section label ────────────────────────────────────────────── */}
-        <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.label, marginBottom: spacing[2] }]}>
-          وضعیت سیکل
-        </Text>
-
-        {/* ── 1. Cycle Context Card ────────────────────────────────────── */}
-        <View style={{ marginBottom: spacing[4] }}>
-          <CycleContextCard
-            isLoading={cycleLoading}
-            hasData={hasCycleData}
-            hasError={cycleError}
-            cycleDay={cycleDay}
-            phase={phase}
-            daysUntilPeriod={daysUntilPeriod}
-            daysOverdue={daysOverdue}
-            isOnPeriod={isOnPeriod}
-            onPress={goToCycle}
-            onRetry={refetchCycle}
-            onStartTracking={goToLogPeriod}
-          />
-        </View>
-
-        {/* ── Section label ────────────────────────────────────────────── */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing[2] }}>
-          <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.label }]}>
-            امروز
+          <Text style={[styles.greeting, { color: '#FFFFFF', fontSize: typography.heading }]}>
+            {userName ? `سلام، ${userName} 🌸` : 'سلام 🌸'}
           </Text>
-          <TouchableOpacity onPress={goToWellnessDashboard} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="مشاهده تاریخچه سلامت">
-            <Text style={{ color: colors.primary, fontSize: typography.caption, fontWeight: '600' }}>
-              تاریخچه سلامت
-            </Text>
-          </TouchableOpacity>
+          <Text
+            style={{
+              color: 'rgba(255,255,255,0.75)',
+              fontSize: typography.bodySmall,
+              marginTop: 4,
+              lineHeight: 19,
+            }}
+          >
+            {learningMode ? 'هنوز در حال شناختن الگوی توام' : 'امروز چه چیزی مهم است'}
+          </Text>
+        </GradientSurface>
+
+        {/* ── 1. Context — flat strip ───────────────────────────────── */}
+        <View
+          style={[
+            styles.contextWrap,
+            { borderBottomColor: colors.borderSubtle, marginBottom: spacing[4] },
+          ]}
+        >
+          {todayLoading ? (
+            <ContextSkeleton />
+          ) : (
+            <CycleContextStrip
+              cycle={state?.cycle}
+              onPress={goToCycle}
+              onStartTracking={goToLogPeriod}
+            />
+          )}
         </View>
 
-        {/* ── 2. Today's State Card ─────────────────────────────────────── */}
-        <View style={{ marginBottom: spacing[4] }}>
-          <TodayStateCard
-            log={todayWellness as WellnessLog | null}
-            isLoading={false}
-            onLogPress={goToQuickLog}
+        {/* ── 2. The story ──────────────────────────────────────────── */}
+        {todayLoading ? (
+          <StoryCardSkeleton />
+        ) : todayError ? (
+          /* Section-scoped failure: the header, context and everything
+             below stay on screen. A single failed query must not blank
+             the whole of Home. */
+          <View
+            style={[
+              styles.errorWrap,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderRadius: borderRadius.xl,
+              },
+            ]}
+          >
+            <ErrorState error={'مشکلی در بارگذاری پیش آمد'} onRetry={refetchToday} />
+          </View>
+        ) : (
+          <StoryCard
+            insight={today?.primary_insight ?? null}
+            action={primaryAction}
+            learningMode={learningMode}
+            onOpenAction={primaryAction ? actionOpener(primaryAction) : undefined}
           />
-        </View>
-
-        {/* ── Section label ────────────────────────────────────────────── */}
-        <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.label, marginBottom: spacing[2] }]}>
-          الگوهای من
-        </Text>
-
-        {/* ── 3. Pattern Card ───────────────────────────────────────────── */}
-        <View style={{ marginBottom: spacing[4] }}>
-          <PatternCard
-            dataState={dataState}
-            logCount={logCount}
-            periodCount={periodCount}
-            logs={(Array.isArray(allLogs) ? allLogs : []) as WellnessLog[]}
-            cycleAnalysis={cycleData as CycleAnalysis | null}
-            onInsightsPress={goToInsights}
-          />
-        </View>
-
-        {/* ── 4. Upcoming ───────────────────────────────────────────────── */}
-        {nextPeriodDate && (
-          <>
-            <Text style={[styles.sectionLabel, { color: colors.textTertiary, fontSize: typography.label, marginBottom: spacing[2] }]}>
-              پیش‌بینی
-            </Text>
-            <View style={[styles.upcomingCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: borderRadius.large, marginBottom: spacing[6] }]}>
-              <UpcomingRow
-                label="دوره بعدی"
-                date={nextPeriodDate}
-                accent={colors.menstrual}
-              />
-            </View>
-          </>
         )}
+
+        {/* ── 3. Secondary actions — subordinate rows ───────────────── */}
+        {!todayLoading && secondaryActions.length > 0 ? (
+          <View style={{ marginTop: spacing[5] }}>
+            <SectionLabel>اگر خواستی</SectionLabel>
+            <SecondaryActions actions={secondaryActions} onOpenAction={actionOpener} />
+          </View>
+        ) : null}
+
+        {/* ── 4. Accrual — the reason to come back ──────────────────── */}
+        <View style={{ marginTop: spacing[5] }}>
+          {todayLoading ? (
+            <AccrualSkeleton />
+          ) : state ? (
+            <TouchableOpacity
+              onPress={goToInsights}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="مشاهده همه الگوها"
+            >
+              <AccrualLedger state={state} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: {
+  hero: { padding: 18, paddingBottom: 20, overflow: 'hidden' },
+  heroTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'center',
+    marginBottom: 14,
   },
-  dateText: { marginBottom: 2 },
-  greeting: { fontWeight: '700', letterSpacing: -0.4 },
   bellBtn: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
+    backgroundColor: 'rgba(255,255,255,0.16)',
     borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   unreadDot: {
     position: 'absolute',
-    top: 9,
-    right: 10,
+    top: 8,
+    right: 9,
     width: 8,
     height: 8,
     borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: '#fff',
   },
-  sectionLabel: {
-    fontWeight: '600',
-  },
-  upcomingCard: {
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  upcomingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  upcomingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  upcomingLabel: { flex: 1, fontWeight: '500' },
-  upcomingDate: { fontWeight: '600' },
+  greeting: { fontWeight: '800', letterSpacing: -0.3, lineHeight: 34 },
+  // A hairline under the strip separates context from the story without
+  // making it a second card.
+  contextWrap: { borderBottomWidth: StyleSheet.hairlineWidth, marginTop: 4 },
+  errorWrap: { borderWidth: 1, overflow: 'hidden' },
 });
-

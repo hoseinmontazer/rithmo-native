@@ -33,7 +33,7 @@ export default function ActivateAccountScreen() {
         <>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.text, { color: colors.textSecondary, fontSize: typography.base, marginTop: spacing[4] }]}>
-            Activating your account…
+            در حال فعال‌سازی حساب…
           </Text>
         </>
       )}
@@ -42,12 +42,12 @@ export default function ActivateAccountScreen() {
         <>
           <Text style={{ fontSize: 64 }}>🎉</Text>
           <Text style={[styles.title, { color: colors.textPrimary, fontSize: typography['2xl'], fontWeight: '700', marginTop: spacing[4] }]}>
-            Account Activated!
+            حساب فعال شد!
           </Text>
           <Text style={[styles.text, { color: colors.textSecondary, fontSize: typography.base, marginTop: spacing[2] }]}>
-            Your account is ready. Sign in to get started.
+            حسابت آماده است. وارد شو تا شروع کنی.
           </Text>
-          <Button label="Sign In" onPress={() => navigation.navigate('Login')} fullWidth size="lg" style={{ marginTop: spacing[8] }} />
+          <Button label="ورود" onPress={() => navigation.navigate('Login')} fullWidth size="lg" style={{ marginTop: spacing[8] }} />
         </>
       )}
 
@@ -55,12 +55,12 @@ export default function ActivateAccountScreen() {
         <>
           <Text style={{ fontSize: 64 }}>❌</Text>
           <Text style={[styles.title, { color: colors.textPrimary, fontSize: typography['2xl'], fontWeight: '700', marginTop: spacing[4] }]}>
-            Activation Failed
+            فعال‌سازی ناموفق بود
           </Text>
           <Text style={[styles.text, { color: colors.textSecondary, fontSize: typography.base, marginTop: spacing[2] }]}>
             {errorMsg}
           </Text>
-          <Button label="Back to Login" onPress={() => navigation.navigate('Login')} variant="outline" fullWidth style={{ marginTop: spacing[8] }} />
+          <Button label="بازگشت به ورود" onPress={() => navigation.navigate('Login')} variant="outline" fullWidth style={{ marginTop: spacing[8] }} />
         </>
       )}
     </View>

@@ -8,23 +8,38 @@ import type {
   MedicationTypeRequest,
   UserMedicationRequest,
 } from '@types/medication.types';
-import type { PaginatedResponse } from '@types/api.types';
 
-function normalizeListResponse<T>(data: T[] | PaginatedResponse<T>): T[] {
-  return Array.isArray(data) ? data : data.results;
-}
+/*
+ * `medicationService` already unwraps every response — it returns `T[]` for
+ * lists and `T` for single objects, exactly as its own header comment says.
+ *
+ * These hooks had not been updated to match. Every one of them still read
+ * `.data` off that already-unwrapped value, so a list query evaluated
+ * `normalizeListResponse(undefined)` -> `undefined.results` and threw a
+ * TypeError on success responses. React Query retried three times and then
+ * parked the query in an error state, and MedicationsScreen only ever checked
+ * `isLoading`, so the screen showed a spinner that never resolved. Every
+ * medication read AND every medication mutation was affected: the feature
+ * could not work at all.
+ *
+ * Verified on device before the fix: `listUserMedications` resolved to a real
+ * array (`[]`) while `response.data` was `undefined`, three attempts in a row.
+ *
+ * The service is the single unwrapping boundary; hooks consume its result
+ * directly. `PaginatedResponse` normalisation lives in `unwrapList` there.
+ */
 
 export function useMedicationTypes() {
   return useQuery({
     queryKey: queryKeys.medications.types(),
-    queryFn: () => medicationService.listTypes().then((r) => normalizeListResponse(r.data)),
+    queryFn: () => medicationService.listTypes(),
   });
 }
 
 export function useMedicationType(id: number) {
   return useQuery({
     queryKey: queryKeys.medications.type(id),
-    queryFn: () => medicationService.getType(id).then((r) => r.data),
+    queryFn: () => medicationService.getType(id),
     enabled: id > 0,
   });
 }
@@ -32,14 +47,14 @@ export function useMedicationType(id: number) {
 export function useMedicationDrugs() {
   return useQuery({
     queryKey: queryKeys.medications.drugs(),
-    queryFn: () => medicationService.listDrugs().then((r) => normalizeListResponse(r.data)),
+    queryFn: () => medicationService.listDrugs(),
   });
 }
 
 export function useMedicationDrug(id: number) {
   return useQuery({
     queryKey: queryKeys.medications.drug(id),
-    queryFn: () => medicationService.getDrug(id).then((r) => r.data),
+    queryFn: () => medicationService.getDrug(id),
     enabled: id > 0,
   });
 }
@@ -47,7 +62,7 @@ export function useMedicationDrug(id: number) {
 export function useMedicationDrugSearch(q: string) {
   return useQuery({
     queryKey: queryKeys.medications.drugSearch(q),
-    queryFn: () => medicationService.searchDrugs(q).then((r) => normalizeListResponse(r.data)),
+    queryFn: () => medicationService.searchDrugs(q),
     enabled: q.trim().length > 0,
   });
 }
@@ -57,8 +72,7 @@ export function useUserMedications() {
     queryKey: queryKeys.medications.userMedications(),
     queryFn: async () => {
       try {
-        const response = await medicationService.listUserMedications();
-        return normalizeListResponse(response.data);
+        return await medicationService.listUserMedications();
       } catch (error: any) {
         // 404 means no medications yet - return empty array
         if (error?.response?.status === 404) {
@@ -77,7 +91,7 @@ export function useUserMedications() {
 export function useUserMedication(id: number) {
   return useQuery({
     queryKey: queryKeys.medications.userMedication(id),
-    queryFn: () => medicationService.getUserMedication(id).then((r) => r.data),
+    queryFn: () => medicationService.getUserMedication(id),
     enabled: id > 0,
   });
 }
@@ -85,14 +99,14 @@ export function useUserMedication(id: number) {
 export function useMedicationLogs() {
   return useQuery({
     queryKey: queryKeys.medications.logs(),
-    queryFn: () => medicationService.listLogs().then((r) => normalizeListResponse(r.data)),
+    queryFn: () => medicationService.listLogs(),
   });
 }
 
 export function useMedicationLog(id: number) {
   return useQuery({
     queryKey: queryKeys.medications.log(id),
-    queryFn: () => medicationService.getLog(id).then((r) => r.data),
+    queryFn: () => medicationService.getLog(id),
     enabled: id > 0,
   });
 }
@@ -100,14 +114,14 @@ export function useMedicationLog(id: number) {
 export function useMedicationReminders() {
   return useQuery({
     queryKey: queryKeys.medications.reminders(),
-    queryFn: () => medicationService.listReminders().then((r) => normalizeListResponse(r.data)),
+    queryFn: () => medicationService.listReminders(),
   });
 }
 
 export function useMedicationReminder(id: number) {
   return useQuery({
     queryKey: queryKeys.medications.reminder(id),
-    queryFn: () => medicationService.getReminder(id).then((r) => r.data),
+    queryFn: () => medicationService.getReminder(id),
     enabled: id > 0,
   });
 }
@@ -116,7 +130,7 @@ export function useCreateMedicationType() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: MedicationTypeRequest) =>
-      medicationService.createType(data).then((r) => r.data),
+      medicationService.createType(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.medications.types() }),
   });
 }
@@ -125,7 +139,7 @@ export function useUpdateMedicationType() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: MedicationTypeRequest }) =>
-      medicationService.updateType(id, data).then((r) => r.data),
+      medicationService.updateType(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.medications.types() }),
   });
 }
@@ -142,7 +156,7 @@ export function useCreateMedicationDrug() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: MedicationDrugRequest) =>
-      medicationService.createDrug(data).then((r) => r.data),
+      medicationService.createDrug(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.medications.drugs() }),
   });
 }
@@ -151,7 +165,7 @@ export function useUpdateMedicationDrug() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: MedicationDrugRequest }) =>
-      medicationService.updateDrug(id, data).then((r) => r.data),
+      medicationService.updateDrug(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.medications.drugs() }),
   });
 }
@@ -168,7 +182,7 @@ export function useCreateUserMedication() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: UserMedicationRequest) =>
-      medicationService.createUserMedication(data).then((r) => r.data),
+      medicationService.createUserMedication(data),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.medications.userMedications() }),
   });
@@ -178,7 +192,7 @@ export function useUpdateUserMedication() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: UserMedicationRequest }) =>
-      medicationService.updateUserMedication(id, data).then((r) => r.data),
+      medicationService.updateUserMedication(id, data),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.medications.userMedications() }),
   });
@@ -197,7 +211,7 @@ export function useCreateMedicationLog() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: MedicationLogRequest) =>
-      medicationService.createLog(data).then((r) => r.data),
+      medicationService.createLog(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.medications.logs() }),
   });
 }
@@ -206,7 +220,7 @@ export function useUpdateMedicationLog() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: MedicationLogRequest }) =>
-      medicationService.updateLog(id, data).then((r) => r.data),
+      medicationService.updateLog(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.medications.logs() }),
   });
 }
@@ -223,7 +237,7 @@ export function useCreateMedicationReminder() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: MedicationReminderRequest) =>
-      medicationService.createReminder(data).then((r) => r.data),
+      medicationService.createReminder(data),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.medications.reminders() }),
   });
@@ -233,7 +247,7 @@ export function useUpdateMedicationReminder() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: MedicationReminderRequest }) =>
-      medicationService.updateReminder(id, data).then((r) => r.data),
+      medicationService.updateReminder(id, data),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.medications.reminders() }),
   });

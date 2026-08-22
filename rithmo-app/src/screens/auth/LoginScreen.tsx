@@ -105,8 +105,8 @@ export default function LoginScreen() {
 
   const validate = useCallback((): boolean => {
     const next: typeof errors = {};
-    if (!username.trim()) {next.username = 'Username is required';}
-    if (!password)        {next.password = 'Password is required';}
+    if (!username.trim()) {next.username = 'نام کاربری الزامی است';}
+    if (!password)        {next.password = 'رمز عبور الزامی است';}
     setErrors(next);
     return Object.keys(next).length === 0;
   }, [username, password]);
@@ -129,7 +129,7 @@ export default function LoginScreen() {
         Animated.timing(slideAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
       ]).start();
 
-      Alert.alert('Login Failed', extractErrorMessage(err));
+      Alert.alert('ورود ناموفق بود', extractErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -173,7 +173,13 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      // Android's windowSoftInputMode is already `adjustResize`, so the OS
+      // shrinks the window when the keyboard opens. Adding behavior="height"
+      // on top of that makes KeyboardAvoidingView shrink it a SECOND time,
+      // and the two compensations fight as the keyboard animates — which is
+      // the visible jumping on this screen. iOS does not resize, so it still
+      // needs padding.
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {/* ── Hero with gradient background ──────────────────────────── */}
       <GradientBackground variant="rose" style={{ height: HERO_H }}>
@@ -259,7 +265,7 @@ export default function LoginScreen() {
                   },
                 ]}
               >
-                Rithmo
+                ریتمو
               </Text>
               <Text
                 style={[
@@ -272,7 +278,7 @@ export default function LoginScreen() {
                   },
                 ]}
               >
-                Your cycle, your rhythm
+                چرخه‌ات، ریتم توست
               </Text>
             </View>
           </Animated.View>
@@ -313,7 +319,7 @@ export default function LoginScreen() {
             },
           ]}
         >
-          Welcome back
+          خوش برگشتی
         </Text>
         <Text
           style={[
@@ -326,12 +332,12 @@ export default function LoginScreen() {
             },
           ]}
         >
-          Sign in to continue tracking
+          برای ادامه‌ی پیگیری چرخه‌ات وارد شو
         </Text>
 
         <Input
-          label="Username"
-          placeholder="Username"
+          label="نام کاربری"
+          placeholder="نام کاربری"
           value={username}
           onChangeText={setUsername}
           autoCapitalize="none"
@@ -343,8 +349,8 @@ export default function LoginScreen() {
         />
 
         <Input
-          label="Password"
-          placeholder="Password"
+          label="رمز عبور"
+          placeholder="رمز عبور"
           value={password}
           onChangeText={setPassword}
           isPassword
@@ -369,12 +375,12 @@ export default function LoginScreen() {
               fontWeight: '600',
             }}
           >
-            Forgot password?
+            رمز عبورت را گم کردی؟
           </Text>
         </TouchableOpacity>
 
         <Button
-          label="Sign In"
+          label="ورود"
           onPress={handleLogin}
           loading={loading}
           fullWidth
@@ -391,13 +397,13 @@ export default function LoginScreen() {
               marginHorizontal: spacing[3],
             }}
           >
-            or
+            یا
           </Text>
           <View style={[styles.dividerLine, { backgroundColor: colors.divider }]} />
         </View>
 
         <Button
-          label="Create an Account"
+          label="ساخت حساب کاربری"
           onPress={() => navigation.navigate('Register')}
           variant="outline"
           fullWidth

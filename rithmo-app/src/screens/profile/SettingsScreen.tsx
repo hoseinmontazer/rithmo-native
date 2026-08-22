@@ -81,9 +81,9 @@ export default function SettingsScreen() {
   );
 
   const THEME_OPTIONS: { label: string; value: ThemeMode; emoji: string }[] = [
-    { label: 'Light',  value: 'light',  emoji: '☀️' },
-    { label: 'Dark',   value: 'dark',   emoji: '🌙' },
-    { label: 'System', value: 'system', emoji: '📱' },
+    { label: 'روشن',   value: 'light',  emoji: '☀️' },
+    { label: 'تاریک',  value: 'dark',   emoji: '🌙' },
+    { label: 'سیستم', value: 'system', emoji: '📱' },
   ];
 
   if (isLoading) {return <LoadingState fullScreen />;}
@@ -99,7 +99,7 @@ export default function SettingsScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[2], marginBottom: spacing[3] }}>
           <AppIcon source={icons.settings} size={20} />
           <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, fontWeight: '600' }]}>
-            Appearance
+            ظاهر
           </Text>
         </View>
         <View style={styles.themeRow}>
@@ -142,33 +142,33 @@ export default function SettingsScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[2], marginBottom: spacing[3] }}>
           <AppIcon source={icons.pushNotification} size={20} />
           <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, fontWeight: '600' }]}>
-            Push Notifications
+            اعلان‌های PUSH
           </Text>
         </View>
         <PrefRow
           iconSource={icons.menstruation}
-          label="Period Reminder"
+          label="یادآوری دوره"
           prefKey="push_period_reminder"
           value={prefs?.push_period_reminder ?? false}
           onToggle={togglePref}
         />
         <PrefRow
           iconSource={icons.fertilization}
-          label="Ovulation Alert"
+          label="اعلان تخمک‌گذاری"
           prefKey="push_ovulation"
           value={prefs?.push_ovulation ?? false}
           onToggle={togglePref}
         />
         <PrefRow
           iconSource={icons.chat}
-          label="Partner Messages"
+          label="پیام‌های شریک"
           prefKey="push_partner_message"
           value={prefs?.push_partner_message ?? false}
           onToggle={togglePref}
         />
         <PrefRow
           iconSource={icons.wellness}
-          label="Wellness Reminder"
+          label="یادآوری سلامت"
           prefKey="push_wellness_reminder"
           value={prefs?.push_wellness_reminder ?? false}
           onToggle={togglePref}
@@ -181,33 +181,33 @@ export default function SettingsScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[2], marginBottom: spacing[3] }}>
           <AppIcon source={icons.pushNotification} size={20} />
           <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, fontWeight: '600' }]}>
-            Email Notifications
+            اعلان‌های ایمیلی
           </Text>
         </View>
         <PrefRow
           iconSource={icons.menstruation}
-          label="Period Reminder"
+          label="یادآوری دوره"
           prefKey="email_period_reminder"
           value={prefs?.email_period_reminder ?? false}
           onToggle={togglePref}
         />
         <PrefRow
           iconSource={icons.fertilization}
-          label="Ovulation Alert"
+          label="اعلان تخمک‌گذاری"
           prefKey="email_ovulation"
           value={prefs?.email_ovulation ?? false}
           onToggle={togglePref}
         />
         <PrefRow
           iconSource={icons.chat}
-          label="Partner Messages"
+          label="پیام‌های شریک"
           prefKey="email_partner_message"
           value={prefs?.email_partner_message ?? false}
           onToggle={togglePref}
         />
         <PrefRow
           iconSource={icons.wellness}
-          label="Wellness Reminder"
+          label="یادآوری سلامت"
           prefKey="email_wellness_reminder"
           value={prefs?.email_wellness_reminder ?? false}
           onToggle={togglePref}
@@ -218,13 +218,13 @@ export default function SettingsScreen() {
       {/* ── About ────────────────────────────────────────────────────── */}
       <Card style={{ marginBottom: spacing[4] }}>
         <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, fontWeight: '600', marginBottom: spacing[3] }]}>
-          About
+          درباره
         </Text>
-        <InfoRow label="Version" value="1.0.0"         colors={colors} typography={typography} />
+        <InfoRow label="نسخه" value="1.0.0"         colors={colors} typography={typography} />
         <Divider style={{ marginVertical: spacing[2] }} />
-        <InfoRow label="API"     value="api.rithmo.ir" colors={colors} typography={typography} />
+        <InfoRow label="سرور"  value="api.rithmo.ir" colors={colors} typography={typography} />
         <Divider style={{ marginVertical: spacing[2] }} />
-        <InfoRow label="Build"   value="Production"    colors={colors} typography={typography} />
+        <InfoRow label="نوع بیلد" value="تولید"       colors={colors} typography={typography} />
       </Card>
 
       <View style={{ height: spacing[8] }} />

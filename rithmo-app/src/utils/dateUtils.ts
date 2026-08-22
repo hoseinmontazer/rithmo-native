@@ -1,10 +1,19 @@
+import { faDate } from '@utils/persian';
+
 /**
  * Lightweight date utilities — no heavy library dependency.
  */
 
+/**
+ * User-facing date string. Delegates to the canonical Jalali formatter.
+ *
+ * This used to hardcode `toLocaleDateString('en-US')`, which is why the
+ * wellness history rendered "Aug 19, 2026" inside a Persian RTL screen.
+ * There is exactly one user-facing date path in this app and it is
+ * `faDate`; this wrapper exists only so existing call sites keep working.
+ */
 export function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  return faDate(dateStr, { weekday: false });
 }
 
 /**

@@ -1,3 +1,4 @@
+import { navTitle } from '@i18n';
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { InsightsStackParamList } from '@navigation/types';
@@ -24,12 +25,12 @@ export function InsightsStack() {
       <Stack.Screen
         name="InsightsHome"
         component={InsightsHomeScreen}
-        options={{ title: 'الگوهای من', headerShown: false }}
+        options={{ title: navTitle('InsightsHome'), headerShown: false }}
       />
       <Stack.Screen
         name="DeepInsights"
         component={DeepInsightsScreen}
-        options={{ title: 'Deep Insights' }}
+        options={{ title: navTitle('DeepInsights') }}
       />
     </Stack.Navigator>
   );

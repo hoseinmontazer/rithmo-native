@@ -10,7 +10,9 @@ import {
 } from '@hooks/queries/useNotifications';
 import { LoadingState, ErrorState, EmptyState, Icon } from '@components/ui';
 import { NotificationItem } from '@components/notifications/NotificationItem';
+import { toFa } from '@utils/persian';
 import type { Notification } from '@types/notification.types';
+import { track } from '@analytics';
 
 export default function NotificationsScreen() {
   const { colors, spacing, typography } = useTheme();
@@ -26,6 +28,7 @@ export default function NotificationsScreen() {
   }, [refetch]);
 
   const handlePress = useCallback((n: Notification) => {
+    track('notification_opened', { notification_type: n.notification_type });
     if (!n.is_read) {markRead(n.id);}
   }, [markRead]);
 
@@ -40,19 +43,19 @@ export default function NotificationsScreen() {
 
   const unreadCount = notifications?.filter((n) => !n.is_read).length ?? 0;
 
-  if (isLoading) {return <LoadingState fullScreen message="Loading notifications…" />;}
+  if (isLoading) {return <LoadingState fullScreen message="در حال بارگذاری اعلان‌ها…" />;}
   if (isError)   {return <ErrorState fullScreen error={error} onRetry={refetch} />;}
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <View style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.border, margin: spacing[5], marginBottom: spacing[3] }]}>
         <View>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>Notifications</Text>
+          <Text style={[styles.eyebrow, { color: colors.primary }]}>اعلان‌ها</Text>
           <Text style={[styles.title, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
-            Updates
+            به‌روزرسانی‌ها
           </Text>
           <Text style={{ color: colors.textSecondary, fontSize: typography.sm, fontWeight: '600' }}>
-            {unreadCount} unread
+            {toFa(unreadCount)} خوانده‌نشده
           </Text>
         </View>
         <View style={styles.heroActions}>
@@ -64,9 +67,9 @@ export default function NotificationsScreen() {
 
       {unreadCount > 0 && (
         <View style={[styles.headerRow, { paddingHorizontal: spacing[5], paddingBottom: spacing[1] }]}>
-          <TouchableOpacity onPress={() => markAllRead()} accessibilityLabel="Mark all as read">
+          <TouchableOpacity onPress={() => markAllRead()} accessibilityLabel="خواندن همه">
             <Text style={{ color: colors.primary, fontSize: typography.sm, fontWeight: '600' }}>
-              Mark all read
+              خواندن همه
             </Text>
           </TouchableOpacity>
         </View>
@@ -82,7 +85,7 @@ export default function NotificationsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         ListEmptyComponent={
-          <EmptyState icon="🔔" title="No notifications" description="You're all caught up!" />
+          <EmptyState icon="🔔" title="اعلانی نیست" description="همه چیز به‌روز است!" />
         }
         removeClippedSubviews
         maxToRenderPerBatch={12}

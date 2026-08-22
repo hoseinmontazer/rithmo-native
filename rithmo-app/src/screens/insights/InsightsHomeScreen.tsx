@@ -1,11 +1,24 @@
 /**
- * InsightsHomeScreen — الگوهای من
+ * InsightsHomeScreen — الگوی بدن شما
  *
- * Rhythmo Design System Redesign.
- * Calm, modern, editorial, typography-first intelligence hub.
- * Data-state aware — never fabricates insights.
+ * The pattern hub. Everything shown here is computed from the user's real
+ * logs and periods — no AI, no population averages:
+ *
+ *   1. Hero — data maturity (logs, OBSERVED cycles, cycle length)
+ *   2. Insight cards — the server engine's patterns, each with its evidence
+ *   3. 30-day averages — the user's own numbers
+ *   4. Cycle regularity — from the backend cycle analysis
+ *   5. Deep Insights CTA — premium (correlations, week comparison)
+ *
+ * The patterns come from `/api/intelligence/insights/`, not from a local
+ * engine. Deriving them on the device meant the phone and the server could
+ * reach different conclusions about the same user, and it made every rule
+ * unavailable to notifications and to the partner experience.
+ *
+ * Never fabricates insights: in Learning Mode the engine returns a coverage
+ * statement about the data, and that is what is shown.
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -19,10 +32,12 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@hooks/useTheme';
 import { usePeriods, useCycleAnalysis } from '@hooks/queries/usePeriods';
-import { useWellnessLogs, useWellnessAnalytics } from '@hooks/queries/useWellness';
-import { deriveDataState, PatternCard } from '../home/components/PatternCard';
-import { Card, Badge } from '@components/ui';
-import type { WellnessLog } from '@types/wellness.types';
+import { useWellnessAnalytics } from '@hooks/queries/useWellness';
+import { Card, Badge, Reveal } from '@components/ui';
+import { toFa } from '@utils/persian';
+import { useInsights, useProgress } from '@hooks/queries/useIntelligence';
+import { track } from '@analytics';
+import { TodayInsightCard } from '../home/components/TodayInsightCard';
 import type { CycleAnalysis } from '@types/period.types';
 import type { InsightsScreenProps } from '@navigation/types';
 
@@ -61,35 +76,6 @@ function ProgressBar({
           },
         ]}
       />
-    </View>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SectionHeading
-// ─────────────────────────────────────────────────────────────────────────────
-function SectionHeading({ title, sub }: { title: string; sub?: string }) {
-  const { colors, typography, spacing } = useTheme();
-  return (
-    <View style={[styles.sectionHeading, { marginBottom: spacing[3] }]}>
-      <Text
-        style={[
-          styles.sectionHeadingTitle,
-          { color: colors.textPrimary, fontSize: typography.lg },
-        ]}
-      >
-        {title}
-      </Text>
-      {sub ? (
-        <Text
-          style={[
-            styles.sectionHeadingSub,
-            { color: colors.textSecondary, fontSize: typography.xs },
-          ]}
-        >
-          {sub}
-        </Text>
-      ) : null}
     </View>
   );
 }
@@ -160,7 +146,7 @@ function AvgMetricRow({
     <View style={[styles.avgRow, { marginBottom: spacing[3] }]}>
       <View style={styles.avgRowHeader}>
         <View style={styles.avgRowLeft}>
-          <View style={[styles.metricIconWrap, { backgroundColor: color + '15' }]}>
+          <View style={[styles.metricIconWrap, { backgroundColor: color + '15' }]} >
             <Icon name={iconName} size={14} color={color} />
           </View>
           <Text style={[styles.avgRowLabelText, { color: colors.textPrimary, fontSize: typography.sm }]}>
@@ -168,9 +154,9 @@ function AvgMetricRow({
           </Text>
         </View>
         <Text style={[styles.avgRowValue, { color: colors.textPrimary, fontSize: typography.sm }]}>
-          {value.toFixed(1)}
+          {toFa(value.toFixed(1))}
           <Text style={[styles.avgRowValueMax, { color: colors.textTertiary, fontSize: typography.xs }]}>
-            /{max}
+            /{toFa(max)}
           </Text>
         </Text>
       </View>
@@ -186,28 +172,32 @@ export default function InsightsHomeScreen() {
   const { colors, spacing, typography } = useTheme();
   const navigation = useNavigation<Props['navigation']>();
 
-  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const { data: periodsList, refetch: refetchPeriods } = usePeriods();
-  const { data: allLogs,     refetch: refetchLogs }    = useWellnessLogs();
   const { data: analytics,   refetch: refetchAnalytics } = useWellnessAnalytics(30);
   const { data: cycleData,   refetch: refetchCycle }   = useCycleAnalysis();
+  const { data: insightData, refetch: refetchInsights } = useInsights();
+  const { data: progress,    refetch: refetchProgress } = useProgress();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.allSettled([
       refetchPeriods(),
-      refetchLogs(),
       refetchAnalytics(),
       refetchCycle(),
+      refetchInsights(),
+      refetchProgress(),
     ]);
     setRefreshing(false);
-  }, [refetchPeriods, refetchLogs, refetchAnalytics, refetchCycle]);
+  }, [
+    refetchPeriods, refetchAnalytics, refetchCycle,
+    refetchInsights, refetchProgress,
+  ]);
 
-  const periodCount = Array.isArray(periodsList) ? (periodsList as unknown[]).length : 0;
-  const logCount    = Array.isArray(allLogs)     ? (allLogs     as unknown[]).length : 0;
-  const dataState   = deriveDataState(periodCount, logCount);
-  const avg         = (analytics as Record<string, number | null> | undefined)?.averages as
+  const periodsArr: any[] = Array.isArray(periodsList) ? (periodsList as any[]) : [];
+  const periodCount = periodsArr.length;
+  const avg = (analytics as Record<string, number | null> | undefined)?.averages as
     Record<string, number | null> | undefined;
 
   // average_cycle_length is the current backend key; average_cycle is
@@ -215,6 +205,37 @@ export default function InsightsHomeScreen() {
   const cd = cycleData as CycleAnalysis | undefined;
   const avgCycle = cd?.average_cycle_length ?? cd?.average_cycle ?? null;
   const regScore = cd?.regularity_score;
+
+  const insights = insightData?.insights ?? [];
+  const learningMode = insightData?.learning_mode ?? false;
+
+  // CANONICAL logged-day count.
+  //
+  // This used to be `logsArr.length` from a full `/api/wellness/` fetch, and
+  // rendered «۹ الگوی واقعی از ۰ روز ثبت» — nine patterns from zero days —
+  // for an account with 84 logs, on the one screen whose entire job is to
+  // prove the product does not claim what it cannot support.
+  //
+  // `/api/intelligence/progress/` returns `evidence.total_logs`: the exact
+  // count the insight engine itself used to derive these patterns. Reading
+  // it here makes the two numbers structurally incapable of diverging, and
+  // removes an unbounded 46 KB list fetch from this screen.
+  //
+  // `null` (still loading / unavailable) is deliberately distinct from 0 so
+  // the UI can stay silent instead of asserting "0 days".
+  const loggedDayCount: number | null = progress?.evidence?.total_logs ?? null;
+
+  useEffect(() => {
+    if (!insightData) { return; }
+    track('pattern_viewed', {
+      insight_count: insightData.insights.length,
+      maturity: progress?.maturity,
+    });
+  }, [insightData, progress?.maturity]);
+  // Patterns are counted across OBSERVED cycles (start-to-start gaps the
+  // user actually logged), never across predicted ones — a predicted
+  // boundary is not a second data point.
+  const observedCycles = progress?.evidence.usable_cycles ?? null;
 
   return (
     <SafeAreaView style={[styles.flex1, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
@@ -232,54 +253,81 @@ export default function InsightsHomeScreen() {
       >
         {/* ══ HERO HEADER ══════════════════════════════════════════════ */}
         <View style={[styles.heroSection, { paddingTop: spacing[4], marginBottom: spacing[6] }]}>
-          <Text
-            style={[
-              styles.overLine,
-              { color: colors.textTertiary, fontSize: typography.xs },
-            ]}
-          >
+          <Text style={[styles.overLine, { color: colors.textTertiary, fontSize: typography.xs }]}>
             ریتمو · الگوهای شخصی
           </Text>
-          <Text
-            style={[
-              styles.heroTitle,
-              { color: colors.textPrimary, fontSize: typography['2xl'] },
-            ]}
-          >
-            الگوهای من
+          <Text style={[styles.heroTitle, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
+            الگوی بدن شما
           </Text>
           <Text style={[styles.heroSub, { color: colors.textSecondary, fontSize: typography.sm }]}>
-            داده‌های واقعی تو — نه میانگین جمعیت
+            محاسبه‌شده از داده‌های واقعی خودت — نه میانگین جمعیت
           </Text>
 
           <View style={[styles.statRow, { marginTop: spacing[4], gap: spacing[2] }]}>
-            <StatTile label="روز ثبت"   value={String(logCount)}    accent={colors.follicular} />
-            <StatTile label="سیکل کامل" value={String(periodCount)} accent={colors.menstrual} />
+            <StatTile
+              label="روز ثبت"
+              value={loggedDayCount === null ? '—' : toFa(loggedDayCount)}
+              accent={colors.follicular}
+            />
+            <StatTile
+              label="چرخه کامل"
+              value={toFa(observedCycles ?? Math.max(periodCount - 1, 0))}
+              accent={colors.menstrual}
+            />
             {avgCycle != null && (
-              <StatTile label="طول سیکل" value={String(Math.round(avgCycle))} sub="روز" accent={colors.luteal} />
+              <StatTile label="طول چرخه" value={toFa(Math.round(avgCycle))} sub="روز" accent={colors.luteal} />
             )}
           </View>
         </View>
 
-        {/* ══ PATTERN STATUS CARD ══════════════════════════════════════ */}
-        <View style={[styles.patternCardWrap, { marginBottom: spacing[6] }]}>
-          <PatternCard
-            dataState={dataState}
-            logCount={logCount}
-            periodCount={periodCount}
-            logs={(Array.isArray(allLogs) ? allLogs : []) as WellnessLog[]}
-            cycleAnalysis={cycleData as CycleAnalysis | null}
-            onInsightsPress={() => {}}
-          />
+        {/* ══ INSIGHTS ═════════════════════════════════════════════════ */}
+        <View style={[styles.section, { marginBottom: spacing[6] }]}>
+          <View style={[styles.sectionHeading, { marginBottom: spacing[3] }]}>
+            <Text style={[styles.sectionHeadingTitle, { color: colors.textPrimary, fontSize: typography.lg }]}>
+              الگوهای بدنت
+            </Text>
+            <Text style={[styles.sectionHeadingSub, { color: colors.textSecondary, fontSize: typography.xs }]}>
+              {learningMode
+                ? 'هنوز در حال شناختن الگوی توام'
+                : insights.length === 0
+                  ? 'فعلاً الگوی قابل‌اتکایی پیدا نشده'
+                  : loggedDayCount === null
+                    // Never assert a day count we do not have. Silence is
+                    // correct; "0 روز ثبت" is a false claim.
+                    ? `${toFa(insights.length)} الگوی واقعی از ثبت‌های تو`
+                    : `${toFa(insights.length)} الگوی واقعی از ${toFa(loggedDayCount)} روز ثبت`}
+            </Text>
+          </View>
+          <View style={{ gap: 10 }}>
+            {insights.length > 0 ? (
+              insights.map((ins, i) => (
+                <Reveal key={ins.key} delay={i * 60}>
+                  {/* Same card as Home, so the evidence behind a claim is
+                      always one tap away wherever the claim appears. */}
+                  <TodayInsightCard insight={ins} learningMode={learningMode} />
+                </Reveal>
+              ))
+            ) : (
+              <Card elevated={false} style={{ padding: spacing[4] }}>
+                <Text style={{ color: colors.textSecondary, fontSize: typography.bodySmall, lineHeight: 20 }}>
+                  هنوز الگوی قابل‌اعتمادی پیدا نشده. با ثبت روزانه — و تکمیل چند چرخه — الگوهای شخصی‌ات اینجا ظاهر می‌شوند.
+                </Text>
+              </Card>
+            )}
+          </View>
         </View>
 
         {/* ══ 30-DAY AVERAGES ═══════════════════════════════════════════ */}
-        {avg && logCount >= 5 && (
+        {avg && (loggedDayCount ?? 0) >= 5 && (
           <View style={[styles.section, { marginBottom: spacing[6] }]}>
-            <SectionHeading
-              title="میانگین ۳۰ روز"
-              sub="اعداد شخصی تو — نه میانگین جمعیت"
-            />
+            <View style={[styles.sectionHeading, { marginBottom: spacing[3] }]}>
+              <Text style={[styles.sectionHeadingTitle, { color: colors.textPrimary, fontSize: typography.lg }]}>
+                میانگین ۳۰ روز
+              </Text>
+              <Text style={[styles.sectionHeadingSub, { color: colors.textSecondary, fontSize: typography.xs }]}>
+                اعداد شخصی تو — نه میانگین جمعیت
+              </Text>
+            </View>
 
             <Card elevated={false} style={{ padding: spacing[4] }}>
               <AvgMetricRow label="خواب"   value={avg.sleep_hours  ?? null} max={10} color={colors.primary}         iconName="weather-night" />
@@ -294,7 +342,14 @@ export default function InsightsHomeScreen() {
         {/* ══ CYCLE REGULARITY ══════════════════════════════════════════ */}
         {periodCount >= 2 && (
           <View style={[styles.section, { marginBottom: spacing[6] }]}>
-            <SectionHeading title="انتظام سیکل" sub="بر اساس سیکل‌های ثبت‌شده" />
+            <View style={[styles.sectionHeading, { marginBottom: spacing[3] }]}>
+              <Text style={[styles.sectionHeadingTitle, { color: colors.textPrimary, fontSize: typography.lg }]}>
+                انتظام چرخه
+              </Text>
+              <Text style={[styles.sectionHeadingSub, { color: colors.textSecondary, fontSize: typography.xs }]}>
+                بر اساس چرخه‌های ثبت‌شده
+              </Text>
+            </View>
 
             <View style={[styles.tileRow, { gap: spacing[3] }]}>
               {/* Avg length tile */}
@@ -303,10 +358,10 @@ export default function InsightsHomeScreen() {
                   متوسط
                 </Text>
                 <Text style={[styles.regularityValue, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
-                  {avgCycle ? Math.round(avgCycle) : '—'}
+                  {avgCycle ? toFa(Math.round(avgCycle)) : '—'}
                 </Text>
                 <Text style={[styles.regularityLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
-                  روز / سیکل
+                  روز / چرخه
                 </Text>
               </Card>
 
@@ -316,7 +371,7 @@ export default function InsightsHomeScreen() {
                   انتظام
                 </Text>
                 <Text style={[styles.regularityValue, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
-                  {regScore != null ? `${Math.round(regScore * 100)}` : '—'}
+                  {regScore != null ? toFa(Math.round(regScore * 100)) : '—'}
                   {regScore != null && (
                     <Text style={[styles.regularityPct, { color: colors.textSecondary, fontSize: typography.base }]}>
                       ٪
@@ -347,38 +402,38 @@ export default function InsightsHomeScreen() {
           </View>
         )}
 
-        {/* ══ DEEP INSIGHTS CTA ═════════════════════════════════════════ */}
+        {/* ══ DEEP INSIGHTS CTA (premium, honest copy) ══════════════════ */}
         <TouchableOpacity
           onPress={() => navigation.navigate('DeepInsights')}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="Open Deep Insights"
+          accessibilityLabel="مشاهده بینش عمیق"
         >
           <Card
             elevated={false}
             style={[
               styles.ctaCard,
               {
-                backgroundColor: colors.surfaceSecondary,
-                borderColor: colors.primary + '30',
+                backgroundColor: colors.premiumBg,
+                borderColor: colors.premiumBorder,
                 padding: spacing[4],
               },
             ]}
           >
             <View style={styles.ctaHeaderRow}>
-              <Badge label="✦ Premium" variant="primary" />
-              <Icon name="arrow-left" size={18} color={colors.primary} />
+              <Badge label="✦ ویژه پریمیوم" variant="primary" />
+              <Icon name="arrow-left" size={18} color={colors.premium} />
             </View>
 
             <Text style={[styles.ctaTitle, { color: colors.textPrimary, fontSize: typography.lg, marginTop: spacing[2] }]}>
-              Deep Insights
+              بینش عمیق
             </Text>
             <Text style={[styles.ctaBody, { color: colors.textSecondary, fontSize: typography.sm, marginTop: spacing[1] }]}>
-              ببین خواب، استرس، خلق و انرژی‌ات چطور با هم در ارتباط‌اند — بر اساس داده‌های خودت.
+              ببین خواب، استرس، خلق و انرژی‌ات چطور با هم در ارتباط‌اند — محاسبه‌شده از داده‌های خودت.
             </Text>
 
             <View style={[styles.ctaFooter, { marginTop: spacing[3] }]}>
-              <Text style={[styles.ctaFooterLabel, { color: colors.primary, fontSize: typography.sm }]}>
+              <Text style={[styles.ctaFooterLabel, { color: colors.premium, fontSize: typography.sm }]}>
                 مشاهده تحلیل عمیق
               </Text>
             </View>
@@ -398,8 +453,6 @@ const styles = StyleSheet.create({
 
   overLine: {
     fontWeight: '700',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
     marginBottom: 4,
   },
 

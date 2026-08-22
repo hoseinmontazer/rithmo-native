@@ -1,23 +1,16 @@
 /**
- * UpgradeScreen — in-app paywall
+ * UpgradeScreen — paywall (Persian, toman, honest).
  *
- * Shown when a free user taps a gated feature (Deep Insights, AI confidence,
- * AI-personalized push). Also reachable from Profile → Settings.
+ * No fake-AI claims (mission): premium unlocks deterministic personal
+ * analytics computed from the user's own logs — correlations, week
+ * comparison, reports/export, partner depth.
  *
- * Flow:
- *   1. User sees feature list + monthly / annual plan cards
- *   2. Taps "Start Premium" → opens Stripe Checkout in the system browser
- *      (deep-link back to the app via universal link / custom scheme)
- *   3. Stripe webhook → Subscription.is_active = true → usePremiumStatus
- *      cache invalidated on next app foreground → gated screens unlock
- *
- * The Stripe Checkout URL is built server-side (not here) to keep the
- * secret key off the device. This screen calls GET /api/subscriptions/checkout/
- * which returns a one-time Checkout URL for the authenticated user.
- * That endpoint is intentionally NOT built yet — this screen renders a
- * "Contact support" fallback until it is, so the UI is never a dead end.
+ * Flow unchanged:
+ *   1. Feature list + monthly/annual plan cards
+ *   2. "شروع پریمیوم" → POST /api/subscriptions/checkout/ → open URL
+ *   3. Endpoint not built yet → honest Persian fallback (support email)
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -29,80 +22,86 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { GradientSurface } from '@components/ui';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
+import { useThemeStore } from '@store/themeStore';
+import { getBrandGradient } from '@theme/brand';
 import { useSubscription } from '@hooks/queries/useSubscription';
 import { apiClient } from '@api/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@api/queryKeys';
+import { toFa, faDateYear } from '@utils/persian';
+import { planLabel, subscriptionStatusLabel } from '@i18n';
+import { track } from '@analytics';
 import type { ProfileScreenProps } from '@navigation/types';
 
 type Props = ProfileScreenProps<'Upgrade'>;
 
-// ── Feature list ──────────────────────────────────────────────────────────────
+// ── feature lists (honest — no AI claims) ────────────────────────────────────
 
 const PREMIUM_FEATURES = [
   {
-    icon:  'brain',
-    title: 'AI-powered daily insights',
-    sub:   'Model-backed suggestions that improve as you log — not generic tips.',
-  },
-  {
     icon:  'chart-bell-curve-cumulative',
-    title: 'Deep Insights correlations',
-    sub:   'See exactly how your sleep, stress, mood, and energy connect.',
+    title: 'بینش عمیق',
+    sub:   'همبستگی‌های شخصی: ببین خواب، استرس، خلق و انرژی‌ات دقیقاً چه رابطه‌ای با هم دارند.',
   },
   {
-    icon:  'bell-ring-outline',
-    title: 'Personalised push reminders',
-    sub:   'Notifications include your AI tip for the day, not a generic prompt.',
+    icon:  'calendar-sync',
+    title: 'مقایسه هفتگی',
+    sub:   'هفته‌ی جاری در برابر هفته‌ی قبل، برای هر شاخص.',
   },
   {
-    icon:  'history',
-    title: 'Full AI insight history',
-    sub:   'Review every past suggestion and the data behind it.',
+    icon:  'file-chart-outline',
+    title: 'گزارش‌های شخصی',
+    sub:   'خلاصه‌ی دوره‌ای از الگوهای بدنت، آماده برای مرور.',
   },
   {
-    icon:  'thumb-up-outline',
-    title: 'Feedback loop',
-    sub:   'Rate insights to make the model smarter for your own patterns.',
+    icon:  'file-export-outline',
+    title: 'خروجی گرفتن',
+    sub:   'داده‌های خودت را به‌صورت منظم دریافت کن.',
+  },
+  {
+    icon:  'account-heart-outline',
+    title: 'امکانات پیشرفته شریک',
+    sub:   'دید عمیق‌تر بر چرخه‌ی شریکت.',
   },
 ];
 
 const FREE_FEATURES = [
-  'Period & cycle tracking',
-  'Wellness logging',
-  'Basic reminders',
-  'Partner linking & chat',
-  'Medication tracking',
+  'ردیابی دوره و چرخه',
+  'ثبت روزانه‌ی وضعیت',
+  'یادآورهای پایه',
+  'اتصال شریک و گفتگو',
+  'ردیابی داروها',
 ];
 
-// ── Plan cards ────────────────────────────────────────────────────────────────
+// ── plans (toman) ─────────────────────────────────────────────────────────────
 
 interface Plan {
-  id:        string;
-  label:     string;
-  price:     string;
-  period:    string;
-  badge?:    string;
-  savings?:  string;
+  id:      string;
+  label:   string;
+  price:   string;
+  period:  string;
+  badge?:  string;
+  savings?: string;
 }
 
 const PLANS: Plan[] = [
   {
-    id:      'monthly',
-    label:   'Monthly',
-    price:   '$4.99',
-    period:  '/ month',
+    id:     'monthly',
+    label:  'ماهانه',
+    price:  toFa(300000, { grouped: true }),
+    period: 'تومان / ماه',
   },
   {
     id:      'annual',
-    label:   'Annual',
-    price:   '$39.99',
-    period:  '/ year',
-    badge:   'Best value',
-    savings: 'Save 33%',
+    label:   'سالانه',
+    price:   toFa(3000000, { grouped: true }),
+    period:  'تومان / سال',
+    badge:   'بهترین ارزش',
+    savings: '۲ ماه رایگان',
   },
 ];
 
@@ -121,43 +120,130 @@ async function fetchCheckoutUrl(planId: string): Promise<string | null> {
 
 export default function UpgradeScreen() {
   const { colors, spacing, typography } = useTheme();
+  const isDark = useThemeStore((s) => s.isDark);
+  // getBrandGradient() returns a FLAT object ({heroFrom, heroTo, goldFrom,
+  // goldTo}). Reading `.gold` yielded undefined, and `gold.from` below threw
+  // «Cannot read property 'from' of undefined» — the red screen that made the
+  // only subscription entry point unusable. Destructure the real fields.
+  const { goldFrom, goldTo } = getBrandGradient(isDark);
   const navigation    = useNavigation<Props['navigation']>();
   const queryClient   = useQueryClient();
-  const { data: sub } = useSubscription();
+  const { data: sub, isLoading: subLoading, isError: subError, refetch: refetchSub } = useSubscription();
 
   const [selectedPlan, setSelectedPlan] = useState<string>('annual');
   const [loading,      setLoading]      = useState(false);
 
-  // If the user already has an active subscription, go back
-  if (sub?.is_active) {
-    navigation.goBack();
-    return null;
-  }
+  const featureName = (navigation.getState().routes.slice(-1)[0]?.params as { featureName?: string } | undefined)?.featureName;
 
-  const featureName = (navigation.getState().routes.slice(-1)[0]?.params as any)?.featureName;
+  useEffect(() => {
+    if (subLoading) { return; }
+    track('subscription_viewed', {
+      is_active: Boolean(sub?.is_active),
+      feature_name: featureName,
+    });
+  }, [subLoading, sub?.is_active, featureName]);
 
   const handleUpgrade = useCallback(async () => {
+    track('subscription_action_started', { plan: selectedPlan });
     setLoading(true);
     try {
       const url = await fetchCheckoutUrl(selectedPlan);
       if (url) {
-        // Invalidate subscription cache on return so the gate re-checks
         await Linking.openURL(url);
         queryClient.invalidateQueries({ queryKey: queryKeys.subscription.status() });
       } else {
-        // Checkout endpoint not yet built — graceful fallback
+        // Checkout endpoint not built yet — honest fallback
         Alert.alert(
-          'Coming soon',
-          'Online checkout is being set up. In the meantime, email us at support@rithmo.ir to activate your plan.',
-          [{ text: 'OK' }],
+          'به‌زودی',
+          'پرداخت آنلاین در حال راه‌اندازی است. برای فعال‌سازی طرح، با پشتیبانی در ارتباط باش: support@rithmo.ir',
+          [{ text: 'باشه' }],
         );
       }
     } catch {
-      Alert.alert('Error', 'Could not open checkout. Please try again.');
+      Alert.alert('خطا', 'نمی‌توانستیم صفحه‌ی پرداخت را باز کنیم. دوباره تلاش کن.');
     } finally {
       setLoading(false);
     }
   }, [selectedPlan, queryClient]);
+
+  // ── State branches ───────────────────────────────────────────────────────
+  // All hooks are declared above this point. The previous implementation
+  // early-returned on `sub?.is_active` BEFORE `useCallback`, so the moment a
+  // subscription became active React rendered fewer hooks than the previous
+  // pass and threw. It also called navigation.goBack() during render (a side
+  // effect in the render phase) and left an already-paying user with no way
+  // to see what they had paid for.
+
+  if (subLoading) {
+    return (
+      <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['bottom']}>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.premium} />
+          <Text style={{ color: colors.textSecondary, fontSize: typography.sm, marginTop: spacing[3] }}>
+            در حال بررسی اشتراک…
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (subError) {
+    return (
+      <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['bottom']}>
+        <View style={styles.centered}>
+          <Icon name="wifi-off" size={32} color={colors.textTertiary} />
+          <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700', marginTop: spacing[3] }}>
+            وضعیت اشتراکت را نتوانستیم بخوانیم
+          </Text>
+          <Text style={{ color: colors.textSecondary, fontSize: typography.sm, marginTop: spacing[2], textAlign: 'center' }}>
+            اتصالت را بررسی کن و دوباره تلاش کن.
+          </Text>
+          <TouchableOpacity
+            onPress={() => refetchSub()}
+            style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+            accessibilityRole="button"
+            accessibilityLabel="تلاش دوباره"
+          >
+            <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: typography.sm }}>تلاش دوباره</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Already premium — show what they have instead of bouncing them out.
+  if (sub?.is_active) {
+    return (
+      <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['bottom']}>
+        <ScrollView contentContainerStyle={{ padding: spacing[5] }}>
+          <GradientSurface colors={[goldFrom, goldTo]} borderRadius={20} style={styles.hero}>
+            <View style={[styles.heroIcon, { backgroundColor: 'rgba(255,255,255,0.22)' }]}>
+              <Icon name="crown" size={28} color="#FFF8EC" />
+            </View>
+            <Text style={[styles.heroTitle, { color: '#FFF8EC', fontSize: typography.xl }]}>
+              پریمیوم فعال است
+            </Text>
+            <Text style={styles.heroSub}>
+              {planLabel(sub.plan) ? `طرح ${planLabel(sub.plan)}` : 'اشتراک شما فعال است'}
+              {' · '}
+              {subscriptionStatusLabel(sub.status)}
+            </Text>
+          </GradientSurface>
+
+          {sub.current_period_end ? (
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border, marginTop: spacing[4] }]}>
+              <View style={styles.freeRow}>
+                <Icon name="calendar-check" size={16} color={colors.success} />
+                <Text style={{ color: colors.textSecondary, fontSize: typography.sm, marginLeft: spacing[2] }}>
+                  اعتبار تا {faDateYear(sub.current_period_end)}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -165,26 +251,28 @@ export default function UpgradeScreen() {
         contentContainerStyle={{ padding: spacing[5], paddingBottom: spacing[16] }}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Hero ──────────────────────────────────────────────────── */}
-        <View style={[styles.hero, { backgroundColor: colors.primaryLighter, borderColor: colors.primary + '30' }]}>
-          <View style={[styles.heroIcon, { backgroundColor: colors.primary }]}>
-            <Icon name="crown" size={28} color="#fff" />
+        {/* ── Hero (gold) ─────────────────────────────────────────── */}
+        <GradientSurface
+          colors={[goldFrom, goldTo]}
+          borderRadius={20}
+          style={styles.hero}
+        >
+          <View style={[styles.heroIcon, { backgroundColor: 'rgba(255,255,255,0.22)' }]}>
+            <Icon name="crown" size={28} color="#FFF8EC" />
           </View>
-          <Text style={[styles.heroTitle, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
-            {featureName
-              ? `Unlock ${featureName}`
-              : 'Upgrade to Premium'}
+          <Text style={[styles.heroTitle, { color: '#FFF8EC', fontSize: typography.xl }]}>
+            {featureName ? `باز کردن «${featureName}»` : 'ریتمو پریمیوم'}
           </Text>
-          <Text style={{ color: colors.textSecondary, fontSize: typography.sm, textAlign: 'center', lineHeight: 20 }}>
-            The tracker that gets smarter the more you use it.
+          <Text style={styles.heroSub}>
+            با هر ثبت، ریتمو بهتر می‌شناسدت. پریمیوم تحلیل‌های عمیق‌تری می‌سازد — از داده‌های خودت، صادقانه و شخصی.
           </Text>
-        </View>
+        </GradientSurface>
 
-        {/* ── Premium features ──────────────────────────────────────── */}
+        {/* ── Premium features ────────────────────────────────────── */}
         <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
-          WHAT YOU GET
+          چه چیزی باز می‌شود؟
         </Text>
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.premiumBorder }]}>
           {PREMIUM_FEATURES.map((f, i) => (
             <View
               key={f.icon}
@@ -193,8 +281,8 @@ export default function UpgradeScreen() {
                 i < PREMIUM_FEATURES.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
               ]}
             >
-              <View style={[styles.featureIconBubble, { backgroundColor: colors.primaryLighter }]}>
-                <Icon name={f.icon} size={18} color={colors.primary} />
+              <View style={[styles.featureIconBubble, { backgroundColor: colors.premiumBg }]}>
+                <Icon name={f.icon} size={18} color={colors.premium} />
               </View>
               <View style={{ flex: 1, marginLeft: spacing[3] }}>
                 <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '700', marginBottom: 2 }}>
@@ -208,13 +296,13 @@ export default function UpgradeScreen() {
           ))}
         </View>
 
-        {/* ── Free tier reminder ────────────────────────────────────── */}
+        {/* ── Always free ─────────────────────────────────────────── */}
         <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
-          ALWAYS FREE
+          همیشه رایگان
         </Text>
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {FREE_FEATURES.map((f) => (
-            <View key={f} style={[styles.freeRow]}>
+            <View key={f} style={styles.freeRow}>
               <Icon name="check-circle-outline" size={16} color={colors.success} />
               <Text style={{ color: colors.textSecondary, fontSize: typography.sm, marginLeft: spacing[2] }}>
                 {f}
@@ -223,9 +311,9 @@ export default function UpgradeScreen() {
           ))}
         </View>
 
-        {/* ── Plan selector ─────────────────────────────────────────── */}
+        {/* ── Plan selector ───────────────────────────────────────── */}
         <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
-          CHOOSE A PLAN
+          انتخاب طرح
         </Text>
         <View style={{ flexDirection: 'row', gap: spacing[3], marginBottom: spacing[5] }}>
           {PLANS.map((plan) => {
@@ -239,32 +327,32 @@ export default function UpgradeScreen() {
                   styles.planCard,
                   {
                     flex: 1,
-                    backgroundColor: selected ? colors.primary : colors.surface,
-                    borderColor:     selected ? colors.primary : colors.border,
+                    backgroundColor: selected ? colors.premiumBg : colors.surface,
+                    borderColor:     selected ? colors.premium : colors.border,
                   },
                 ]}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: selected }}
-                accessibilityLabel={`${plan.label} plan, ${plan.price} ${plan.period}`}
+                accessibilityLabel={`طرح ${plan.label}: ${plan.price} ${plan.period}`}
               >
                 {plan.badge && (
-                  <View style={[styles.planBadge, { backgroundColor: selected ? '#fff' : colors.primary }]}>
-                    <Text style={{ color: selected ? colors.primary : '#fff', fontSize: 10, fontWeight: '800' }}>
+                  <View style={[styles.planBadge, { backgroundColor: colors.premium }]}>
+                    <Text style={{ color: '#FFF8EC', fontSize: 10, fontWeight: '800' }}>
                       {plan.badge}
                     </Text>
                   </View>
                 )}
-                <Text style={{ color: selected ? '#fff' : colors.textPrimary, fontSize: typography.sm, fontWeight: '700', marginBottom: 4 }}>
+                <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '700', marginBottom: 4 }}>
                   {plan.label}
                 </Text>
-                <Text style={{ color: selected ? '#fff' : colors.primary, fontSize: typography['2xl'], fontWeight: '900' }}>
+                <Text style={{ color: colors.premium, fontSize: typography.lg, fontWeight: '900' }}>
                   {plan.price}
                 </Text>
-                <Text style={{ color: selected ? 'rgba(255,255,255,0.8)' : colors.textSecondary, fontSize: typography.xs }}>
+                <Text style={{ color: colors.textSecondary, fontSize: typography.xs }}>
                   {plan.period}
                 </Text>
                 {plan.savings && (
-                  <Text style={{ color: selected ? 'rgba(255,255,255,0.9)' : colors.success, fontSize: typography.xs, fontWeight: '700', marginTop: 4 }}>
+                  <Text style={{ color: colors.success, fontSize: typography.xs, fontWeight: '700', marginTop: 4 }}>
                     {plan.savings}
                   </Text>
                 )}
@@ -273,45 +361,52 @@ export default function UpgradeScreen() {
           })}
         </View>
 
-        {/* ── CTA ───────────────────────────────────────────────────── */}
-        <TouchableOpacity
-          onPress={handleUpgrade}
-          disabled={loading}
-          activeOpacity={0.85}
-          style={[styles.ctaBtn, { backgroundColor: colors.primary, opacity: loading ? 0.7 : 1 }]}
-          accessibilityRole="button"
-          accessibilityLabel="Start Premium subscription"
+        {/* ── CTA (gold) ──────────────────────────────────────────── */}
+        <GradientSurface
+          colors={[goldFrom, goldTo]}
+          diagonal={false}
+          borderRadius={16}
+          style={[styles.ctaBtn, { opacity: loading ? 0.7 : 1 }]}
         >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Icon name="crown" size={18} color="#fff" style={{ marginRight: spacing[2] }} />
-              <Text style={{ color: '#fff', fontSize: typography.base, fontWeight: '800' }}>
-                Start Premium
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleUpgrade}
+            disabled={loading}
+            activeOpacity={0.85}
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
+            accessibilityRole="button"
+            accessibilityLabel="شروع پریمیوم"
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFF8EC" />
+            ) : (
+              <>
+                <Icon name="crown" size={18} color="#FFF8EC" style={{ marginRight: spacing[2] }} />
+                <Text style={{ color: '#FFF8EC', fontSize: typography.base, fontWeight: '800' }}>
+                  شروع پریمیوم
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </GradientSurface>
 
-        {/* ── Legal ─────────────────────────────────────────────────── */}
+        {/* ── Legal ───────────────────────────────────────────────── */}
         <Text style={{ color: colors.textDisabled, fontSize: typography.xs, textAlign: 'center', marginTop: spacing[4], lineHeight: 18 }}>
-          Cancel any time. Billed via Stripe.{'\n'}
-          By subscribing you agree to our{' '}
+          هر زمان که خواستی لغو کن.{'\n'}
+          با اشتراک‌گذاری، با{' '}
           <Text
-            style={{ color: colors.primary, textDecorationLine: 'underline' }}
+            style={{ color: colors.premium, textDecorationLine: 'underline' }}
             onPress={() => Linking.openURL('https://rithmo.ir/terms')}
           >
-            Terms of Service
+            شرایط استفاده
           </Text>
-          {' '}and{' '}
+          {' '}و{' '}
           <Text
-            style={{ color: colors.primary, textDecorationLine: 'underline' }}
+            style={{ color: colors.premium, textDecorationLine: 'underline' }}
             onPress={() => Linking.openURL('https://rithmo.ir/privacy')}
           >
-            Privacy Policy
+            حریم خصوصی
           </Text>
-          .
+          {' '}موافقت می‌کنی.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -319,16 +414,21 @@ export default function UpgradeScreen() {
 }
 
 const styles = StyleSheet.create({
-  root:            { flex: 1 },
-  hero:            { borderRadius: 20, borderWidth: 1, padding: 24, alignItems: 'center', marginBottom: 24, gap: 12 },
-  heroIcon:        { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  heroTitle:       { fontWeight: '900', letterSpacing: -0.5, textAlign: 'center' },
-  sectionLabel:    { fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10, marginTop: 20 },
-  card:            { borderRadius: 16, borderWidth: 1, overflow: 'hidden', marginBottom: 4 },
-  featureRow:      { flexDirection: 'row', alignItems: 'flex-start', padding: 14 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  retryBtn: { marginTop: 16, paddingHorizontal: 20, paddingVertical: 11, borderRadius: 12 },
+  root:           { flex: 1 },
+  hero:           { padding: 24, alignItems: 'center', marginBottom: spacing24(), gap: 10 },
+  heroIcon:       { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  heroTitle:      { fontWeight: '900', textAlign: 'center' },
+  heroSub:        { color: 'rgba(255,248,236,0.85)', fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  sectionLabel:   { fontWeight: '800', letterSpacing: 0.4, marginBottom: 10, marginTop: 20 },
+  card:           { borderRadius: 16, borderWidth: 1, overflow: 'hidden', marginBottom: 4 },
+  featureRow:     { flexDirection: 'row', alignItems: 'flex-start', padding: 14 },
   featureIconBubble: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  freeRow:         { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14 },
-  planCard:        { borderRadius: 16, borderWidth: 2, padding: 16, alignItems: 'center', position: 'relative', minHeight: 120, justifyContent: 'center' },
-  planBadge:       { position: 'absolute', top: -10, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  ctaBtn:          { borderRadius: 16, paddingVertical: 18, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
+  freeRow:        { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14 },
+  planCard:       { borderRadius: 16, borderWidth: 2, padding: 16, alignItems: 'center', position: 'relative', minHeight: 120, justifyContent: 'center' },
+  planBadge:      { position: 'absolute', top: -10, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  ctaBtn:         { paddingVertical: 18, alignItems: 'center', justifyContent: 'center' },
 });
+
+function spacing24(): number { return 24; }
