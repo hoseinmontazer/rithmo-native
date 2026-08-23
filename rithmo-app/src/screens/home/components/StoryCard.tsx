@@ -422,7 +422,12 @@ export const StoryCard = memo(function StoryCard({
                 accessibilityLabel={onOpenAction ? `شروع: ${action.title_fa}` : `انجام دادم: ${action.title_fa}`}
               >
                 <Text
-                  style={{ color: '#FFFFFF', fontSize: typography.bodySmall, fontWeight: '700' }}
+                  /* colors.textOnPrimary, not a literal white: the dark theme's
+                     primary is a light pink (#E5A3BE), where white text measures
+                     2.04:1. The token is #2E1B26 there and measures 7.93:1. In
+                     light mode the token IS white, which is why the literal
+                     looked correct and the failure only appeared in dark mode. */
+                  style={{ color: colors.textOnPrimary, fontSize: typography.bodySmall, fontWeight: '700' }}
                 >
                   {onOpenAction ? 'شروع' : 'انجام دادم'}
                 </Text>

@@ -447,7 +447,8 @@ function CycleCalendar({
                         {
                           fontSize: typography.sm,
                           color: todayDay
-                            ? '#FFFFFF'
+                            // Today's cell is filled with colors.primary.
+                            ? colors.textOnPrimary
                             : isPeriod
                             ? colors.menstrual
                             : isPredPeriod

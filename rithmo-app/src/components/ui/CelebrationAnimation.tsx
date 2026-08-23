@@ -252,7 +252,7 @@ export const CelebrationAnimation = memo(function CelebrationAnimation({
               },
             ]}
           >
-            <Icon name={icon} size={48} color="#fff" />
+            <Icon name={icon} size={48} color={colors.textOnPrimary} />
           </Animated.View>
 
           {/* Confetti particles */}

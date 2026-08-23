@@ -204,7 +204,8 @@ export default function UpgradeScreen() {
             accessibilityRole="button"
             accessibilityLabel="تلاش دوباره"
           >
-            <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: typography.sm }}>تلاش دوباره</Text>
+            {/* On colors.primary — must use the paired foreground token. */}
+            <Text style={{ color: colors.textOnPrimary, fontWeight: '700', fontSize: typography.sm }}>تلاش دوباره</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

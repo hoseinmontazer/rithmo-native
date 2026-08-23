@@ -82,7 +82,7 @@ function OptionItem({ label, emoji, selected, onPress, accent, sub }: OptionItem
       </View>
       {selected && (
         <View style={[styles.checkDot, { backgroundColor: accent }]}>
-          <Icon name="check" size={12} color="#fff" />
+          <Icon name="check" size={12} color={colors.textOnPrimary} />
         </View>
       )}
     </TouchableOpacity>
@@ -428,10 +428,10 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
             style={[styles.nextBtn, { backgroundColor: accent, opacity: step === 1 && role === null ? 0.45 : 1 }]}
             activeOpacity={0.87}
           >
-            <Text style={[styles.nextBtnText, { color: '#fff', fontSize: typography.base }]}>
+            <Text style={[styles.nextBtnText, { color: colors.textOnPrimary, fontSize: typography.base }]}>
               ادامه
             </Text>
-            <Icon name="arrow-left" size={18} color="#fff" />
+            <Icon name="arrow-left" size={18} color={colors.textOnPrimary} />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
@@ -440,10 +440,10 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
             style={[styles.nextBtn, { backgroundColor: accent, opacity: saving ? 0.6 : 1 }]}
             activeOpacity={0.87}
           >
-            <Text style={[styles.nextBtnText, { color: '#fff', fontSize: typography.base }]}>
+            <Text style={[styles.nextBtnText, { color: colors.textOnPrimary, fontSize: typography.base }]}>
               {saving ? 'در حال ذخیره...' : ctaLabel}
             </Text>
-            {!saving && <Icon name="check" size={18} color="#fff" />}
+            {!saving && <Icon name="check" size={18} color={colors.textOnPrimary} />}
           </TouchableOpacity>
         )}
       </View>

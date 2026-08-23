@@ -224,3 +224,89 @@ describe('symptom icon mapping', () => {
     expect(new Set(icons).size).toBe(icons.length);
   });
 });
+
+/**
+ * Foreground/background token pairing (F-06).
+ *
+ * The theme is light/dark aware, so a literal colour is theme-blind by
+ * construction. Three screens painted their primary call-to-action label
+ * `#FFFFFF` on `colors.primary`. In light mode `textOnPrimary` IS #FFFFFF, so
+ * it looked right and nobody noticed; in dark mode `primary` is a light pink
+ * (#E5A3BE) and the paired token is a dark plum (#2E1B26), so the literal
+ * measured 2.04:1 against 7.93:1 for the token. Dark mode is a real, persisted
+ * user setting, so this shipped broken for anyone using it.
+ */
+describe('foreground tokens are paired with their background', () => {
+  const pairs: Array<[keyof typeof lightColors, keyof typeof lightColors, number]> = [
+    ['textOnPrimary', 'primary', AA_NORMAL_TEXT],
+  ];
+
+  for (const [themeName, theme] of [['light', lightColors], ['dark', darkColors]] as const) {
+    for (const [fg, bg, min] of pairs) {
+      it(`${String(fg)} on ${String(bg)} meets AA in ${themeName}`, () => {
+        expect(contrast(theme[fg] as string, theme[bg] as string)).toBeGreaterThanOrEqual(min);
+      });
+    }
+  }
+
+  it('no screen paints a literal colour onto colors.primary', () => {
+    /*
+     * Narrow on purpose: the checkable contract is "a foreground literal must
+     * not sit on colors.primary", not "no file may contain a hex string". A
+     * blanket hex ban produces false positives — foregrounds on the brand
+     * gradient (dark in both themes) and ErrorBoundary, which renders before
+     * the theme context exists and therefore cannot use tokens.
+     *
+     * The scan looks for a `backgroundColor: colors.primary` and a literal
+     * `color` within the same element block. That is exactly the shape that
+     * shipped broken in 13 places across Onboarding, PartnerManage,
+     * Medications, StoryCard, CycleTracker and Upgrade.
+     *
+     * Widened after device verification: the first version anchored on a bare
+     * `backgroundColor: colors.primary` and a literal immediately after
+     * `color=`, so it missed the tab bar's centre action button, which writes
+     * both sides as ternaries. That site measured 2.04:1 in dark mode on the
+     * most-tapped control in the app and was found by looking at the phone,
+     * not by the scan.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const fs = require('fs');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const path = require('path');
+    const root = path.join(__dirname, '..');
+    const offenders: string[] = [];
+
+    const walk = (dir: string) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) {
+          if (e.name !== 'node_modules' && e.name !== '__tests__') { walk(full); }
+          continue;
+        }
+        if (!/\.tsx$/.test(e.name)) { continue; }
+        const lines: string[] = fs.readFileSync(full, 'utf8').split('\n');
+        lines.forEach((line: string, i: number) => {
+          // Matches both the plain form and the conditional one:
+          //   backgroundColor: colors.primary
+          //   backgroundColor: focused ? colors.primary : colors.primaryLight
+          // but NOT an alpha-blended tint (`colors.primary + '18'`), where the
+          // foreground sits on a mostly-surface colour, not on primary itself.
+          const bg = /backgroundColor:\s*[^,\n]*\bcolors\.(primary|accent)\b(?!\s*\+)/;
+          if (!bg.test(line)) { return; }
+          // Look a short way forward for a literal foreground in the same element.
+          const window = lines.slice(i, i + 14).join('\n');
+          // The literal may sit directly after `color=`/`color:` or inside a
+          // ternary — `color={focused ? '#FFFFFF' : colors.primary}` is the
+          // form that hid the tab-bar centre button from the first scanner.
+          const fg = /\b(?:color|tintColor)(?:=|:)\s*\{?[^,;\n]*['"]#[0-9A-Fa-f]{3,8}['"]/;
+          if (fg.test(window)) {
+            offenders.push(`${path.relative(root, full)}:${i + 1}`);
+          }
+        });
+      }
+    };
+    walk(root);
+
+    expect(offenders).toEqual([]);
+  });
+});

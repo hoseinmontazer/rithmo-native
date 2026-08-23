@@ -605,7 +605,7 @@ export default function MedicationsScreen() {
             size="sm"
             variant="primary"
             onPress={() => setShowAddModal(true)}
-            icon={<Icon name="plus" size={16} color="#fff" />}
+            icon={<Icon name="plus" size={16} color={colors.textOnPrimary} />}
           />
         </View>
 

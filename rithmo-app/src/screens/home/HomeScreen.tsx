@@ -217,7 +217,7 @@ export default function HomeScreen() {
               accessibilityRole="button"
               accessibilityLabel={`اعلان‌ها${unreadCount > 0 ? `، ${toFa(unreadCount)} خوانده‌نشده` : ''}`}
             >
-              <Icon name="bell-outline" size={20} color="#FFFFFF" />
+              <Icon name="bell-outline" size={20} color={colors.textOnDark} />
               {unreadCount > 0 ? (
                 <View
                   style={[
@@ -228,7 +228,10 @@ export default function HomeScreen() {
               ) : null}
             </TouchableOpacity>
           </View>
-          <Text style={[styles.greeting, { color: '#FFFFFF', fontSize: typography.heading }]}>
+          {/* The hero sits on the brand gradient, which is dark in BOTH themes,
+              so a light foreground is right here — but it belongs to the
+              `textOnDark` token rather than a literal. */}
+          <Text style={[styles.greeting, { color: colors.textOnDark, fontSize: typography.heading }]}>
             {userName ? `سلام، ${userName} 🌸` : 'سلام 🌸'}
           </Text>
           <Text

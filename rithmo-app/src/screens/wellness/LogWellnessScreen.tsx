@@ -291,6 +291,12 @@ export default function LogWellnessScreen() {
             <View style={{ marginTop: spacing[3] }}>
               <SliderMetric
                 icon="emoticon-outline"
+                /* Metric accents come from the theme, never from literals.
+                   Six of these were hardcoded hex, so they did not follow the
+                   light/dark theme at all: #8B4513 measured 2.47:1 on the dark
+                   surface and #C77DFF 2.69:1 on the light one, both under the
+                   3:1 minimum for a meaningful non-text mark. The tokens below
+                   keep the same hue families and clear 3:1 in both themes. */
                 label="میزان خلق"
                 value={form.mood_level}
                 min={1}
@@ -314,7 +320,7 @@ export default function LogWellnessScreen() {
                 min={1}
                 max={10}
                 onChange={(v) => set('anxiety_level', Math.round(v))}
-                iconColor="#E76F51"
+                iconColor={colors.error}
               />
               <SliderMetric
                 icon="target"
@@ -364,7 +370,7 @@ export default function LogWellnessScreen() {
                 max={180}
                 step={5}
                 onChange={(v) => set('exercise_minutes', Math.round(v))}
-                iconColor="#2A9D8F"
+                iconColor={colors.follicular}
                 unit="دقیقه"
               />
               <SliderMetric
@@ -374,7 +380,7 @@ export default function LogWellnessScreen() {
                 min={1}
                 max={5}
                 onChange={(v) => set('nutrition_quality', Math.round(v))}
-                iconColor="#6A994E"
+                iconColor={colors.success}
               />
             </View>
           </Card>
@@ -407,7 +413,7 @@ export default function LogWellnessScreen() {
                 min={0}
                 max={10}
                 onChange={(v) => set('caffeine_intake', Math.round(v))}
-                iconColor="#8B4513"
+                iconColor={colors.premium}
                 unit="فنجان"
               />
               <SliderMetric
@@ -417,7 +423,7 @@ export default function LogWellnessScreen() {
                 min={0}
                 max={10}
                 onChange={(v) => set('alcohol_intake', Math.round(v))}
-                iconColor="#C77DFF"
+                iconColor={colors.accent}
                 unit="واحد"
               />
               <SliderMetric
@@ -427,7 +433,7 @@ export default function LogWellnessScreen() {
                 min={0}
                 max={20}
                 onChange={(v) => set('smoking', Math.round(v))}
-                iconColor="#6C757D"
+                iconColor={colors.textSecondary}
                 unit="نخ"
               />
             </View>

@@ -257,8 +257,8 @@ export default function PartnerManageScreen() {
                   marginBottom: spacing[3],
                 }}
               >
-                <Icon name="message-text-outline" size={18} color="#fff" />
-                <Text style={{ color: '#fff', fontSize: typography.sm, fontWeight: '700' }}>
+                <Icon name="message-text-outline" size={18} color={colors.textOnPrimary} />
+                <Text style={{ color: colors.textOnPrimary, fontSize: typography.sm, fontWeight: '700' }}>
                   باز کردن پیام‌ها
                 </Text>
               </TouchableOpacity>
@@ -467,8 +467,8 @@ export default function PartnerManageScreen() {
                       backgroundColor: colors.primary,
                     }}
                   >
-                    <Icon name="share-outline" size={18} color="#fff" />
-                    <Text style={{ color: '#fff', fontSize: typography.sm, fontWeight: '700' }}>
+                    <Icon name="share-outline" size={18} color={colors.textOnPrimary} />
+                    <Text style={{ color: colors.textOnPrimary, fontSize: typography.sm, fontWeight: '700' }}>
                       اشتراک‌گذاری کد
                     </Text>
                   </TouchableOpacity>

@@ -48,12 +48,6 @@ export const queryKeys = {
     conversation: (partnerId: string) => ['messages', 'conversation', partnerId] as const,
     unread: () => ['messages', 'unread'] as const,
   },
-  ai: {
-    suggestion: () => ['ai', 'suggestion'] as const,
-    history: () => ['ai', 'history'] as const,
-    modelStatus: () => ['ai', 'modelStatus'] as const,
-    debugSuggestions: () => ['ai', 'debugSuggestions'] as const,
-  },
   medications: {
     types: () => ['medications', 'types'] as const,
     type: (id: number) => ['medications', 'types', id] as const,

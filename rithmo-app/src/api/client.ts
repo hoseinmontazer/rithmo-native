@@ -35,6 +35,35 @@ export function onSessionExpired(listener: SessionExpiredListener): () => void {
   };
 }
 
+/**
+ * Endpoints where a 401 is the *answer*, not a stale-session symptom.
+ *
+ * `jwt/create` returns 401 for a wrong username or password. Routing that
+ * through the refresh path made a fresh install report the wrong thing: with
+ * no stored refresh token the interceptor threw «No refresh token available»,
+ * which `errorHandler` maps to «نشستِ قبلی معتبر نیست. دوباره وارد شو.» — a
+ * previous session the user never had. The correct mapping for bad
+ * credentials already exists and was simply never reached, because the
+ * interceptor rejected with its own error before the original 401 surfaced.
+ *
+ * `jwt/refresh` and `jwt/verify` are here for the same reason: a 401 from them
+ * means the refresh token itself is finished, so refreshing again cannot help.
+ *
+ * Deliberately narrow — `auth/users/me/` is NOT in this list. A 401 there is a
+ * genuinely expired access token and must still trigger a refresh.
+ */
+const AUTH_VERDICT_ENDPOINTS: readonly string[] = [
+  API_ENDPOINTS.AUTH_LOGIN,
+  API_ENDPOINTS.AUTH_REFRESH,
+  API_ENDPOINTS.AUTH_VERIFY,
+];
+
+function isAuthVerdictRequest(config?: { url?: string }): boolean {
+  const url = config?.url;
+  if (!url) {return false;}
+  return AUTH_VERDICT_ENDPOINTS.some((endpoint) => url.includes(endpoint));
+}
+
 function processQueue(error: unknown, token: string | null): void {
   failedQueue.forEach(({ resolve, reject }) => {
     if (error) {reject(error);}
@@ -68,6 +97,13 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as RetryableConfig;
 
     if (error.response?.status !== 401 || originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    // A 401 from the credential endpoints is a verdict, not an expired
+    // session. Reject with the server's own error so the Persian message the
+    // user sees describes what actually happened.
+    if (isAuthVerdictRequest(originalRequest)) {
       return Promise.reject(error);
     }
 

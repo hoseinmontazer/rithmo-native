@@ -190,8 +190,8 @@ export const QuickLogWidget = memo(function QuickLogWidget({
                 },
               ]}
             >
-              <Icon name="heart" size={18} color="#fff" />
-              <Text style={[styles.ctaText, { color: '#fff', fontSize: typography.md, marginLeft: spacing[2] }]}>
+              <Icon name="heart" size={18} color={colors.textOnPrimary} />
+              <Text style={[styles.ctaText, { color: colors.textOnPrimary, fontSize: typography.md, marginLeft: spacing[2] }]}>
                 Check In Now
               </Text>
             </View>

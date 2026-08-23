@@ -77,7 +77,7 @@ function LogTabIcon({ focused }: { focused: boolean }) {
       <Icon
         name={focused ? TAB_ICONS_ACTIVE.log : TAB_ICONS.log}
         size={26}
-        color={focused ? '#FFFFFF' : colors.primary}
+        color={focused ? colors.textOnPrimary : colors.primary}
       />
     </View>
   );

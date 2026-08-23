@@ -26,15 +26,12 @@ export const navTitles = {
   // Home
   Home: 'خانه',
   Notifications: 'اعلان‌ها',
-  AISuggestions: 'پیشنهادهای هوشمند',
 
   // Cycle
   CycleAnalysis: 'چرخه من',
   CycleTracker: 'تقویم چرخه',
-  PeriodDetail: 'جزئیات دوره',
   EditPeriod: 'ویرایش دوره',
   LogPeriod: 'ثبت دوره',
-  OvulationDetail: 'تخمک‌گذاری',
 
   // Wellness / log
   QuickLog: 'ثبت امروز',

@@ -10,12 +10,20 @@ import { queryClient } from '@api/queryClient';
 import { RootNavigator } from '@navigation/RootNavigator';
 import { useAuthStore } from '@store/authStore';
 import { useThemeStore, hydrateThemeStore } from '@store/themeStore';
+import { applyGlobalFont } from '@theme/applyGlobalFont';
 import { ErrorBoundary } from '@components/ErrorBoundary';
 import { ToastProvider } from './src/context/ToastContext';
 import { ConfirmProvider } from './src/context/ConfirmContext';
 
 // ── Persian-first: full RTL layout (Android; iOS follows locale) ─────────────
 I18nManager.forceRTL(true);
+
+// ── Persian type family, applied before the first render (F-07) ──────────────
+// The app shipped no fontFamily at all, so every glyph used the device's own
+// fallback face. This installs Vazirmatn once, for every Text and TextInput,
+// without touching any size or weight — and deliberately skips styles that
+// already name a family, which is what keeps the icon set intact.
+applyGlobalFont();
 
 // ── Restore the persisted theme choice (audit M6) before first render ───────
 hydrateThemeStore();
