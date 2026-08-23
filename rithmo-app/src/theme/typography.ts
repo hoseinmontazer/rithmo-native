@@ -43,3 +43,57 @@ export const typography = {
   weightBlack:    '800' as const,
 } as const;
 
+// ── Semantic type roles (F-07) ───────────────────────────────────────────────
+//
+// The numeric scale above is kept exactly as it was: 92% of the app's font
+// sizes already resolve through it and that hierarchy was verified on hardware
+// across F-01…F-06. What was missing was a *named* role, so that new code asks
+// for "card title" rather than re-deciding `fontSize: 17, fontWeight: '700'`
+// on the spot — which is how a scale with 15 stray literal sizes happens.
+//
+// Each role names only what it needs to. Family is deliberately absent: it is
+// applied once, globally, from the weight (see theme/applyGlobalFont.ts), so a
+// role that hard-coded a family would have to repeat the whole weight→face
+// mapping and would drift from it.
+//
+// `lineHeight` is absolute, not a multiplier, because Persian ascenders and
+// descenders are taller than Latin ones and a tight multiplier on a 15px body
+// clips them. Values are the scale's own multipliers resolved against the
+// role's size and rounded up.
+
+type Role = {
+  fontSize: number;
+  fontWeight: '400' | '500' | '600' | '700' | '800';
+  lineHeight: number;
+  letterSpacing?: number;
+};
+
+export const textRoles = {
+  /** Hero numerals — cycle day, primary impact values. */
+  display:      { fontSize: 32, fontWeight: '800', lineHeight: 40, letterSpacing: -0.4 },
+  /** Screen titles. */
+  screenTitle:  { fontSize: 24, fontWeight: '700', lineHeight: 34 },
+  /** Section headers within a screen. */
+  sectionTitle: { fontSize: 18, fontWeight: '700', lineHeight: 27 },
+  /** Card headings. */
+  cardTitle:    { fontSize: 16, fontWeight: '600', lineHeight: 25 },
+  /** Standard reading text. */
+  body:         { fontSize: 15, fontWeight: '400', lineHeight: 25 },
+  /** Body text that carries emphasis without becoming a heading. */
+  bodyEmphasis: { fontSize: 15, fontWeight: '600', lineHeight: 25 },
+  /** Secondary descriptions and compact lists. */
+  bodySmall:    { fontSize: 13, fontWeight: '400', lineHeight: 21 },
+  /** Dates, timestamps, metadata. */
+  caption:      { fontSize: 13, fontWeight: '400', lineHeight: 20 },
+  /** Badges, form labels, category tags. */
+  label:        { fontSize: 12, fontWeight: '500', lineHeight: 18 },
+  /** Interactive action labels. */
+  button:       { fontSize: 15, fontWeight: '600', lineHeight: 22 },
+  /** Metric values in stat rows — smaller than display, still dominant. */
+  metric:       { fontSize: 20, fontWeight: '700', lineHeight: 28 },
+  /** Bottom tab labels. */
+  tabLabel:     { fontSize: 10, fontWeight: '500', lineHeight: 15 },
+} as const satisfies Record<string, Role>;
+
+export type TextRole = keyof typeof textRoles;
+
