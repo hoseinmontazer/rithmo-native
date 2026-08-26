@@ -9,8 +9,10 @@
  * test with known-good values.
  */
 
-import { execFileSync } from 'child_process';
-import path from 'path';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { execFileSync } = require('child_process');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const path = require('path');
 
 import { faDate, faDateShort, faDateYear, faWeekday, toFa } from '@utils/persian';
 import { fromJalali, isJalaliLeapYear, toJalali } from '@utils/jalali';
