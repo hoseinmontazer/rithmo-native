@@ -23,6 +23,13 @@
  * Usage:
  *   Call once inside MainNavigator (authenticated root):
  *     usePushTokenRegistration();
+ *
+ * Not currently called anywhere — push notifications are deliberately
+ * deferred post-MVP. See PRODUCT_EVOLUTION.md §5 ("Push notifications
+ * (FCM) — deferred post-MVP") for the scope decision and what's still
+ * needed (this hook, the native setup above, and a backend rewrite —
+ * notifications/push_service.py currently targets a discontinued FCM
+ * endpoint) before this can be wired up for real.
  */
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
