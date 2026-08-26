@@ -73,7 +73,19 @@ export default function ConversationScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      // Android: NO behavior, deliberately.
+      //
+      // AndroidManifest already declares `android:windowSoftInputMode=
+      // "adjustResize"`, so the OS shrinks the window itself when the keyboard
+      // opens. Adding `behavior="height"` on top of that compensates a SECOND
+      // time — the window shrinks and then KeyboardAvoidingView shrinks its
+      // child again — which pushed the composer and its send button below the
+      // visible area. The user had to dismiss the keyboard to reach send.
+      //
+      // With `behavior` undefined the component renders as a plain View and
+      // lets adjustResize do the work, which is the documented pairing.
+      // `keyboardVerticalOffset` is iOS-only for the same reason.
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <FlatList

@@ -136,3 +136,35 @@ describe('conversation payload is unwrapped to an array', () => {
     }
   });
 });
+
+/**
+ * The composer must stay reachable while the keyboard is open.
+ *
+ * `AndroidManifest.xml` declares `windowSoftInputMode="adjustResize"`, so
+ * Android already shrinks the window when the keyboard opens. Pairing that
+ * with `KeyboardAvoidingView behavior="height"` compensates twice and pushed
+ * the composer — including the send button — off screen, so the user had to
+ * dismiss the keyboard before they could send. On Android the correct
+ * behavior is none.
+ */
+describe('chat composer survives the keyboard', () => {
+  it('applies no KeyboardAvoidingView behavior on Android', () => {
+    const s = code('screens', 'messages', 'ConversationScreen.tsx');
+    expect(s).not.toMatch(/behavior=\{Platform\.OS === 'ios' \? 'padding' : 'height'\}/);
+    expect(s).toMatch(/behavior=\{Platform\.OS === 'ios' \? 'padding' : undefined\}/);
+  });
+
+  it('still relies on adjustResize in the manifest', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const fs = require('fs');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const path = require('path');
+    const manifest: string = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'android', 'app', 'src', 'main', 'AndroidManifest.xml'),
+      'utf8',
+    );
+    // If this ever changes to adjustPan/adjustNothing, the Android branch above
+    // must be revisited — the two settings are a pair.
+    expect(manifest).toMatch(/android:windowSoftInputMode="adjustResize"/);
+  });
+});
