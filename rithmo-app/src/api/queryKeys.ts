@@ -76,6 +76,10 @@ export const queryKeys = {
   subscription: {
     status: () => ['subscription', 'status'] as const,
   },
+  pregnancy: {
+    all: () => ['pregnancy'] as const,
+    status: () => ['pregnancy', 'status'] as const,
+  },
   support: {
     all: () => ['support'] as const,
     list: () => ['support', 'list'] as const,

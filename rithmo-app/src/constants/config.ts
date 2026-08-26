@@ -98,6 +98,10 @@ export const API_ENDPOINTS = {
   SUBSCRIPTION_STATUS: '/api/subscriptions/status/',
   STRIPE_WEBHOOK:      '/api/subscriptions/webhook/',
 
+  // Pregnancy (premium)
+  PREGNANCY:     '/api/pregnancy/',
+  PREGNANCY_END: '/api/pregnancy/end/',
+
   // Support (user-facing tickets; internal notes are server-side only)
   SUPPORT_TICKETS: '/api/support/tickets/',
 } as const;
