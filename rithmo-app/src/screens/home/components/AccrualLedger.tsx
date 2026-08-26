@@ -131,6 +131,19 @@ export const AccrualLedger = memo(function AccrualLedger({ state }: Props) {
         },
       ]}
     >
+      {/* Coloured top edge. Bled to the card's padding edge with negative
+          margins rather than `borderTopColor`, because Android drops per-side
+          border colours as soon as `borderRadius` is set — that version
+          compiled, passed every gate, and rendered nothing at all. */}
+      <View
+        style={{
+          height: 3,
+          backgroundColor: colors.luteal,
+          marginTop: -spacing[4],
+          marginHorizontal: -spacing[4],
+          marginBottom: spacing[4],
+        }}
+      />
       <Text
         style={{
           color: colors.textPrimary,

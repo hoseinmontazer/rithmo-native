@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
 import { Button, Input, Card } from '@components/ui';
 import { authService } from '@api/services/authService';
 import { extractErrorMessage } from '@utils/errorHandler';
@@ -66,7 +67,11 @@ export default function ChangePasswordScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
-        contentContainerStyle={{ padding: spacing[5] }}
+        contentContainerStyle={{
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottom,
+        }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useRef } from 'react';
 import {
   View, FlatList, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform, Text, Alert,
+  StyleSheet, KeyboardAvoidingView, Platform, Alert, I18nManager,
+  RefreshControl,
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { useTheme } from '@hooks/useTheme';
@@ -12,6 +13,8 @@ import { MessageBubble } from '@components/messages/MessageBubble';
 import { extractErrorMessage } from '@utils/errorHandler';
 import type { Message } from '@types/notification.types';
 import type { MessagesScreenProps } from '@navigation/types';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { ACTION_ICONS, ICON_SIZE, shouldFlipForRTL } from '@design-system/iconography';
 
 type Props = MessagesScreenProps<'Conversation'>;
 
@@ -25,6 +28,21 @@ export default function ConversationScreen() {
   const { mutateAsync: sendMessage, isPending: sending } = useSendMessage();
 
   const [text, setText] = useState('');
+  /**
+   * Pull-to-refresh.
+   *
+   * `refetch` was destructured but only reachable from the error state, so on a
+   * successful-but-stale thread the user had no way to ask for new messages.
+   * The 10s `refetchInterval` does not cover it: React Query pauses polling
+   * while the app is backgrounded, and this client sets
+   * `refetchOnWindowFocus: false` globally, so returning to a conversation did
+   * not refetch either — the thread could sit stale indefinitely.
+   */
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try { await refetch(); } finally { setRefreshing(false); }
+  }, [refetch]);
   const listRef = useRef<FlatList>(null);
 
   const handleSend = useCallback(async () => {
@@ -42,7 +60,9 @@ export default function ConversationScreen() {
   }, [text, sending, sendMessage, partnerId]);
 
   const renderItem = useCallback(({ item }: { item: Message }) => (
-    <MessageBubble message={item} isMine={item.sender === userId} />
+    // String-compared: `sender` is a DRF integer pk and `userId` a string, so
+    // this was always false and EVERY message rendered as the partner's.
+    <MessageBubble message={item} isMine={String(item.sender) === String(userId)} />
   ), [userId]);
 
   const keyExtractor = useCallback((item: Message) => String(item.id), []);
@@ -63,6 +83,14 @@ export default function ConversationScreen() {
         keyExtractor={keyExtractor}
         contentContainerStyle={{ paddingVertical: spacing[3] }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
         removeClippedSubviews
         maxToRenderPerBatch={20}
@@ -88,7 +116,7 @@ export default function ConversationScreen() {
             styles.input,
             {
               backgroundColor: colors.surfaceSecondary,
-              borderRadius: borderRadius.full,
+              borderRadius: borderRadius.pill,
               color: colors.textPrimary,
               paddingHorizontal: spacing[4],
               paddingVertical: spacing[2],
@@ -113,7 +141,7 @@ export default function ConversationScreen() {
             styles.sendBtn,
             {
               backgroundColor: text.trim() ? colors.primary : colors.surfaceSecondary,
-              borderRadius: borderRadius.full,
+              borderRadius: borderRadius.pill,
               width: 44,
               height: 44,
               marginLeft: spacing[3],
@@ -122,7 +150,18 @@ export default function ConversationScreen() {
             },
           ]}
         >
-          <Text style={{ fontSize: 18 }}>➤</Text>
+          {/* Mirrored under RTL: a send arrow points the way the message
+              travels, which is leftwards in a right-to-left conversation. */}
+          <Icon
+            name={ACTION_ICONS.send}
+            size={ICON_SIZE.sm}
+            color={text.trim() ? colors.textOnPrimary : colors.textSecondary}
+            style={
+              shouldFlipForRTL(ACTION_ICONS.send) && I18nManager.isRTL
+                ? { transform: [{ scaleX: -1 }] }
+                : undefined
+            }
+          />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>

@@ -78,13 +78,31 @@ export function useGenerateInvitationCode() {
   });
 }
 
+/**
+ * Everything a partner link touches.
+ *
+ * Partner state is read by TWO independent caches: `useProfile`
+ * (`profile.partners`) and `usePartnerToday`
+ * (`/api/intelligence/partner/today/`, which resolves the owner from that
+ * same field). Invalidating only the profile left the intelligence cache
+ * serving its previous answer, so Settings and PartnerHome disagreed about
+ * whether a partner existed — one saying "connected to admin", the other
+ * "not connected to anyone" — from the same row in the database.
+ *
+ * Any mutation that links or unlinks must clear both.
+ */
+function invalidatePartnerState(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.profile.all() });
+  queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.all() });
+}
+
 export function useAcceptInvitation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: AcceptInvitationRequest) =>
       profileService.acceptInvitationCode(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.profile.all() });
+      invalidatePartnerState(queryClient);
     },
   });
 }
@@ -102,7 +120,7 @@ export function useRemovePartner() {
     mutationFn: (data: RemovePartnerRequest) =>
       profileService.removePartner(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.profile.all() });
+      invalidatePartnerState(queryClient);
       useAuthStore.getState().setPartnerId(null);
     },
   });
@@ -131,7 +149,7 @@ export function useSelfRevokePartner() {
   return useMutation({
     mutationFn: () => profileService.selfRevokePartner(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.profile.all() });
+      invalidatePartnerState(queryClient);
       useAuthStore.getState().setPartnerId(null);
     },
   });

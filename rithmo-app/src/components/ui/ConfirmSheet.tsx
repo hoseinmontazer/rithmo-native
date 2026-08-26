@@ -16,6 +16,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@hooks/useTheme';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import type { AppColors } from '@theme/colors';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -28,16 +30,32 @@ interface ConfirmSheetProps {
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: ConfirmSheetVariant;
-  icon?: string;           // emoji
+  /** MaterialCommunityIcons glyph name; defaults to the variant's own. */
+  icon?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-const VARIANT_STYLES: Record<ConfirmSheetVariant, { bg: string; border: string; btn: string; icon: string }> = {
-  danger:  { bg: '#FEF2F2', border: '#FCA5A5', btn: '#EF4444', icon: '🗑️' },
-  warning: { bg: '#FFFBEB', border: '#FDE68A', btn: '#F59E0B', icon: '⚠️' },
-  info:    { bg: '#EFF6FF', border: '#BFDBFE', btn: '#3B82F6', icon: 'ℹ️' },
-};
+/**
+ * Variant styling, from the palette.
+ *
+ * This held a Tailwind palette of its own — `#EF4444`, `#F59E0B`, `#3B82F6`
+ * and their tints — so a destructive confirmation was a different red from
+ * every other error surface in the app, and none of it responded to dark
+ * mode: it painted a near-white `#FEF2F2` panel whatever the theme.
+ *
+ * The glyphs were emoji (🗑️ ⚠️ ℹ️) for the same reason the toast's were, and
+ * with the same consequence — drawn by the handset, not by the product.
+ */
+type VariantPalette = { bg: string; border: string; btn: string; icon: string };
+
+function variantStyles(colors: AppColors): Record<ConfirmSheetVariant, VariantPalette> {
+  return {
+    danger:  { bg: colors.errorBg,   border: colors.error,   btn: colors.error,   icon: 'trash-can-outline' },
+    warning: { bg: colors.warningBg, border: colors.warning, btn: colors.warning, icon: 'alert' },
+    info:    { bg: colors.infoBg,    border: colors.info,    btn: colors.info,    icon: 'information' },
+  };
+}
 
 export const ConfirmSheet = memo(function ConfirmSheet({
   visible,
@@ -55,7 +73,7 @@ export const ConfirmSheet = memo(function ConfirmSheet({
   const slideY  = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
-  const palette = VARIANT_STYLES[variant];
+  const palette = variantStyles(colors)[variant];
   const displayIcon = icon ?? palette.icon;
 
   useEffect(() => {
@@ -120,7 +138,7 @@ export const ConfirmSheet = memo(function ConfirmSheet({
             { backgroundColor: palette.bg, borderColor: palette.border },
           ]}
         >
-          <Text style={styles.iconText}>{displayIcon}</Text>
+          <Icon name={displayIcon} size={26} color={palette.btn} />
         </View>
 
         {/* Title */}
@@ -235,9 +253,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  iconText: {
-    fontSize: 34,
   },
   title: {
     fontWeight: '800',

@@ -1,0 +1,73 @@
+Icon artwork — attribution and licence
+======================================
+
+One set of raster icon artwork ships in this application:
+
+  `src/assets/icons/*.png` — the colour icon set. As of the colour-icon
+  pass it is used THROUGHOUT the app, not just in a corner: the bottom
+  tab bar, the Home story card's guided-action icons, the mood scale in
+  «ثبت امروز», the partner support-theme cards, the Settings preference
+  rows and the auth screen logo.
+
+  Two other sets have come and gone. An Icons8 "Pulsar Color" set was
+  briefly used and removed because its fixed colours could not follow the
+  brand. It was replaced by a recolourable Streamline set under CC BY 4.0,
+  which has ALSO now been removed: recolouring every icon to the brand
+  green made whole screens monochrome, which was the problem it was meant
+  to solve. Nothing under CC BY 4.0 ships any more, so no Streamline
+  credit is required or given.
+
+  The obligations below therefore cover the PNG set above, and they now
+  cover a much larger share of the interface than when this notice was
+  first written. These files carry Icons8's catalogue names ("mental-health",
+     "menstruation", "fertilization", "better-health", "healthcare",
+     "push-notification", "robot-writing", "collaborate", …) and Icons8's
+     512x512 export convention. They were already in the app when this
+     notice was written, with no attribution recorded anywhere. This file
+     closes that gap as well as covering the new set.
+
+Supplier
+--------
+
+    Icons8 LLC
+    https://icons8.com
+
+Licence
+-------
+
+Used under Icons8's free tier (Universal Multimedia Licence Agreement).
+The terms that bind us:
+
+  * PERMITTED — embedding the icons inside this application.
+
+  * REQUIRED — a live link to https://icons8.com from within the app.
+    This is satisfied by the "Icons by Icons8" row in Settings, which
+    opens https://icons8.com (see `screens/profile/AboutScreen`).
+
+  * REQUIRED — a credit in the store listing. The Google Play description
+    must contain a line crediting Icons8, for example:
+        "Icons by Icons8 (https://icons8.com)"
+    THIS IS NOT SOMETHING THE CODEBASE CAN ENFORCE. It has to be kept in
+    the Play Console listing text, and it must stay there for as long as
+    these icons ship.
+
+  * PROHIBITED — redistributing or reselling the icon files themselves.
+    They may travel inside the built application only. Do not publish
+    `src/assets/icons/` as an icon set, and note that open-sourcing this
+    repository would breach this term unless the icons are removed first
+    or a paid Icons8 plan is purchased.
+
+Removing the attribution requirement
+------------------------------------
+
+Purchasing the appropriate Icons8 plan removes the linking and store-credit
+obligations. It does NOT remove the prohibition on redistributing the files.
+
+Changes made
+------------
+
+The Pulsar Color icons were downloaded from Icons8's own delivery CDN
+(img.icons8.com) at 256x256 and renamed to the semantic names used by
+`src/design-system/pulsarIcons.ts` (for example `sad` -> `mood-1.png`).
+The artwork itself is unmodified: it is not recoloured, redrawn, or
+recombined, and it is not presented as original work.

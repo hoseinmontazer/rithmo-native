@@ -13,6 +13,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
 import { Button, Icon } from '@components/ui';
 import type { CycleStackParamList } from '@navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -459,10 +460,10 @@ export default function LogPeriodScreen() {
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{
-            paddingHorizontal: spacing[4],
-            paddingTop: spacing[4],
-            paddingBottom: spacing[10],
-          }}
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottom,
+        }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >

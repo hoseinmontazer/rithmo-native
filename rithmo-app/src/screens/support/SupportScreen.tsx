@@ -25,6 +25,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { ICON_SIZE } from '@design-system/iconography';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
 import { useAuth } from '@hooks/useAuth';
 import { Button, Input, LoadingState, ErrorState } from '@components/ui';
 import {
@@ -184,7 +185,12 @@ export default function SupportScreen() {
           )}
 
           {/* Thread */}
-          <ScrollView contentContainerStyle={{ padding: spacing[4], flexGrow: 1 }}>
+          <ScrollView contentContainerStyle={{
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottom,
+         flexGrow: 1,
+        }}>
             {ticket.messages.map((m) => {
               const mine = m.sender_username === myUsername;
               return (

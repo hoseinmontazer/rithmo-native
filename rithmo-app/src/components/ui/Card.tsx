@@ -1,10 +1,12 @@
 import React, { memo } from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { useTheme } from '@hooks/useTheme';
 
 interface CardProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  // `StyleProp` rather than a bare `ViewStyle`: five call sites across the
+  // insights screens pass style ARRAYS, which a bare ViewStyle rejects.
+  style?: StyleProp<ViewStyle>;
   elevated?: boolean;
   noPadding?: boolean;
   /** Optional left-side colored accent bar */

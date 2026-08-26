@@ -1,27 +1,94 @@
-export const typography = {
-  // Semantic Type Scale (supporting English and Persian text)
-  display:   32, // Hero cycle day counters & primary impact numbers
-  heading:   24, // Screen titles
-  title:     18, // Section headers & major card titles
-  body:      15, // Standard body & conversational text
-  bodyMedium:15, // Emphasized body text
-  bodySmall: 13, // Secondary descriptions & compact lists
-  caption:   13, // Dates, timestamps & metadata
-  label:     12, // Badges, form labels & category tags
-  button:    15, // Button & interactive action labels
-  overline:  11, // Eyebrows & uppercase metadata
+/**
+ * Type.
+ *
+ * ── The ladder ──────────────────────────────────────────────────────────────
+ *
+ * `STEP` is the only place a font size is decided. Everything below names a
+ * step; nothing below invents a number.
+ *
+ * That indirection exists because three vocabularies had grown here — a
+ * semantic scale (`display`, `title`, `body`…), a numeric "compatibility"
+ * scale (`xs`, `sm`, `base`…) and later the `textRoles` map — and they had
+ * already drifted apart. `textRoles` introduced 16 and 10, which existed in
+ * neither of the other two, and `sm: 14` is the single most-used size in the
+ * app (123 call sites) while no semantic name pointed at it. Fourteen distinct
+ * sizes had accumulated, which is a list rather than a scale.
+ *
+ * Because the vocabularies now share one home, the whole ladder can be
+ * retuned from `STEP` alone — and a test asserts that every size in every
+ * vocabulary is a member of it.
+ *
+ * The ladder was raised roughly one step (reading text 15 → 17, the rest
+ * scaled with it) after the previous sizes read as too small on device. The
+ * *shape* is unchanged — every step stays distinct and ordered, so the
+ * hierarchy verified on hardware across F-01…F-06 still holds; only the
+ * baseline moved. `textRoles` line heights moved with it: they are absolute
+ * (see the note below on Persian ascenders) so they do not scale themselves,
+ * and leaving them behind would have clipped the taller text.
+ *
+ * To dial the overall text size further, change `STEP` here and nothing else.
+ *
+ * `5xl` (48) was removed: nothing referenced it.
+ */
 
-  // Compatibility scale
-  xs:    12,
-  sm:    14,
-  base:  15,
-  md:    18,
-  lg:    20,
-  xl:    24,
-  '2xl': 32,
-  '3xl': 40,
-  '4xl': 44,
-  '5xl': 48,
+/** Every font size the product may use. Adding a step is a design decision. */
+export const STEP = {
+  /** Bottom tab labels — the one place this small is acceptable. */
+  micro:    11,
+  /** Eyebrows and uppercase metadata. */
+  overline: 12,
+  /** Badges, form labels, category tags. */
+  tiny:     13,
+  /** Secondary descriptions, timestamps. */
+  small:    14,
+  /** The app's most-used secondary size. */
+  compact:  15,
+  /** Standard reading text. */
+  base:     17,
+  /** Card headings. */
+  medium:   18,
+  /** Section headers. */
+  large:    20,
+  /** Metric values in stat rows. */
+  xlarge:   22,
+  /** Screen titles. */
+  heading:  26,
+  /** Hero numerals. */
+  display:  34,
+  /** Oversized impact numbers. */
+  hero:     42,
+  /** The largest step in the product. */
+  giant:    46,
+} as const;
+
+export type FontStep = keyof typeof STEP;
+
+export const typography = {
+  // ── Semantic scale ────────────────────────────────────────────────────────
+  display:    STEP.display,  // Hero cycle day counters & primary impact numbers
+  heading:    STEP.heading,  // Screen titles
+  title:      STEP.large,    // Section headers & major card titles
+  body:       STEP.base,     // Standard body & conversational text
+  bodyMedium: STEP.base,     // Emphasized body text
+  bodySmall:  STEP.small,    // Secondary descriptions & compact lists
+  caption:    STEP.small,    // Dates, timestamps & metadata
+  label:      STEP.tiny,     // Badges, form labels & category tags
+  button:     STEP.base,     // Button & interactive action labels
+  overline:   STEP.overline, // Eyebrows & uppercase metadata
+
+  // ── Numeric scale ─────────────────────────────────────────────────────────
+  // Retained because the app overwhelmingly speaks in these names — `xs`, `sm`
+  // and `base` alone account for ~340 call sites. They are the same ladder
+  // under different labels, not a second scale.
+  xs:    STEP.tiny,
+  sm:    STEP.compact,
+  base:  STEP.base,
+  md:    STEP.large,
+  lg:    STEP.xlarge,
+  xl:    STEP.heading,
+  '2xl': STEP.display,
+  '3xl': STEP.hero,
+  '4xl': STEP.giant,
 
   // Line heights (calibrated for Persian and Latin scripts)
   lineHeightTight:   1.15,
@@ -70,29 +137,37 @@ type Role = {
 
 export const textRoles = {
   /** Hero numerals — cycle day, primary impact values. */
-  display:      { fontSize: 32, fontWeight: '800', lineHeight: 40, letterSpacing: -0.4 },
+  display:      { fontSize: STEP.display,  fontWeight: '800', lineHeight: 43, letterSpacing: -0.4 },
   /** Screen titles. */
-  screenTitle:  { fontSize: 24, fontWeight: '700', lineHeight: 34 },
+  screenTitle:  { fontSize: STEP.heading,  fontWeight: '700', lineHeight: 37 },
   /** Section headers within a screen. */
-  sectionTitle: { fontSize: 18, fontWeight: '700', lineHeight: 27 },
+  sectionTitle: { fontSize: STEP.large,    fontWeight: '700', lineHeight: 30 },
   /** Card headings. */
-  cardTitle:    { fontSize: 16, fontWeight: '600', lineHeight: 25 },
+  cardTitle:    { fontSize: STEP.medium,   fontWeight: '600', lineHeight: 28 },
   /** Standard reading text. */
-  body:         { fontSize: 15, fontWeight: '400', lineHeight: 25 },
+  body:         { fontSize: STEP.base,     fontWeight: '400', lineHeight: 28 },
   /** Body text that carries emphasis without becoming a heading. */
-  bodyEmphasis: { fontSize: 15, fontWeight: '600', lineHeight: 25 },
+  bodyEmphasis: { fontSize: STEP.base,     fontWeight: '600', lineHeight: 28 },
+  /**
+   * The dense secondary size the app actually reaches for most often.
+   *
+   * `typography.sm` (14) is used at ~123 call sites and no role named it, so
+   * anyone working from `textRoles` alone could not reproduce the app's own
+   * most common text. Naming it is the point of this entry.
+   */
+  bodyCompact:  { fontSize: STEP.compact,  fontWeight: '400', lineHeight: 24 },
   /** Secondary descriptions and compact lists. */
-  bodySmall:    { fontSize: 13, fontWeight: '400', lineHeight: 21 },
+  bodySmall:    { fontSize: STEP.small,    fontWeight: '400', lineHeight: 23 },
   /** Dates, timestamps, metadata. */
-  caption:      { fontSize: 13, fontWeight: '400', lineHeight: 20 },
+  caption:      { fontSize: STEP.small,    fontWeight: '400', lineHeight: 22 },
   /** Badges, form labels, category tags. */
-  label:        { fontSize: 12, fontWeight: '500', lineHeight: 18 },
+  label:        { fontSize: STEP.tiny,     fontWeight: '500', lineHeight: 20 },
   /** Interactive action labels. */
-  button:       { fontSize: 15, fontWeight: '600', lineHeight: 22 },
+  button:       { fontSize: STEP.base,     fontWeight: '600', lineHeight: 25 },
   /** Metric values in stat rows — smaller than display, still dominant. */
-  metric:       { fontSize: 20, fontWeight: '700', lineHeight: 28 },
+  metric:       { fontSize: STEP.xlarge,   fontWeight: '700', lineHeight: 31 },
   /** Bottom tab labels. */
-  tabLabel:     { fontSize: 10, fontWeight: '500', lineHeight: 15 },
+  tabLabel:     { fontSize: STEP.micro,    fontWeight: '500', lineHeight: 17 },
 } as const satisfies Record<string, Role>;
 
 export type TextRole = keyof typeof textRoles;

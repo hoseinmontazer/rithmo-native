@@ -47,14 +47,15 @@ type OnboardingRole = 'owner' | 'partner';
 
 interface OptionItemProps {
   label: string;
-  emoji: string;
+  /** MaterialCommunityIcons name. Was an emoji until F-07 — see below. */
+  icon: string;
   selected: boolean;
   onPress: () => void;
   accent: string;
   sub?: string;
 }
 
-function OptionItem({ label, emoji, selected, onPress, accent, sub }: OptionItemProps) {
+function OptionItem({ label, icon, selected, onPress, accent, sub }: OptionItemProps) {
   const { colors, typography } = useTheme();
   return (
     <TouchableOpacity
@@ -69,7 +70,15 @@ function OptionItem({ label, emoji, selected, onPress, accent, sub }: OptionItem
         },
       ]}
     >
-      <Text style={styles.optionEmoji}>{emoji}</Text>
+      {/* Onboarding is the first screen a new user sees, and every option
+          here was an emoji — drawn by the handset's emoji font, immune to the
+          theme, and inconsistent with the icon family used everywhere else. */}
+      <Icon
+        name={icon}
+        size={24}
+        color={selected ? accent : colors.textSecondary}
+        style={styles.optionIcon}
+      />
       <View style={{ flex: 1 }}>
         <Text style={[styles.optionLabel, { color: colors.textPrimary, fontSize: typography.base }]}>
           {label}
@@ -259,7 +268,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
                 <OptionItem
                   label="خودم — چرخه‌ی خودم را ردیابی می‌کنم"
                   sub="ثبت دوره، پیش‌بینی و درک بدنم"
-                  emoji="🌸"
+                  icon="human-female"
                   selected={role === 'owner'}
                   onPress={() => { setRole('owner'); setStep(2); }}
                   accent={accent}
@@ -267,7 +276,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
                 <OptionItem
                   label="شریکم — می‌خواهم چرخه‌ی شریکم را دنبال کنم"
                   sub="دنبال‌کردن چرخه‌ی شریکت، فقط با اجازه‌ی خودش"
-                  emoji="👥"
+                  icon="account-multiple-outline"
                   selected={role === 'partner'}
                   onPress={() => { setRole('partner'); setStep(2); }}
                   accent={accent}
@@ -286,9 +295,9 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
                 تو فقط آن‌چه شریکت برای اشتراک‌گذاری فعال کرده می‌بیند. کنترل همیشه دست خودش است.
               </Text>
               <View style={{ gap: 10, marginTop: spacing[6] }}>
-                <OptionItem label="وضعیت دوره — فقط اگر شریکت فعال کند" emoji="📅" selected={false} onPress={() => {}} accent={accent} />
-                <OptionItem label="پیش‌بینی‌ها — اختیاری، طبق تنظیمات شریکت" emoji="🔮" selected={false} onPress={() => {}} accent={accent} />
-                <OptionItem label="داده‌های حساس بدون اجازه نمایش داده نمی‌شوند" emoji="🔒" selected={false} onPress={() => {}} accent={accent} />
+                <OptionItem label="وضعیت دوره — فقط اگر شریکت فعال کند" icon="calendar-outline" selected={false} onPress={() => {}} accent={accent} />
+                <OptionItem label="پیش‌بینی‌ها — اختیاری، طبق تنظیمات شریکت" icon="chart-timeline-variant" selected={false} onPress={() => {}} accent={accent} />
+                <OptionItem label="داده‌های حساس بدون اجازه نمایش داده نمی‌شوند" icon="shield-lock-outline" selected={false} onPress={() => {}} accent={accent} />
               </View>
               <Text style={[styles.stepSub, { color: colors.textTertiary, fontSize: typography.sm, marginTop: spacing[5] }]}>
                 بعداً می‌توانی شریکت را دعوت کنی و لینک بسازی.
@@ -307,16 +316,16 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
               </Text>
               <View style={{ gap: 10, marginTop: spacing[6] }}>
                 {[
-                  { value: 'understand_cycle', emoji: '🔍', label: 'بهتر بشناسم چرخه خودم را' },
-                  { value: 'track_symptoms', emoji: '📊', label: 'علائم تکراری‌ام را دنبال کنم' },
-                  { value: 'predict_period',  emoji: '📅', label: 'دوره بعدی‌ام را پیش‌بینی کنم' },
-                  { value: 'mood_energy',     emoji: '⚡', label: 'خلق و انرژی‌ام را بفهمم' },
-                  { value: 'curiosity',       emoji: '🌱', label: 'فقط کنجکاوم' },
+                  { value: 'understand_cycle', icon: 'magnify', label: 'بهتر بشناسم چرخه خودم را' },
+                  { value: 'track_symptoms', icon: 'chart-box-outline', label: 'علائم تکراری‌ام را دنبال کنم' },
+                  { value: 'predict_period',  icon: 'calendar-outline', label: 'دوره بعدی‌ام را پیش‌بینی کنم' },
+                  { value: 'mood_energy',     icon: 'lightning-bolt-outline', label: 'خلق و انرژی‌ام را بفهمم' },
+                  { value: 'curiosity',       icon: 'sprout-outline', label: 'فقط کنجکاوم' },
                 ].map(opt => (
                   <OptionItem
                     key={opt.value}
                     label={opt.label}
-                    emoji={opt.emoji}
+                    icon={opt.icon}
                     selected={intent === opt.value}
                     onPress={() => setIntent(opt.value)}
                     accent={accent}
@@ -337,15 +346,15 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
               </Text>
               <View style={{ gap: 10, marginTop: spacing[6] }}>
                 {[
-                  { value: 'very_regular',   emoji: '🟢', label: 'خیلی منظم — تقریبا‌ همیشه ۲۸ روز' },
-                  { value: 'mostly_regular', emoji: '🟡', label: 'نسبتا‌ منظم — چند روز تفاوت دارد' },
-                  { value: 'irregular',      emoji: '🟠', label: 'نامنظم — خیلی متغیر است' },
-                  { value: 'unknown',        emoji: '❓', label: 'نمی‌دانم' },
+                  { value: 'very_regular',   icon: 'check-circle-outline', label: 'خیلی منظم — تقریبا‌ همیشه ۲۸ روز' },
+                  { value: 'mostly_regular', icon: 'circle-half-full', label: 'نسبتا‌ منظم — چند روز تفاوت دارد' },
+                  { value: 'irregular',      icon: 'chart-timeline-variant', label: 'نامنظم — خیلی متغیر است' },
+                  { value: 'unknown',        icon: 'help-circle-outline', label: 'نمی‌دانم' },
                 ].map(opt => (
                   <OptionItem
                     key={opt.value}
                     label={opt.label}
-                    emoji={opt.emoji}
+                    icon={opt.icon}
                     selected={regularity === opt.value}
                     onPress={() => setRegularity(opt.value)}
                     accent={accent}
@@ -366,15 +375,15 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
               </Text>
               <View style={{ gap: 10, marginTop: spacing[6] }}>
                 {[
-                  { value: 'yes_noticeable',  emoji: '📌', label: 'بله — قابل توجه است' },
-                  { value: 'yes_subtle',      emoji: '🔅', label: 'بله — ولی خیلی مشخص نیست' },
-                  { value: 'no',              emoji: '✨', label: 'نه، معمولا‌ یکنواخت است' },
-                  { value: 'not_sure',        emoji: '🤔', label: 'مطمئن نیستم' },
+                  { value: 'yes_noticeable',  icon: 'chart-line-variant', label: 'بله — قابل توجه است' },
+                  { value: 'yes_subtle',      icon: 'chart-line', label: 'بله — ولی خیلی مشخص نیست' },
+                  { value: 'no',              icon: 'equal', label: 'نه، معمولا‌ یکنواخت است' },
+                  { value: 'not_sure',        icon: 'help-circle-outline', label: 'مطمئن نیستم' },
                 ].map(opt => (
                   <OptionItem
                     key={opt.value}
                     label={opt.label}
-                    emoji={opt.emoji}
+                    icon={opt.icon}
                     selected={hasSymptoms === opt.value}
                     onPress={() => setHasSymptoms(opt.value)}
                     accent={accent}
@@ -398,7 +407,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
                   <OptionItem
                     key={opt.days}
                     label={opt.label}
-                    emoji={opt.days === 0 ? '📍' : '📅'}
+                    icon={opt.days === 0 ? 'calendar-today' : 'calendar-outline'}
                     selected={periodDaysAgo === opt.days}
                     onPress={() => setPeriodDaysAgo(opt.days)}
                     accent={accent}
@@ -485,7 +494,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 12,
   },
-  optionEmoji: { fontSize: 24 },
+  optionIcon: { width: 24, textAlign: 'center' },
   optionLabel: {
     flex: 1,
     fontWeight: '500',

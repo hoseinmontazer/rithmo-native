@@ -2,7 +2,7 @@
  * QuickLogScreen — ثبت امروز
  *
  * A beautiful one-minute check-in (mission: "How do you feel today?").
- * Flow: mood (big emoji) → energy → pain → sleep → symptoms → notes → save
+ * Flow: mood (illustrated scale) → energy → pain → sleep → symptoms → notes → save
  * → completion celebration with an honest personal observation.
  *
  * Preserves ALL payload fields, scales, prefill, and observation logic.
@@ -24,6 +24,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
+import { textRoles } from '@theme/typography';
 import {
   useCreateOrUpdateWellnessLog,
   useWellnessLog,
@@ -32,16 +34,38 @@ import {
   useWellnessStreaks,
 } from '@hooks/queries/useWellness';
 import { usePeriods, useCycleAnalysis } from '@hooks/queries/usePeriods';
-import { Button, Card, Badge, CelebrationAnimation } from '@components/ui';
+import { Button, Card, Badge, CelebrationAnimation, AppIcon } from '@components/ui';
 import { extractErrorMessage } from '@utils/errorHandler';
 import { toFa, faDate } from '@utils/persian';
 import { track } from '@analytics';
 import { MOODS } from '@utils/insightsEngine';
 import { QUICK_SYMPTOMS, parseSymptomCodes } from '@constants/symptoms';
 import { symptomIcon, ICON_SIZE } from '@design-system/iconography';
+import icons, { type AppIconName } from '@assets/icons';
 import type { WellnessScreenProps } from '@navigation/types';
 
 type Props = WellnessScreenProps<'QuickLog'>;
+
+/**
+ * The mood scale's artwork, by level.
+ *
+ * Was the theme-recoloured illustrated set, which made all five faces the
+ * same brand green — the least useful place in the product for one colour,
+ * since mood is exactly what the user is being asked to distinguish. These
+ * are the flat-colour faces from `assets/icons`, so each step reads as its
+ * own expression.
+ *
+ * Level 3 is the weakest fit: there is no truly neutral face in the set, so
+ * `dissapointment` (flat, unimpressed) stands in for «معمولی». A neutral
+ * face would be the one addition worth making here.
+ */
+const MOOD_ICON: Record<number, AppIconName> = {
+  1: 'moodExhausted',     // سنگین  — drained
+  2: 'moodCute',          // کمی بد — soft, pleading
+  3: 'moodDisappointed',  // معمولی — flat / unimpressed (placeholder)
+  4: 'moodAngel',         // خوب    — content
+  5: 'moodHappy',         // عالی   — open grin
+};
 
 // ── Rating option sets (energy / pain — mood now uses the shared MOODS) ─────
 
@@ -49,15 +73,22 @@ interface RatingOption {
   value: number;
   label: string;
   shortLabel: string;
+  /** Monoline glyph — the fallback when there is no artwork for the step. */
   iconName?: string;
+  /**
+   * Full-colour artwork from `assets/icons`, preferred over `iconName`.
+   * It keeps its own colours, so selection is carried by the tile's border
+   * and the number beneath it, plus opacity on the unselected steps.
+   */
+  art?: AppIconName;
 }
 
 const ENERGY_OPTIONS: RatingOption[] = [
-  { value: 1, label: 'بی‌حال', shortLabel: '۱', iconName: 'battery-10' },
-  { value: 2, label: 'کم', shortLabel: '۲', iconName: 'battery-30' },
-  { value: 3, label: 'متوسط', shortLabel: '۳', iconName: 'battery-50' },
-  { value: 4, label: 'خوب', shortLabel: '۴', iconName: 'battery-80' },
-  { value: 5, label: 'پرانرژی', shortLabel: '۵', iconName: 'lightning-bolt' },
+  { value: 1, label: 'بی‌حال', shortLabel: '۱', art: 'energy1' },
+  { value: 2, label: 'کم', shortLabel: '۲', art: 'energy2' },
+  { value: 3, label: 'متوسط', shortLabel: '۳', art: 'energy3' },
+  { value: 4, label: 'خوب', shortLabel: '۴', art: 'energy4' },
+  { value: 5, label: 'پرانرژی', shortLabel: '۵', art: 'energy5' },
 ];
 
 const PAIN_OPTIONS: RatingOption[] = [
@@ -125,13 +156,17 @@ function RatingPicker({ label, options, value, onChange, accentColor }: RatingPi
               ]}
               accessibilityLabel={`${label}: ${opt.label}`}
             >
-              {opt.iconName && (
+              {opt.art ? (
+                <View style={{ opacity: isSelected ? 1 : 0.55 }}>
+                  <AppIcon source={icons[opt.art]} size={24} />
+                </View>
+              ) : opt.iconName ? (
                 <Icon
                   name={opt.iconName}
                   size={20}
                   color={isSelected ? accentColor : colors.textTertiary}
                 />
-              )}
+              ) : null}
               <Text
                 style={[
                   styles.ratingValueText,
@@ -196,7 +231,7 @@ function buildPostLogObservation(
   }
 
   if (observations.length === 0) {
-    return 'امروز هم ثبت شد. 🌸';
+    return 'امروز هم ثبت شد.';
   }
 
   return observations[0];
@@ -369,7 +404,7 @@ export default function QuickLogScreen() {
         <CelebrationAnimation
           visible={saved}
           onDismiss={goBack}
-          title="ثبت شد 🌸"
+          title="ثبت شد"
           message={observation ?? undefined}
           type="success"
         />
@@ -420,7 +455,11 @@ export default function QuickLogScreen() {
     >
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: spacing[4], paddingBottom: spacing[12] }}
+          contentContainerStyle={{
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottomTab,
+        }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -469,9 +508,9 @@ export default function QuickLogScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* ── Mood: big emoji row ─────────────────────────────────── */}
-          <Card elevated={false} style={{ padding: spacing[4], marginBottom: spacing[4] }}>
-            <Text style={[styles.pickerLabel, { color: colors.textPrimary, fontSize: typography.sm, marginBottom: spacing[3] }]}>
+          {/* ── Mood: illustrated scale ──────────────────────────────── */}
+          <Card elevated={false} style={{ padding: spacing[4], marginBottom: spacing[6] }}>
+            <Text style={[styles.pickerLabel, { color: colors.textPrimary, fontSize: textRoles.cardTitle.fontSize, fontWeight: textRoles.cardTitle.fontWeight, lineHeight: textRoles.cardTitle.lineHeight, marginBottom: spacing[3] }]}>
               خلق
             </Text>
             <View style={[styles.moodRow, { gap: spacing[2] }]}>
@@ -495,14 +534,16 @@ export default function QuickLogScreen() {
                     accessibilityLabel={`خلق: ${m.label}`}
                     accessibilityState={{ selected: isSelected }}
                   >
-                    <Text
-                      style={{
-                        fontSize: isSelected ? 30 : 26,
-                        opacity: isSelected ? 1 : 0.75,
-                      }}
-                    >
-                      {m.emoji}
-                    </Text>
+                    {/* Flat-colour faces, not emoji and not a hairline glyph.
+                        Mood is the most affect-laden control in the product,
+                        so each step gets its own expression rather than five
+                        tints of the brand. The artwork keeps its own colours,
+                        so selection is carried entirely by the card — border,
+                        fill, label weight and scale. */}
+                    <AppIcon
+                      source={icons[MOOD_ICON[m.level]]}
+                      size={isSelected ? 36 : 30}
+                    />
                     <Text
                       style={[
                         styles.moodLabel,
@@ -522,13 +563,19 @@ export default function QuickLogScreen() {
           </Card>
 
           {/* ── Energy + Pain ───────────────────────────────────────── */}
-          <Card elevated={false} style={{ padding: spacing[4], marginBottom: spacing[4] }}>
+          <Card elevated={false} style={{ padding: spacing[4], marginBottom: spacing[6] }}>
+            {/* One selection colour for every scale on this screen.
+                Mood and symptoms already selected in brand green while energy
+                selected in violet and pain in rose, so a single interaction —
+                "this is the step I chose" — spoke three different colours on
+                one screen. Section identity is carried by the heading and the
+                artwork; it must not be carried by the selection state. */}
             <RatingPicker
               label="انرژی"
               options={ENERGY_OPTIONS}
               value={energy}
               onChange={setEnergy}
-              accentColor={colors.ovulation}
+              accentColor={colors.primary}
             />
 
             <RatingPicker
@@ -536,13 +583,13 @@ export default function QuickLogScreen() {
               options={PAIN_OPTIONS}
               value={pain}
               onChange={setPain}
-              accentColor={colors.menstrual}
+              accentColor={colors.primary}
             />
           </Card>
 
           {/* ── Sleep (promoted — core field, not hidden) ───────────── */}
-          <View style={{ marginBottom: spacing[4] }}>
-            <Text style={[styles.sectionSubtitle, { color: colors.textPrimary, fontSize: typography.sm, marginBottom: spacing[2] }]}>
+          <View style={{ marginBottom: spacing[6] }}>
+            <Text style={[styles.sectionSubtitle, { color: colors.textPrimary, fontSize: textRoles.cardTitle.fontSize, fontWeight: textRoles.cardTitle.fontWeight, lineHeight: textRoles.cardTitle.lineHeight, marginBottom: spacing[2] }]}>
               خواب دیشب (ساعت)
             </Text>
             <View style={[styles.chipWrap, { gap: spacing[2] }]}>
@@ -584,8 +631,8 @@ export default function QuickLogScreen() {
           </View>
 
           {/* ── Symptom chips (with emoji) ──────────────────────────── */}
-          <View style={{ marginBottom: spacing[4] }}>
-            <Text style={[styles.sectionSubtitle, { color: colors.textPrimary, fontSize: typography.sm, marginBottom: spacing[2] }]}>
+          <View style={{ marginBottom: spacing[6] }}>
+            <Text style={[styles.sectionSubtitle, { color: colors.textPrimary, fontSize: textRoles.cardTitle.fontSize, fontWeight: textRoles.cardTitle.fontWeight, lineHeight: textRoles.cardTitle.lineHeight, marginBottom: spacing[2] }]}>
               علائم شایع امروز
             </Text>
             <View style={[styles.chipWrap, { gap: spacing[2] }]}>
@@ -628,7 +675,9 @@ export default function QuickLogScreen() {
                           color: active ? colors.primary : colors.textSecondary,
                           fontSize: typography.xs,
                           fontWeight: active ? '700' : '500',
-                          marginRight: 6,
+                          // Logical, not physical: `marginRight` pinned this
+                          // gap to the physical right and did not mirror.
+                          marginEnd: 6,
                         },
                       ]}
                     >
@@ -641,8 +690,8 @@ export default function QuickLogScreen() {
           </View>
 
           {/* ── Notes (optional, compact) ───────────────────────────── */}
-          <View style={{ marginBottom: spacing[4] }}>
-            <Text style={[styles.sectionSubtitle, { color: colors.textPrimary, fontSize: typography.sm, marginBottom: spacing[2] }]}>
+          <View style={{ marginBottom: spacing[6] }}>
+            <Text style={[styles.sectionSubtitle, { color: colors.textPrimary, fontSize: textRoles.cardTitle.fontSize, fontWeight: textRoles.cardTitle.fontWeight, lineHeight: textRoles.cardTitle.lineHeight, marginBottom: spacing[2] }]}>
               یادداشت <Text style={{ color: colors.textTertiary }}>(اختیاری)</Text>
             </Text>
             <TextInput

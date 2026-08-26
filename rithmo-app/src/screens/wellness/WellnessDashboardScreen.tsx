@@ -35,6 +35,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
 import { useWellnessLogs, useWellnessStreaks } from '@hooks/queries/useWellness';
 import {
   Card,
@@ -45,10 +46,10 @@ import {
   Reveal,
 } from '@components/ui';
 import { symptomLabel } from '@constants/symptoms';
-import { symptomIcon, ICON_SIZE } from '@design-system/iconography';
+import { symptomIcon, moodIcon, ICON_SIZE } from '@design-system/iconography';
 import { SkeletonBlock } from '@components/ui/Skeleton';
 import { toFa, faDateShort } from '@utils/persian';
-import { computeSymptomTrends, mood5, MOODS } from '@utils/insightsEngine';
+import { computeSymptomTrends, mood5 } from '@utils/insightsEngine';
 import type { WellnessLog } from '../../types/wellness.types';
 import type { WellnessScreenProps } from '@navigation/types';
 
@@ -71,9 +72,6 @@ function mean(nums: number[]): number | null {
   if (nums.length === 0) { return null; }
   return nums.reduce((a, b) => a + b, 0) / nums.length;
 }
-
-const moodEmoji = (level: number | null): string =>
-  MOODS.find(m => m.level === level)?.emoji ?? '·';
 
 // ── Symptom trend bar ────────────────────────────────────────────────────────
 
@@ -215,7 +213,7 @@ export default function WellnessDashboardScreen() {
         <View style={[styles.metricChip, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md }]}>
           <Icon name="emoticon-outline" size={14} color={colors.luteal} />
           <Text style={[styles.metricChipText, { color: colors.textPrimary, fontSize: typography.xs }]}>
-            خلق {moodEmoji(mood5(item.mood_level))} {toFa(mood5(item.mood_level) ?? 3)}/۵
+            خلق {toFa(mood5(item.mood_level) ?? 3)}/۵
           </Text>
         </View>
 
@@ -343,9 +341,16 @@ export default function WellnessDashboardScreen() {
                 )}
                 {avgMood !== null && (
                   <Card elevated={false} style={{ flex: 1, padding: 12 }}>
-                    <Text style={[styles.avgValue, { color: colors.textPrimary, fontSize: typography.xl }]}>
-                      {moodEmoji(mood5(avgMood))} {toFa(avgMood.toFixed(1))}
-                    </Text>
+                    <View style={styles.avgValueRow}>
+                      <Icon
+                        name={moodIcon(mood5(avgMood) ?? 3)}
+                        size={ICON_SIZE.sm}
+                        color={colors.textPrimary}
+                      />
+                      <Text style={[styles.avgValue, { color: colors.textPrimary, fontSize: typography.xl }]}>
+                        {toFa(avgMood.toFixed(1))}
+                      </Text>
+                    </View>
                     <Text style={[styles.avgLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
                       میانگین خلق · {toFa(windowDays)} روز
                     </Text>
@@ -458,7 +463,11 @@ export default function WellnessDashboardScreen() {
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         ListHeaderComponent={listHeader}
-        contentContainerStyle={{ paddingHorizontal: spacing[4], paddingBottom: spacing[12] }}
+        contentContainerStyle={{
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottomTab,
+        }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -560,6 +569,11 @@ const styles = StyleSheet.create({
   },
   tileRow: {
     flexDirection: 'row',
+  },
+  avgValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   avgValue: {
     fontWeight: '800',

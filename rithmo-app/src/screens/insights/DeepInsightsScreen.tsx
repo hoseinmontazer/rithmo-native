@@ -21,6 +21,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
 import { useDashboardCorrelations, useDashboardComparison } from '@hooks/queries/useDashboard';
 import { useWellnessLogs } from '@hooks/queries/useWellness';
 import { LoadingState, Card, Badge } from '@components/ui';
@@ -295,7 +296,11 @@ export default function DeepInsightsScreen() {
   if (!isPremium) {
     return (
       <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['left', 'right', 'bottom']}>
-        <ScrollView contentContainerStyle={{ padding: spacing[4], paddingBottom: spacing[20] }}>
+        <ScrollView contentContainerStyle={{
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottom,
+        }}>
           <PremiumGate featureName="بینش عمیق" />
         </ScrollView>
       </SafeAreaView>

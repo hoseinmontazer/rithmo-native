@@ -18,12 +18,13 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useRole } from '@hooks/useRole';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
 import { useAuth } from '@hooks/useAuth';
 import { useProfile } from '@hooks/queries/useProfile';
 import { useSubscription } from '@hooks/queries/useSubscription';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { LoadingState, ErrorState, Divider } from '@components/ui';
-import { PROFILE_ICONS, ICON_SIZE } from '@design-system/iconography';
+import { PROFILE_ICONS, ICON_SIZE, ACTION_ICONS } from '@design-system/iconography';
 import { toFa, faDateShort } from '@utils/persian';
 import type { ProfileScreenProps } from '@navigation/types';
 
@@ -38,11 +39,19 @@ function initials(first?: string, last?: string, username?: string) {
   return '?';
 }
 
-function sexLabel(sex?: string) {
-  if (sex === 'female') {return '🌸 زن';}
-  if (sex === 'male')   {return '🌿 مرد';}
-  if (sex === 'other')  {return '🌈 دیگر';}
-  return '—';
+/**
+ * The gender badge as an icon plus a word, instead of an emoji plus a word.
+ *
+ * It read `🌸 زن` / `🌿 مرد` / `🌈 دیگر` until F-07. Three different emoji
+ * metaphors (a flower, a herb, a rainbow) for one attribute is not a visual
+ * language, and none of them took the badge's own colour. The Persian word
+ * carries the meaning either way; the icon is now the app's own.
+ */
+function sexMeta(sex?: string): { icon: string | null; label: string } {
+  if (sex === 'female') {return { icon: 'gender-female', label: 'زن' };}
+  if (sex === 'male')   {return { icon: 'gender-male',   label: 'مرد' };}
+  if (sex === 'other')  {return { icon: 'account-outline', label: 'دیگر' };}
+  return { icon: null, label: '—' };
 }
 
 function planLabel(plan?: string | null): string {
@@ -254,7 +263,11 @@ export default function ProfileScreen() {
   return (
     <ScrollView
       style={[styles.flex, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingBottom: spacing[12] }}
+      contentContainerStyle={{
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottomTab,
+        }}
       showsVerticalScrollIndicator={false}
     >
       {/* ── Hero ───────────────────────────────────────────────────────── */}
@@ -309,10 +322,22 @@ export default function ProfileScreen() {
             borderRadius: 20,
             paddingHorizontal: spacing[4],
             paddingVertical: spacing[1],
+            // Row + gap rather than a directional margin: the layout is RTL,
+            // and `gap` is side-agnostic where `marginLeft` would not be.
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
           }}
         >
+          {sexMeta(profile?.sex).icon ? (
+            <Icon
+              name={sexMeta(profile?.sex).icon as string}
+              size={ICON_SIZE.xs}
+              color={colors.primary}
+            />
+          ) : null}
           <Text style={{ color: colors.primary, fontSize: typography.xs, fontWeight: '700' }}>
-            {sexLabel(profile?.sex)}
+            {sexMeta(profile?.sex).label}
           </Text>
         </View>
 
@@ -376,12 +401,25 @@ export default function ProfileScreen() {
                     </Text>
                   </View>
                   <View style={{ backgroundColor: colors.success + '18', borderRadius: 8, paddingHorizontal: spacing[2], paddingVertical: 3 }}>
-                    <Text style={{ color: colors.success, fontSize: 10, fontWeight: '800' }}>ارتباط فعال</Text>
+                    <Text style={{ color: colors.success, fontSize: typography.overline, fontWeight: '800' }}>ارتباط فعال</Text>
                   </View>
                 </View>
                 {i < profile!.partners!.length - 1 && <Divider />}
               </React.Fragment>
             ))}
+            <Divider />
+            {/* Chat was reachable only through Profile → مدیریت شریک → باز
+                کردن پیام‌ها, i.e. three levels deep behind a screen about
+                unlinking. The conversation screen and its send mutation were
+                fully built; they were simply almost impossible to find. This
+                is a second route to the SAME destination — no new screen. */}
+            <MenuRow
+              icon={ACTION_ICONS.messages}
+              label="پیام‌ها"
+              sub="گفتگو با شریکت"
+              accentColor={colors.follicular}
+              onPress={() => navigation.navigate('PartnerMessages' as never)}
+            />
             <Divider />
             <MenuRow
               icon={PROFILE_ICONS.partnerManage}

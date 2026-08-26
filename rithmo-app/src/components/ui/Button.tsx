@@ -71,7 +71,7 @@ export const Button = memo(function Button({
         styles.base,
         {
           backgroundColor: vs.bg,
-          borderRadius: borderRadius.medium,
+          borderRadius: borderRadius.md,
           paddingVertical: s.py,
           paddingHorizontal: s.px,
           minHeight: s.minH,

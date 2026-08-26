@@ -77,7 +77,7 @@ export const Input = memo(function Input({
           {
             borderColor,
             borderWidth: focused ? 1.5 : 1,
-            borderRadius: borderRadius.medium,
+            borderRadius: borderRadius.md,
             backgroundColor: bg,
             paddingHorizontal: spacing[3],
             minHeight: 48,

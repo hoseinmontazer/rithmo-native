@@ -25,16 +25,22 @@ import {
   ScrollView,
   StyleSheet,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
+import { textRoles } from '@theme/typography';
 import { useAuth } from '@hooks/useAuth';
 import { useProfile } from '@hooks/queries/useProfile';
+import { useUnreadNotifications } from '@hooks/queries/useNotifications';
 import { usePartnerToday } from '@hooks/queries/useIntelligence';
 import { track } from '@analytics';
 import { toFa, faDate } from '@utils/persian';
-import { Card, SectionHeading, Reveal, LoadingState } from '@components/ui';
+import { Card, SectionHeading, Reveal, LoadingState, Button, AppIcon } from '@components/ui';
+import icons, { type AppIconName } from '@assets/icons';
 import type { PartnerTodayPayload } from '@types/intelligence.types';
 
 /**
@@ -42,55 +48,71 @@ import type { PartnerTodayPayload } from '@types/intelligence.types';
  * statements about what may be going on — never a claim about what she is
  * feeling, which he should ask her rather than read here.
  */
-const THEME_COPY: Record<string, { emoji: string; title: string; body: string }> = {
+const THEME_COPY: Record<string, { icon: AppIconName; title: string; body: string }> = {
   on_period: {
-    emoji: '🌙',
+    icon: 'menstruation',
     title: 'این روزها دوره‌اش است',
     body: 'ممکن است انرژی و حوصله‌اش کمتر از معمول باشد.',
   },
   low_energy: {
-    emoji: '🔋',
+    icon: 'betterHealth',
     title: 'انرژی‌اش کمتر از حالت معمولش بوده',
     body: 'کارهای اضافه ممکن است این روزها سنگین‌تر باشند.',
   },
   low_mood: {
-    emoji: '🫂',
+    icon: 'mentalHealth',
     title: 'حال و هوایش متفاوت از روال خودش بوده',
     body: 'لازم نیست درستش کنی؛ بودن کافی است.',
   },
   pain: {
-    emoji: '🌡️',
+    icon: 'healthcare',
     title: 'درد بیشتری نسبت به معمول ثبت کرده',
     body: 'بپرس چه چیزی کمکش می‌کند — حدس نزن.',
   },
   poor_sleep: {
-    emoji: '😴',
+    icon: 'wellness',
     title: 'خوابش کمتر از معمول بوده',
     body: 'کم‌خوابی روی همه‌چیز اثر می‌گذارد، از حوصله تا تمرکز.',
   },
   high_stress: {
-    emoji: '🌀',
+    icon: 'mentalHealth',
     title: 'فشار بیشتری روی دوشش بوده',
     body: 'برداشتن یک کار از لیستش بیشتر از دلداری کمک می‌کند.',
   },
   steady: {
-    emoji: '🌤️',
+    icon: 'betterHealth',
     title: 'همه‌چیز طبق روال معمولش است',
     body: 'خبر خاصی نیست — همین حضور معمولت کافی است.',
   },
   unknown: {
-    emoji: '🌱',
+    icon: 'search',
     title: 'هنوز چیزی برای گفتن ندارم',
     body: 'وقتی داده‌ی بیشتری ثبت شود، می‌توانم بهتر راهنمایی‌ات کنم.',
   },
 };
 
-function StateMessage({ emoji, title, body }: { emoji: string; title: string; body: string }) {
+/**
+ * An empty state for the partner experience.
+ *
+ * `action` matters more than it looks. The not-linked-yet state used to be
+ * text only — it told the user that something would appear here once a link
+ * existed, but gave them no way to create one, so the partner's entire home
+ * screen was a dead end. Linking lives in Profile → مدیریت شریک, which is a
+ * different tab; nothing on this screen pointed there.
+ */
+function StateMessage({
+  icon, title, body, action,
+}: {
+  icon: AppIconName;
+  title: string;
+  body: string;
+  action?: { label: string; onPress: () => void };
+}) {
   const { colors, typography } = useTheme();
   return (
     <Card>
       <View style={{ alignItems: 'center', paddingVertical: 8, gap: 8 }}>
-        <Text style={{ fontSize: 34 }}>{emoji}</Text>
+        <AppIcon source={icons[icon]} size={44} />
         <Text
           style={{
             color: colors.textPrimary,
@@ -111,6 +133,11 @@ function StateMessage({ emoji, title, body }: { emoji: string; title: string; bo
         >
           {body}
         </Text>
+        {action && (
+          <View style={{ alignSelf: 'stretch', marginTop: 8 }}>
+            <Button label={action.label} onPress={action.onPress} fullWidth />
+          </View>
+        )}
       </View>
     </Card>
   );
@@ -149,7 +176,7 @@ function SharingSummary({ sharing }: { sharing: PartnerTodayPayload['sharing'] }
                 styles.sharingChip,
                 {
                   backgroundColor: on ? colors.successBg : colors.borderSubtle,
-                  borderRadius: borderRadius.full,
+                  borderRadius: borderRadius.pill,
                 },
               ]}
             >
@@ -172,8 +199,30 @@ function SharingSummary({ sharing }: { sharing: PartnerTodayPayload['sharing'] }
 
 export default function PartnerHomeScreen() {
   const { colors, spacing, typography, borderRadius } = useTheme();
+  const navigation = useNavigation<any>();
   const { user } = useAuth();
+
+  // Partner linking lives in the Profile tab, so this is a cross-tab jump —
+  // the same shape HomeScreen uses to reach QuickLog.
+  const goToPartnerManage = useCallback(() => {
+    navigation.navigate('ProfileTab' as never, { screen: 'PartnerManage' } as never);
+  }, [navigation]);
   const { data: profile } = useProfile();
+  /**
+   * The partner had no way to READ a notification.
+   *
+   * `Notifications` is registered in HomeStack — the same stack that renders
+   * this screen — but only the owner's Home rendered an affordance for it, so
+   * for a partner the route was registered and unreachable. The messaging
+   * endpoint creates a Notification row for the receiver on every message, so
+   * a partner was accruing notifications with nowhere to see them.
+   */
+  const { data: unreadNotifs } = useUnreadNotifications();
+  const unreadCount: number = (unreadNotifs as any)?.count ?? 0;
+  const goToNotifications = useCallback(
+    () => navigation.navigate('Notifications' as never),
+    [navigation],
+  );
   /*
    * Greet the partner by name, not by login handle.
    *
@@ -216,9 +265,10 @@ export default function PartnerHomeScreen() {
     if (!data || data.status === 'no_partner') {
       return (
         <StateMessage
-          emoji="🔗"
+          icon="collaborate"
           title="هنوز به کسی وصل نیستی"
-          body="وقتی او دعوتش را بفرستد و ارتباط برقرار شود، اینجا می‌بینی چطور می‌توانی همراهش باشی."
+          body="برای اینکه بتوانی همراهش باشی، اول باید ارتباط برقرار شود. از اینجا می‌توانی شروع کنی."
+          action={{ label: 'برقراری ارتباط', onPress: goToPartnerManage }}
         />
       );
     }
@@ -226,7 +276,7 @@ export default function PartnerHomeScreen() {
     if (data.status === 'not_shared') {
       return (
         <StateMessage
-          emoji="🔒"
+          icon="secure"
           title="او فعلاً چیزی به اشتراک نگذاشته"
           body="این انتخاب اوست و کاملاً محترم است. هر وقت بخواهد، می‌تواند تغییرش دهد."
         />
@@ -248,10 +298,13 @@ export default function PartnerHomeScreen() {
                 <View
                   style={[
                     styles.themeIcon,
-                    { backgroundColor: colors.primaryLighter, borderRadius: borderRadius.lg },
+                    // Neutral, not primaryLighter: this plate holds
+                    // full-colour artwork, and a green tint behind it made
+                    // the icon's own colours read as a clash.
+                    { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.lg },
                   ]}
                 >
-                  <Text style={{ fontSize: 20 }}>{copy.emoji}</Text>
+                  <AppIcon source={icons[copy.icon]} size={28} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text
@@ -364,8 +417,9 @@ export default function PartnerHomeScreen() {
     >
       <ScrollView
         contentContainerStyle={{
-          paddingHorizontal: spacing[4],
-          paddingBottom: spacing[20],
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottomTab,
         }}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -377,15 +431,49 @@ export default function PartnerHomeScreen() {
           />
         }
       >
-        <View style={{ paddingTop: spacing[4], paddingBottom: spacing[4] }}>
-          <Text style={{ color: colors.textTertiary, fontSize: typography.caption }}>
-            {dateStr}
-          </Text>
+        {/* Deliberately NOT the owner's gradient hero. The partner gets a
+            different product, not a filtered copy of hers (see HomeStack), so
+            this header stays on the canvas and reads quieter. What it shares
+            with Home is the type system, not the surface. */}
+        <View style={{ paddingTop: spacing[4], paddingBottom: spacing[5] }}>
+          <View style={styles.headRow}>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  color: colors.textTertiary,
+                  fontSize: textRoles.caption.fontSize,
+                  lineHeight: textRoles.caption.lineHeight,
+                }}
+              >
+                {dateStr}
+              </Text>
+            </View>
+            {/* Quiet, on the canvas — the owner's bell sits translucent on a
+                gradient hero, which this screen deliberately does not have.
+                Same affordance, this screen's own surface treatment. */}
+            <TouchableOpacity
+              onPress={goToNotifications}
+              accessibilityRole="button"
+              accessibilityLabel={
+                unreadCount > 0 ? `اعلان‌ها، ${unreadCount} خوانده‌نشده` : 'اعلان‌ها'
+              }
+              style={[
+                styles.bell,
+                { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md },
+              ]}
+            >
+              <Icon name="bell-outline" size={20} color={colors.textSecondary} />
+              {unreadCount > 0 && (
+                <View style={[styles.bellDot, { backgroundColor: colors.menstrual, borderColor: colors.background }]} />
+              )}
+            </TouchableOpacity>
+          </View>
           <Text
             style={{
               color: colors.textPrimary,
-              fontSize: typography.heading,
-              fontWeight: '800',
+              fontSize: textRoles.screenTitle.fontSize,
+              fontWeight: textRoles.screenTitle.fontWeight,
+              lineHeight: textRoles.screenTitle.lineHeight,
               marginTop: 4,
             }}
           >
@@ -394,7 +482,8 @@ export default function PartnerHomeScreen() {
           <Text
             style={{
               color: colors.textSecondary,
-              fontSize: typography.bodySmall,
+              fontSize: textRoles.bodyCompact.fontSize,
+              lineHeight: textRoles.bodyCompact.lineHeight,
               marginTop: 4,
             }}
           >
@@ -428,6 +517,12 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   suggestionRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4 },
+  headRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  bell: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  bellDot: {
+    position: 'absolute', top: 6, right: 6,
+    width: 10, height: 10, borderRadius: 5, borderWidth: 2,
+  },
   sharingRow: {
     flexDirection: 'row',
     alignItems: 'center',

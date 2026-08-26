@@ -175,3 +175,41 @@ export function fromJalali(jy: number, jm: number, jd: number): Date {
 export function isJalaliLeapYear(jy: number): boolean {
   return jalCal(jy).leap === 0;
 }
+
+/**
+ * Number of days in a Jalali month.
+ *
+ * Needed to build a calendar GRID in Jalali space. The cycle calendar used to
+ * derive its grid from `new Date(gYear, gMonth, 1)`…`lastDay`, i.e. a
+ * GREGORIAN month, and then label it with the Jalali month name that happened
+ * to contain the Gregorian 1st. For August 2026 that produced a 31-cell grid
+ * spanning 10 Mordad → 9 Shahrivar, titled «مرداد» — wrong length, wrong
+ * boundaries, and a third of the cells belonging to the next Jalali month.
+ *
+ * Months 1-6 have 31 days, 7-11 have 30, and Esfand has 30 in a leap year and
+ * 29 otherwise.
+ */
+export function jalaliMonthLength(jy: number, jm: number): number {
+  if (jm <= 6) { return 31; }
+  if (jm <= 11) { return 30; }
+  return isJalaliLeapYear(jy) ? 30 : 29;
+}
+
+/**
+ * Column index (0-6) of a date in a Saturday-first week.
+ *
+ * The Iranian week begins on شنبه. `Date.getDay()` is Sunday-first, so a grid
+ * that offsets by `getDay()` shifts every Jalali month by one column.
+ *
+ * `PERSIAN_WEEKDAYS` above is deliberately Sunday-indexed because it formats a
+ * single date from `getDay()`; this is the grid's counterpart, not a
+ * replacement for it.
+ */
+export function jalaliWeekColumn(date: Date): number {
+  return (date.getDay() + 1) % 7;
+}
+
+/** Weekday headers for a Jalali grid, Saturday first. */
+export const JALALI_GRID_WEEKDAYS = [
+  'شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه',
+] as const;

@@ -24,21 +24,35 @@
 import React, { memo, useCallback, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { AppIcon } from '@components/ui';
+import icons, { type AppIconName } from '@assets/icons';
 import { useTheme } from '@hooks/useTheme';
 import { toFa } from '@utils/persian';
 import { track } from '@analytics';
 import { useSubmitActionFeedback } from '@hooks/queries/useIntelligence';
 import type { GuidedAction, Helpfulness, Insight } from '@types/intelligence.types';
 
-const CATEGORY_ICON: Record<string, string> = {
-  calm: 'weather-windy',
-  movement: 'walk',
-  comfort: 'hand-heart-outline',
-  rest: 'sleep',
-  basics: 'cup-water',
-  connection: 'account-heart-outline',
-  reflection: 'notebook-outline',
-  general: 'star-four-points-outline',
+/**
+ * The guided action's category, as a full-colour icon.
+ *
+ * These were monoline glyphs tinted `colors.primary`, so the one icon on the
+ * Home screen was the same green as the header, the button and the links —
+ * nothing on the screen carried a second colour. The PNG set in
+ * `assets/icons` is flat-colour artwork, which is what gives this card a
+ * focal point.
+ *
+ * `rest` and `basics` have no matching artwork in the set yet and fall back
+ * to the nearest concept; see the note in the project TODO.
+ */
+const CATEGORY_ICON: Record<string, AppIconName> = {
+  calm:       'mentalHealth',      // mind / settling
+  movement:   'betterHealth',      // heart with muscles
+  comfort:    'healthcare',        // heart held in a hand
+  rest:       'wellness',          // NO sleep icon in the set — placeholder
+  basics:     'healthcare',        // NO water/hydration icon — placeholder
+  connection: 'collaborate',       // two hands, puzzle pieces
+  reflection: 'edit',              // pencil — writing something down
+  general:    'wellness',
 };
 
 /**
@@ -120,7 +134,7 @@ export const StoryCard = memo(function StoryCard({
   learningMode,
   onOpenAction,
 }: Props) {
-  const { colors, typography, spacing, borderRadius, shadow } = useTheme();
+  const { colors, typography, spacing, borderRadius } = useTheme();
   const [showEvidence, setShowEvidence] = useState(false);
   const { mutate: submitFeedback, isPending } = useSubmitActionFeedback();
 
@@ -196,12 +210,26 @@ export const StoryCard = memo(function StoryCard({
         {
           backgroundColor: colors.surface,
           borderColor: colors.border,
-          borderRadius: borderRadius.xl,
+          // 16, and no shadow. This card is the screen's headline but it does
+          // not float: the redesign carries surfaces on a hairline border, and
+          // reserves elevation for sheets and toasts. A shadow here also made
+          // it read as a different material from every other card on Home.
+          borderRadius: borderRadius.lg,
           padding: spacing[4],
-          ...shadow.sm,
         },
       ]}
     >
+      {/* Coloured top edge — see the note in AccrualLedger for why this is a
+          bled child rather than `borderTopColor`. */}
+      <View
+        style={{
+          height: 3,
+          backgroundColor: colors.accent,
+          marginTop: -spacing[4],
+          marginHorizontal: -spacing[4],
+          marginBottom: spacing[4],
+        }}
+      />
       {/* ── The observation ─────────────────────────────────────────── */}
       {insight ? (
         <View accessible accessibilityLabel={`${insight.title_fa}. ${insight.body_fa}`}>
@@ -315,13 +343,12 @@ export const StoryCard = memo(function StoryCard({
             <View
               style={[
                 styles.actionIcon,
-                { backgroundColor: colors.primaryLighter, borderRadius: borderRadius.lg },
+                { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.lg },
               ]}
             >
-              <Icon
-                name={CATEGORY_ICON[action.category] ?? CATEGORY_ICON.general}
-                size={18}
-                color={colors.primary}
+              <AppIcon
+                source={icons[CATEGORY_ICON[action.category] ?? CATEGORY_ICON.general]}
+                size={24}
               />
             </View>
             <View style={{ flex: 1 }}>
@@ -423,8 +450,8 @@ export const StoryCard = memo(function StoryCard({
               >
                 <Text
                   /* colors.textOnPrimary, not a literal white: the dark theme's
-                     primary is a light pink (#E5A3BE), where white text measures
-                     2.04:1. The token is #2E1B26 there and measures 7.93:1. In
+                     primary is a light mint (#6FD3A6), where white text measures
+                     1.82:1. The token is #0B1F16 there and measures 9.45:1. In
                      light mode the token IS white, which is why the literal
                      looked correct and the failure only appeared in dark mode. */
                   style={{ color: colors.textOnPrimary, fontSize: typography.bodySmall, fontWeight: '700' }}

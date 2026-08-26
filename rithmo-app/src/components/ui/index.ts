@@ -11,7 +11,6 @@ export { GradientBackground }  from './GradientBackground';
 export { GradientSurface }     from './GradientSurface';
 export { SkeletonBlock, ContextSkeleton, StoryCardSkeleton, AccrualSkeleton } from './Skeleton';
 export { CycleRing }           from './CycleRing';
-export { WellnessRing }        from './WellnessRing';
 export { PillButton }          from './PillButton';
 export { PhasePill }           from './PhasePill';
 export { FAB }                 from './FAB';

@@ -62,8 +62,15 @@ export type UpdatePushTokenRequest = Partial<RegisterPushTokenRequest> & {
 
 export interface Message {
   id: number;
-  sender: string;
-  receiver: string;
+  /**
+   * Django FK primary keys. DRF serializes these as NUMBERS, not strings —
+   * the previous `string` annotation was wrong, and the resulting
+   * number-vs-string mismatch crashed the conversation list (`.slice` on a
+   * number) and made every `sender === userId` check silently false.
+   * Always compare and index these via `String(...)`.
+   */
+  sender: string | number;
+  receiver: string | number;
   message: string;
   is_read: boolean;
   created_at: string;
@@ -79,6 +86,17 @@ export type UpdateMessageRequest = Partial<SendMessageRequest> & {
 };
 
 export interface UnreadMessagesResponse {
+  count: number;
+  messages: Message[];
+}
+
+/**
+ * `GET /api/notifications/messages/conversation/` response.
+ *
+ * Deliberately named and exported: the endpoint returns this envelope rather
+ * than a bare `Message[]`, and mistaking the two left the chat thread blank.
+ */
+export interface ConversationResponse {
   count: number;
   messages: Message[];
 }

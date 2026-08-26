@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
 import { useRole } from '@hooks/useRole';
 import {
   useProfile,
@@ -154,7 +155,11 @@ export default function PartnerManageScreen() {
   return (
     <ScrollView
       style={[styles.flex, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ padding: spacing[5], paddingBottom: spacing[12] }}
+      contentContainerStyle={{
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottom,
+        }}
       showsVerticalScrollIndicator={false}
     >
       {/* ── Connected partner ──────────────────────────────────────────── */}
@@ -235,7 +240,7 @@ export default function PartnerManageScreen() {
                       borderColor: colors.success + '30',
                     }}
                   >
-                    <Text style={{ color: colors.success, fontSize: 10, fontWeight: '800' }}>
+                    <Text style={{ color: colors.success, fontSize: typography.overline, fontWeight: '800' }}>
                       متصل
                     </Text>
                   </View>

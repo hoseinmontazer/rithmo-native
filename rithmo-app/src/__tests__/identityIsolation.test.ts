@@ -113,6 +113,23 @@ describe('identity state is cleared at every account boundary', () => {
     expect(mockRemoveItem).toHaveBeenCalledWith(ONBOARDING_ROLE_KEY);
   });
 
+  it('a failed session restore on boot also clears', async () => {
+    // initialize() runs on every cold launch. Its catch branch cleared the
+    // tokens but not the identity-scoped state, unlike login()/logout() —
+    // so a profile (partner list included) fetched by a session that fails
+    // this exact check stayed in the cache for the rest of the process.
+    seedOwnerCache();
+    const { secureStorage } = require('@utils/secureStorage');
+    secureStorage.getTokens.mockResolvedValueOnce({ accessToken: 'stale' });
+    mockGetMe.mockRejectedValueOnce(new Error('401'));
+
+    await useAuthStore.getState().initialize();
+
+    expect(queryClient.getQueryData(queryKeys.profile.all())).toBeUndefined();
+    expect(mockRemoveItem).toHaveBeenCalledWith(ONBOARDING_ROLE_KEY);
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+  });
+
   it('sign-out still completes if cache clearing throws', async () => {
     // A sign-out that throws would strand the user in an
     // authenticated-looking shell, which is worse than a stale cache.

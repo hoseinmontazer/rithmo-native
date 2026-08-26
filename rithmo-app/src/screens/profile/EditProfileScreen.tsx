@@ -22,6 +22,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
 import { useProfile, usePatchProfile } from '@hooks/queries/useProfile';
 import { Button, Input, Card, LoadingState, StepperInput } from '@components/ui';
 import { extractErrorMessage } from '@utils/errorHandler';
@@ -183,7 +184,11 @@ export default function EditProfileScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
-        contentContainerStyle={{ padding: spacing[5], paddingBottom: spacing[12] }}
+        contentContainerStyle={{
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottom,
+        }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

@@ -1,63 +1,119 @@
 /**
  * Rhythmo Design System — Colors
  *
- * Brand: calm feminine health palette. The primary brand color is a deep
- * rose (not black, not default-Material blue). Light mode uses a warm
- * off-white canvas — never plain white screens.
+ * Brand: green, in the family the product owner supplied as a Figma Make
+ * reference (its `--primary` was `#16a34a`, Tailwind's green-600).
+ *
+ * ── Why the neutrals are neutral ─────────────────────────────────────────
+ *
+ * The neutrals used to be deliberately green-biased, so that they "belonged
+ * to the palette instead of sitting against it". On device that backfired:
+ * with the canvas, every surface, every border AND the text all carrying the
+ * brand hue, a screen had no hue contrast anywhere and the whole app read as
+ * one flat wash of green. The brand colour cannot register as an accent when
+ * the background is a paler version of it.
+ *
+ * So the neutral ramp is now genuinely hue-free and the green is spent only
+ * where it means something — brand, primary action, success. Measured as HLS
+ * saturation, light-mode `textPrimary` went 0.429 -> 0.106 and `border`
+ * 0.288 -> 0.115.
+ *
+ * This *raised* light-mode contrast rather than costing any: `textPrimary` on
+ * canvas 15.44 -> 16.60, `textSecondary` 5.61 -> 6.33, `textTertiary`
+ * 4.55 -> 4.96. Brand pairs are untouched at 6.81:1.
+ *
+ * Tokens that are brand tints rather than neutrals — `primaryLight`,
+ * `primaryLighter`, `successBg` — keep their green on purpose; they are the
+ * accent, not the ground.
+ *
+ * The reference's own primary is NOT used verbatim: measured, `#16a34a`
+ * carries white text at only 3.30:1, so its primary button, its brand-coloured
+ * text and its solid green sidebar all fail WCAG AA. The hue is kept and the
+ * lightness lowered until white clears AA on it (6.81:1 here).
+ *
+ * ── Why success IS the brand green ───────────────────────────────────────
+ *
+ * With the brand on this hue there is no green left that both reads as
+ * "success" and stays perceptually distinct from it. That was established by
+ * search, not assumed: across hues 60-140 and every lightness that still
+ * carries AA text on its own tint, nothing cleared ΔE 25 from the brand except
+ * a dark olive (#6E6E0C), which reads as a warning rather than as success.
+ *
+ * Two greens that are ALMOST the same look like a mistake; two that are
+ * identical look deliberate. So `success` is the brand green, by decision.
+ * The signal is carried by the check glyph and the Persian label beside it —
+ * which the product already requires, since colour is never allowed to be the
+ * sole carrier of meaning (`design-system/iconography.ts`).
+ *
+ * Everything else stays far apart: the brand is ΔE 76 from warning, 103 from
+ * error, 100 from accent and 54 from the nearest cycle phase.
+ *
+ * ── Contrast ─────────────────────────────────────────────────────────────
+ *
+ * Every foreground/background pair was re-measured for this palette rather
+ * than inherited. Against the rose palette that preceded it, 6 pairs failed
+ * WCAG AA in light and 1 in dark; this palette fails 1 and 0. The five that
+ * are newly fixed are the semantic text-on-tint pairs — `Badge` renders
+ * `colors.success` as TEXT on `colors.successBg`, and in rose that pairing
+ * was 2.97:1. The one remaining light-mode miss is `border` on `surface`
+ * (1.32:1), an intentionally hairline divider that carries no state; it was
+ * 1.25:1 under the green-tinted neutrals.
  *
  * The phase colors (menstrual/follicular/ovulation/luteal) are the
- * DATA-VISUALIZATION language — they stay stable across the redesign.
+ * DATA-VISUALIZATION language — they stay stable across the redesign, and
+ * were deliberately NOT touched when the brand moved to green. The brand sits
+ * ΔE 38 from `follicular`, the nearest of them, so it does not read as a
+ * fifth phase.
  *
  * Premium moments use the gold `premium` tokens (paywall, premium cards).
  */
 
 const lightColors = {
-  // ── Neutrals (warm) ─────────────────────────────────────────────────────
-  ink:             '#241B20',
-  canvas:          '#FAF7F9',
-  canvasDark:      '#141114',
+  // ── Neutrals (true neutral) ─────────────────────────────────────────────────────
+  ink:             '#15171A',
+  canvas:          '#F5F6F7',
+  canvasDark:      '#101215',
   surface:         '#FFFFFF',
-  surfaceSecondary:'#F7F1F4',
-  surfaceSubtle:   '#F3EBEF',
-  border:          '#EFE4EA',
-  borderSubtle:    '#F5EEF2',
-  background:      '#FAF7F9',
+  surfaceSecondary:'#EFF1F3',
+  surfaceSubtle:   '#E8EAED',
+  border:          '#DDE0E4',
+  borderSubtle:    '#EDEFF2',
+  background:      '#F5F6F7',
 
-  // ── Brand (deep rose) ───────────────────────────────────────────────────
-  primary:         '#A64368',
-  primaryDark:     '#873452',
-  primaryLight:    '#F6E4EC',
-  primaryLighter:  '#FBF1F5',
-  primaryPressed:  '#873452',
+  // ── Brand (deep pine-emerald) ───────────────────────────────────────────
+  primary:         '#0E6930',
+  primaryDark:     '#0B4F24',
+  primaryLight:    '#D7F4E2',
+  primaryLighter:  '#EEF9F2',
+  primaryPressed:  '#0B4F24',
   textOnPrimary:   '#FFFFFF',
 
   // ── Text ────────────────────────────────────────────────────────────────
-  textPrimary:     '#241B20',
-  textSecondary:   '#6E5E68',
-  // Raised from #9A8A93 (3.27:1 on surface, 3.07:1 on background) which
-  // failed WCAG AA for normal text. #7C6B77 gives 4.97:1 / 4.67:1 while
-  // staying clearly subordinate to textSecondary (6.06:1), so the hierarchy
-  // primary > secondary > tertiary is preserved rather than flattened.
-  textTertiary:    '#7C6B77',
-  textDisabled:    '#C4B6BE',
+  textPrimary:     '#15171A',
+  textSecondary:   '#565B61',
+  // Re-measured on the neutral ramp: 4.96:1 on canvas and 5.37:1 on surface,
+  // both AA, while staying clearly subordinate to textSecondary (6.33:1) so
+  // the primary > secondary > tertiary hierarchy still holds.
+  textTertiary:    '#666B72',
+  textDisabled:    '#B4B8BE',
 
   // ── Accent (violet — data/secondary accent) ─────────────────────────────
   accent:          '#7C5CB8',
   accentLight:     '#EFE9F8',
 
   // ── Semantic ────────────────────────────────────────────────────────────
-  success:         '#2E9E6B',
-  successBg:       '#E4F4EC',
-  successDark:     '#1F7A4F',
-  warning:         '#D9822B',
+  success:         '#0E6930',
+  successBg:       '#D7F4E2',
+  successDark:     '#0B4F24',
+  warning:         '#B05426',
   warningBg:       '#FBF0E1',
-  error:           '#D64545',
+  error:           '#CE2929',
   errorBg:         '#FBE9E9',
-  info:            '#3E6FB0',
+  info:            '#3E6EAF',
   infoBg:          '#E8F0FA',
   infoDark:        '#2C5488',
 
-  shadow:          '#8A7280',
+  shadow:          '#5A5F66',
 
   // ── Cycle phase palette (data language — stable) ────────────────────────
   menstrual:       '#E11D48',
@@ -74,58 +130,58 @@ const lightColors = {
   lutealBorder:    '#F0D3A0',
 
   // ── Premium (gold) ──────────────────────────────────────────────────────
-  premium:         '#A67C2E',
+  premium:         '#90662E',
   premiumBg:       '#F8F1E2',
   premiumBorder:   '#E7D5AE',
 
   // ── Restored legacy tokens (used by auth/support/AI/streak screens) ─────
-  divider:         '#F0E8EC',
+  divider:         '#E9EBEE',
   ovulationColor:  '#9A6BD0',
-  shadowColor:     '#8A7280',
-  surfaceDark:     '#332530',
-  textOnDark:      '#F7F2F5',
+  shadowColor:     '#6E737A',
+  surfaceDark:     '#232629',
+  textOnDark:      '#F4F5F6',
   violet500:       '#8B5CF6',
   violet600:       '#7C3AED',
 };
 
 const darkColors = {
-  // ── Neutrals (warmed ink) ───────────────────────────────────────────────
-  ink:             '#EDE6EA',
-  canvas:          '#141114',
-  canvasDark:      '#0B090B',
-  surface:         '#1D181C',
-  surfaceSecondary:'#262025',
-  surfaceSubtle:   '#2C252B',
-  border:          '#372F36',
-  borderSubtle:    '#2E272D',
-  background:      '#141114',
+  // ── Neutrals (neutral ink) ───────────────────────────────────────────────
+  ink:             '#E6E8EA',
+  canvas:          '#0F1113',
+  canvasDark:      '#08090A',
+  surface:         '#181A1D',
+  surfaceSecondary:'#212428',
+  surfaceSubtle:   '#282C30',
+  border:          '#343940',
+  borderSubtle:    '#282C30',
+  background:      '#0F1113',
 
-  // ── Brand (soft rose) ───────────────────────────────────────────────────
-  primary:         '#E5A3BE',
-  primaryDark:     '#D98FB3',
-  primaryLight:    '#3A2530',
-  primaryLighter:  '#302029',
-  primaryPressed:  '#D98FB3',
-  textOnPrimary:   '#2E1B26',
+  // ── Brand (soft mint — the light-on-dark counterpart) ───────────────────
+  primary:         '#6AD792',
+  primaryDark:     '#4DCB7B',
+  primaryLight:    '#1D3526',
+  primaryLighter:  '#17291D',
+  primaryPressed:  '#4DCB7B',
+  textOnPrimary:   '#081F10',
 
   // ── Text ────────────────────────────────────────────────────────────────
-  textPrimary:     '#EDE6EA',
-  textSecondary:   '#B3A6AF',
-  // Was #857A83 (4.26:1 on dark surface) — also short of AA. #9A8E97 gives
-  // 5.58:1, below textSecondary's 7.49:1.
-  textTertiary:    '#9A8E97',
-  textDisabled:    '#5C535A',
+  textPrimary:     '#E6E8EA',
+  textSecondary:   '#A8ADB3',
+  // Re-measured on the neutral ramp: 5.57:1 on dark surface, below
+  // textSecondary's 7.72:1, so the hierarchy holds.
+  textTertiary:    '#8D9299',
+  textDisabled:    '#565B61',
 
   // ── Accent ──────────────────────────────────────────────────────────────
   accent:          '#B09ADB',
   accentLight:     '#2C2438',
 
   // ── Semantic ────────────────────────────────────────────────────────────
-  success:         '#5BC98F',
-  successBg:       '#1C3229',
-  successDark:     '#7FDCAE',
+  success:         '#6AD792',
+  successBg:       '#1D3526',
+  successDark:     '#92DDAE',
   warning:         '#E8A23D',
-  warningBg:       '#3A2E1C',
+  warningBg:       '#332A18',
   error:           '#E57373',
   errorBg:         '#3A2222',
   info:            '#7FA8DC',
@@ -154,43 +210,21 @@ const darkColors = {
   premiumBorder:   '#57431E',
 
   // ── Restored legacy tokens ──────────────────────────────────────────────
-  divider:         '#2E272D',
+  divider:         '#282C30',
   ovulationColor:  '#B893E3',
   shadowColor:     '#000000',
-  surfaceDark:     '#241C23',
-  textOnDark:      '#F2ECF0',
+  surfaceDark:     '#1F2225',
+  textOnDark:      '#F2F3F4',
   violet500:       '#A78BFA',
   violet600:       '#8B5CF6',
 };
 
 export type AppColors = typeof lightColors | typeof darkColors;
 
-const borderRadius = {
-  none:  0,
-  xs:    4,
-  sm:    6,
-  md:    10,
-  lg:    14,
-  xl:    20,
-  '2xl': 24,
-  '3xl': 32,
-  pill:  9999,
-  card:  14,
-  control: 10,
-  // Aliases kept for legacy components
-  full:   9999,
-  small:  6,
-  medium: 10,
-  large:  14,
-  xlarge: 20,
-};
-
-const shadows = {
-  none: {},
-  xs:   { shadowColor: '#000', shadowOffset: { width: 0, height: 1 },  shadowOpacity: 0.06, shadowRadius: 2,  elevation: 1 },
-  sm:   { shadowColor: '#000', shadowOffset: { width: 0, height: 2 },  shadowOpacity: 0.08, shadowRadius: 6,  elevation: 2 },
-  md:   { shadowColor: '#000', shadowOffset: { width: 0, height: 6 },  shadowOpacity: 0.10, shadowRadius: 12, elevation: 4 },
-  lg:   { shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.14, shadowRadius: 24, elevation: 8 },
-};
-
-export { lightColors, darkColors, borderRadius, shadows };
+// NOTE: `borderRadius` and `shadows` used to be declared here as well as in
+// `theme/spacing.ts`. Nothing imported this copy — `theme/index.ts` builds the
+// theme from `spacing.ts` — so it was a second, silent definition of the same
+// scales, and the two had already drifted: the dead shadow presets carried
+// opacities of 0.06–0.14 against the live 0.03–0.06. Radius and elevation now
+// have exactly one home, in `spacing.ts`.
+export { lightColors, darkColors };

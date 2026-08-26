@@ -67,7 +67,7 @@ export function PremiumGate({ children, featureName, overlay = false }: PremiumG
             {
               backgroundColor: colors.surface,
               borderColor: colors.border,
-              borderRadius: borderRadius.medium,
+              borderRadius: borderRadius.md,
             },
           ]}
         >
@@ -87,7 +87,7 @@ export function PremiumGate({ children, featureName, overlay = false }: PremiumG
             onPress={handleUpgrade}
             style={[
               styles.unlockBtn,
-              { backgroundColor: colors.primary, borderRadius: borderRadius.small },
+              { backgroundColor: colors.primary, borderRadius: borderRadius.sm },
             ]}
             accessibilityRole="button"
             accessibilityLabel={`باز کردن ${featureName ?? 'امکان پرمیوم'}`}
@@ -109,12 +109,12 @@ export function PremiumGate({ children, featureName, overlay = false }: PremiumG
         {
           backgroundColor: colors.surface,
           borderColor: colors.border,
-          borderRadius: borderRadius.large,
+          borderRadius: borderRadius.lg,
         },
       ]}
     >
       <View style={{ padding: spacing[5], alignItems: 'center' }}>
-        <View style={[styles.lockIcon, { backgroundColor: colors.surfaceSubtle, borderRadius: borderRadius.medium }]}>
+        <View style={[styles.lockIcon, { backgroundColor: colors.surfaceSubtle, borderRadius: borderRadius.md }]}>
           <Icon name="crown-outline" size={24} color={colors.primary} />
         </View>
 
@@ -149,7 +149,7 @@ export function PremiumGate({ children, featureName, overlay = false }: PremiumG
             styles.ctaBtn,
             {
               backgroundColor: colors.primary,
-              borderRadius: borderRadius.medium,
+              borderRadius: borderRadius.md,
             },
           ]}
           accessibilityRole="button"

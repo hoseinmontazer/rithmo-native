@@ -1,8 +1,9 @@
 import React, { useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, Switch,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Switch, Linking,
 } from 'react-native';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
 import { useThemeStore } from '@store/themeStore';
 import {
   useNotificationPreferences,
@@ -91,7 +92,11 @@ export default function SettingsScreen() {
   return (
     <ScrollView
       style={[styles.flex, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ padding: spacing[5] }}
+      contentContainerStyle={{
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottom,
+        }}
       showsVerticalScrollIndicator={false}
     >
       {/* ── Appearance ───────────────────────────────────────────────── */}
@@ -225,10 +230,50 @@ export default function SettingsScreen() {
         <InfoRow label="سرور"  value="api.rithmo.ir" colors={colors} typography={typography} />
         <Divider style={{ marginVertical: spacing[2] }} />
         <InfoRow label="نوع بیلد" value="تولید"       colors={colors} typography={typography} />
+        <Divider style={{ marginVertical: spacing[2] }} />
+        {/* Icons8's free licence requires a live link to icons8.com from
+            inside the app. This row is that link — it is an obligation, not
+            decoration, so it must not be removed while the illustrated icons
+            or the older colour PNG set ship. See
+            `assets/icons/ICONS8-LICENCE.txt`, which also records the store
+            listing credit that the codebase cannot enforce. */}
+        <CreditRow
+          label="آیکون‌ها"
+          value="Icons8"
+          url="https://icons8.com"
+          colors={colors}
+          typography={typography}
+        />
       </Card>
 
       <View style={{ height: spacing[8] }} />
     </ScrollView>
+  );
+}
+
+/** An InfoRow whose value opens an external page. */
+function CreditRow({ label, value, url, colors, typography }: {
+  label: string; value: string; url: string; colors: any; typography: any;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={() => { Linking.openURL(url).catch(() => { /* no browser */ }); }}
+      accessibilityRole="link"
+      accessibilityLabel={`${label}: ${value}`}
+      style={{ flexDirection: 'row', justifyContent: 'space-between' }}
+    >
+      <Text style={{ color: colors.textSecondary, fontSize: typography.sm }}>{label}</Text>
+      <Text
+        style={{
+          color: colors.primary,
+          fontSize: typography.sm,
+          fontWeight: '600',
+          textDecorationLine: 'underline',
+        }}
+      >
+        {value}
+      </Text>
+    </TouchableOpacity>
   );
 }
 

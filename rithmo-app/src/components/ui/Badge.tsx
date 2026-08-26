@@ -32,7 +32,7 @@ export const Badge = memo(function Badge({ label, variant = 'primary', style, do
       style={[
         {
           backgroundColor: bg,
-          borderRadius: borderRadius.small,
+          borderRadius: borderRadius.sm,
           paddingHorizontal: spacing[2],
           paddingVertical: 3,
           flexDirection: 'row',

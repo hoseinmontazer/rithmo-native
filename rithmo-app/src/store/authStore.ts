@@ -88,12 +88,19 @@ export const useAuthStore = create<AuthState>((set) => ({
         isInitializing: false,
       });
     } catch (error) {
-      // Token invalid or expired and refresh failed — clear and show login
+      // Token invalid or expired and refresh failed — clear and show login.
+      // Must also clear identity-scoped state, exactly like login()/logout():
+      // without it, a profile (including partner data) fetched by a session
+      // that fails this exact check stays in the in-memory React Query cache
+      // for the rest of the process, and would be served to whichever
+      // account signs in next if that account's own fetch is ever slow to
+      // resolve.
       try {
         await secureStorage.clearTokens();
       } catch (clearError) {
         // Ignore clear errors
       }
+      await clearIdentityState();
       set({ isInitializing: false, isAuthenticated: false });
     }
   },

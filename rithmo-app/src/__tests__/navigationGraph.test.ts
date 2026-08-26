@@ -60,6 +60,16 @@ function allSources(): Array<{ file: string; text: string }> {
 
 const SOURCES = allSources();
 
+describe('android hardware back', () => {
+  it('tabs walk back through visited history, not straight to the first route', () => {
+    // Without an explicit setting, bottom-tabs defaults to 'firstRoute':
+    // back from any tab jumps to Home, so the screen the user came from is
+    // unreachable and two presses always close the app. 'history' is what
+    // makes back return to the previous page and exit only from Home.
+    expect(read('MainNavigator.tsx')).toMatch(/backBehavior="history"/);
+  });
+});
+
 describe('route registration', () => {
   it('registers the tabs the product actually has', () => {
     expect(registered('MainNavigator.tsx').sort()).toEqual(

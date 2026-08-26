@@ -31,6 +31,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
 import { usePeriods, useCycleAnalysis } from '@hooks/queries/usePeriods';
 import { useWellnessAnalytics } from '@hooks/queries/useWellness';
 import { Card, Badge, Reveal } from '@components/ui';
@@ -240,7 +241,14 @@ export default function InsightsHomeScreen() {
   return (
     <SafeAreaView style={[styles.flex1, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingHorizontal: spacing[4], paddingBottom: spacing[20] }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingHorizontal: screen.gutter,
+            paddingTop: screen.top,
+            paddingBottom: screen.bottomTab,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

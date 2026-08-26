@@ -9,13 +9,12 @@ import {
   Animated,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@hooks/useTheme';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import type { AppColors } from '@theme/colors';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -31,19 +30,42 @@ interface ToastProps extends ToastConfig {
   onDismiss: () => void;
 }
 
+/**
+ * Toast glyphs.
+ *
+ * These were emoji (✅ ❌ ⚠️ ℹ️), drawn by the handset's emoji font rather than
+ * by the app — the same problem F-07 removed from mood, symptoms and the home
+ * greeting. They also carried their own colour, so they ignored the theme.
+ */
 const TOAST_ICONS: Record<ToastType, string> = {
-  success: '✅',
-  error:   '❌',
-  warning: '⚠️',
-  info:    'ℹ️',
+  success: 'check-circle',
+  error:   'close-circle',
+  warning: 'alert',
+  info:    'information',
 };
 
-const TOAST_COLORS = {
-  success: { bg: '#ECFDF5', border: '#10B981', text: '#065F46', icon: '#10B981' },
-  error:   { bg: '#FEF2F2', border: '#EF4444', text: '#7F1D1D', icon: '#EF4444' },
-  warning: { bg: '#FFFBEB', border: '#F59E0B', text: '#78350F', icon: '#F59E0B' },
-  info:    { bg: '#EFF6FF', border: '#3B82F6', text: '#1E3A8A', icon: '#3B82F6' },
-};
+/**
+ * Toast colours, from the palette.
+ *
+ * This component used to hold a Tailwind palette of its own — `#10B981`,
+ * `#3B82F6`, `#F59E0B` and so on — which meant a success toast was a different
+ * green from a success badge, and none of it responded to dark mode: the toast
+ * painted a near-white `#ECFDF5` panel with near-black text on a dark screen.
+ *
+ * The `<semantic>` / `<semantic>Bg` pairs are the app's own, and each is held
+ * at WCAG AA against the other by a test in `designSystem.test.ts` — so using
+ * the token here inherits that guarantee instead of re-deciding it.
+ */
+type ToastPalette = { bg: string; border: string; text: string; icon: string };
+
+function toastColors(colors: AppColors): Record<ToastType, ToastPalette> {
+  return {
+    success: { bg: colors.successBg, border: colors.success, text: colors.success, icon: colors.success },
+    error:   { bg: colors.errorBg,   border: colors.error,   text: colors.error,   icon: colors.error },
+    warning: { bg: colors.warningBg, border: colors.warning, text: colors.warning, icon: colors.warning },
+    info:    { bg: colors.infoBg,    border: colors.info,    text: colors.info,    icon: colors.info },
+  };
+}
 
 export const Toast = memo(function Toast({
   visible,
@@ -53,14 +75,14 @@ export const Toast = memo(function Toast({
   duration = 3500,
   onDismiss,
 }: ToastProps) {
-  const { spacing, typography } = useTheme();
+  const { colors, spacing, typography } = useTheme();
   const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(-120)).current;
   const opacity    = useRef(new Animated.Value(0)).current;
   const scale      = useRef(new Animated.Value(0.92)).current;
   const timerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const palette = TOAST_COLORS[type];
+  const palette = toastColors(colors)[type];
 
   const slideIn = () => {
     Animated.parallel([
@@ -153,7 +175,7 @@ export const Toast = memo(function Toast({
         <View style={[styles.accent, { backgroundColor: palette.border }]} />
 
         {/* Icon */}
-        <Text style={styles.icon}>{TOAST_ICONS[type]}</Text>
+        <Icon name={TOAST_ICONS[type]} size={22} color={palette.icon} style={styles.icon} />
 
         {/* Text content */}
         <View style={styles.textBlock}>
@@ -224,7 +246,7 @@ const styles = StyleSheet.create({
     width: 4,
   },
   icon: {
-    fontSize: 22,
+    // Size is an Icon prop, not a font size — this only positions it.
     marginLeft: 8,
   },
   textBlock: {

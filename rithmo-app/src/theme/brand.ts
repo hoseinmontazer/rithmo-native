@@ -12,16 +12,21 @@ interface BrandGradient {
   goldTo:   string;
 }
 
+// Both stops must carry `textOnDark`, because the hero greeting sits across
+// the whole ramp — not just its dark end. The rose gradient this replaced
+// failed that: its light stop (#C2688F) measured 3.35:1 against the greeting,
+// short of AA. These measure 5.06:1 and 9.51:1.
 const light: BrandGradient = {
-  heroFrom: '#C2688F',
-  heroTo:   '#8E3A60',
+  heroFrom: '#1B743C',
+  heroTo:   '#0A4520',
   goldFrom: '#E3B75C',
   goldTo:   '#A67C2E',
 };
 
+// 11.16:1 and 15.59:1 against `textOnDark`.
 const dark: BrandGradient = {
-  heroFrom: '#6B3350',
-  heroTo:   '#3E2033',
+  heroFrom: '#213D2B',
+  heroTo:   '#112217',
   goldFrom: '#8A6A2A',
   goldTo:   '#4A3818',
 };

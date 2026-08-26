@@ -10,6 +10,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import Svg, { Circle } from 'react-native-svg';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
 import {
   useCycleAnalysis,
   useCycleInsights,
@@ -193,10 +194,10 @@ export default function CycleAnalysisScreen() {
     <ScrollView
       style={[styles.flex, { backgroundColor: colors.background }]}
       contentContainerStyle={{
-        paddingHorizontal: spacing[4],
-        paddingTop: spacing[4],
-        paddingBottom: spacing[10],
-      }}
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottom,
+        }}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />

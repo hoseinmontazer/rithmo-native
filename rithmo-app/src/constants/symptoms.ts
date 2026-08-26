@@ -19,26 +19,25 @@
 export interface SymptomOption {
   code: string;
   label: string;
-  emoji: string;
 }
 
 /** Curated vocabulary, in the order the pickers should show it. */
 export const SYMPTOMS: readonly SymptomOption[] = [
-  { code: 'cramps', label: 'گرفتگی', emoji: '🌀' },
-  { code: 'headache', label: 'سردرد', emoji: '🤕' },
-  { code: 'fatigue', label: 'خستگی', emoji: '😮‍💨' },
-  { code: 'bloating', label: 'نفخ', emoji: '💧' },
-  { code: 'backache', label: 'کمردرد', emoji: '🫃' },
-  { code: 'breast_tenderness', label: 'حساسیت سینه', emoji: '🌸' },
-  { code: 'insomnia', label: 'بی‌خوابی', emoji: '🌙' },
-  { code: 'anxiety', label: 'اضطراب', emoji: '🫀' },
-  { code: 'mood_swings', label: 'نوسان خلق', emoji: '🌩️' },
-  { code: 'irritability', label: 'تحریک‌پذیری', emoji: '⚡' },
-  { code: 'nausea', label: 'تهوع', emoji: '🤢' },
-  { code: 'dizziness', label: 'سرگیجه', emoji: '💫' },
-  { code: 'cravings', label: 'ولع غذایی', emoji: '🍫' },
-  { code: 'acne', label: 'جوش پوستی', emoji: '🔴' },
-  { code: 'spotting', label: 'لکه‌بینی', emoji: '🩸' },
+  { code: 'cramps', label: 'گرفتگی' },
+  { code: 'headache', label: 'سردرد' },
+  { code: 'fatigue', label: 'خستگی' },
+  { code: 'bloating', label: 'نفخ' },
+  { code: 'backache', label: 'کمردرد' },
+  { code: 'breast_tenderness', label: 'حساسیت سینه' },
+  { code: 'insomnia', label: 'بی‌خوابی' },
+  { code: 'anxiety', label: 'اضطراب' },
+  { code: 'mood_swings', label: 'نوسان خلق' },
+  { code: 'irritability', label: 'تحریک‌پذیری' },
+  { code: 'nausea', label: 'تهوع' },
+  { code: 'dizziness', label: 'سرگیجه' },
+  { code: 'cravings', label: 'ولع غذایی' },
+  { code: 'acne', label: 'جوش پوستی' },
+  { code: 'spotting', label: 'لکه‌بینی' },
 ] as const;
 
 /** The subset shown in the fast daily log — the most commonly reported. */
@@ -54,10 +53,6 @@ const BY_LABEL = new Map(SYMPTOMS.map((s) => [s.label, s.code]));
 /** Persian label for a code, falling back to the code itself. */
 export function symptomLabel(code: string): string {
   return BY_CODE.get(code)?.label ?? code;
-}
-
-export function symptomEmoji(code: string): string {
-  return BY_CODE.get(code)?.emoji ?? '🔸';
 }
 
 /**

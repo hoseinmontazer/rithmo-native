@@ -16,14 +16,23 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { toFa } from '@utils/persian';
+import { spacing as spacingScale } from '@theme/spacing';
 import { track } from '@analytics';
 import type { Insight, InsightConfidence } from '@types/intelligence.types';
+import { AppIcon } from '@components/ui';
+import icons, { type AppIconName } from '@assets/icons';
 
-const KIND_EMOJI: Record<string, string> = {
-  deviation: '📈',
-  phase: '🌙',
-  symptom: '🔹',
-  coverage: '🌱',
+/**
+ * These were emoji, which the design rules forbid outright. They now use the
+ * full-colour PNG set in `assets/icons` rather than the theme-tinted
+ * illustrated SVGs: the SVGs recolour to the brand, which made every icon on
+ * the screen the same green as everything else. Colour is the point here.
+ */
+const KIND_ICON: Record<string, AppIconName> = {
+  deviation: 'healthcare',       // a measured change — heart/pulse
+  phase:     'menstruation',     // cycle calendar
+  symptom:   'betterHealth',     // physical signal
+  coverage:  'userInfoWriting',  // how much has been logged
 };
 
 /**
@@ -172,7 +181,7 @@ export const TodayInsightCard = memo(function TodayInsightCard({
   }
 
   const tone = confidenceColor(insight.confidence, colors);
-  const emoji = KIND_EMOJI[insight.kind] ?? '✨';
+  const iconName = KIND_ICON[insight.kind] ?? 'wellness';
 
   return (
     <View style={cardStyle}>
@@ -180,10 +189,10 @@ export const TodayInsightCard = memo(function TodayInsightCard({
         <View
           style={[
             styles.iconBg,
-            { backgroundColor: colors.primaryLighter, borderRadius: borderRadius.lg },
+            { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.lg },
           ]}
         >
-          <Text style={{ fontSize: 18 }}>{emoji}</Text>
+          <AppIcon source={icons[iconName]} size={24} />
         </View>
         <Text
           style={[
@@ -210,7 +219,7 @@ export const TodayInsightCard = memo(function TodayInsightCard({
           <View
             style={[
               styles.confidenceChip,
-              { backgroundColor: tone.bg, borderRadius: borderRadius.full ?? 999 },
+              { backgroundColor: tone.bg, borderRadius: borderRadius.pill },
             ]}
           >
             <Text
@@ -301,7 +310,10 @@ export const TodayInsightCard = memo(function TodayInsightCard({
 });
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, padding: 14, overflow: 'hidden' },
+  // 14 was off the 4px scale entirely and disagreed with the hero (20) and
+  // the other Home cards (16), so the three blocks' text never shared a
+  // right margin in RTL. One card-interior token for all of them.
+  card: { borderWidth: 1, padding: spacingScale[4], overflow: 'hidden' },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   iconBg: {
     width: 34,

@@ -39,6 +39,21 @@ const icons = {
   // Notifications
   pushNotification: require('./push-notification.png'),
 
+  // Energy scale (ثبت امروز) — 1 critical … 5 full. Ordered by how much of
+  // the battery is filled, so the row reads as a scale on sight.
+  energy1:          require('./energy-1.png'),
+  energy2:          require('./energy-2.png'),
+  energy3:          require('./energy-3.png'),
+  energy4:          require('./energy-4.png'),
+  energy5:          require('./energy-5.png'),
+
+  // Mood scale (ثبت امروز) — 1 heavy … 5 great
+  moodExhausted:    require('./exhausted.png'),
+  moodCute:         require('./cute.png'),
+  moodDisappointed: require('./dissapointment.png'),
+  moodAngel:        require('./angel.png'),
+  moodHappy:        require('./happy.png'),
+
   // Misc
   search:           require('./search.png'),
 } as const;

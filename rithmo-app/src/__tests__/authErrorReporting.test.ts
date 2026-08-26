@@ -27,15 +27,17 @@
 
 const mockGetTokens = jest.fn(() => Promise.resolve(null as unknown));
 const mockClearTokens = jest.fn(() => Promise.resolve());
+const mockSaveTokens = jest.fn((_t: unknown) => Promise.resolve());
 
 jest.mock('@utils/secureStorage', () => ({
   secureStorage: {
     getTokens: (...a: unknown[]) => mockGetTokens(...(a as [])),
     clearTokens: (...a: unknown[]) => mockClearTokens(...(a as [])),
-    saveTokens: jest.fn(() => Promise.resolve()),
+    saveTokens: (...a: unknown[]) => mockSaveTokens(...(a as [unknown])),
   },
 }));
 
+import axios from 'axios';
 import { apiClient } from '@api/client';
 import { API_ENDPOINTS } from '@constants/config';
 import { extractErrorMessage } from '@utils/errorHandler';
@@ -156,5 +158,117 @@ describe('ordinary endpoints keep the refresh path', () => {
     // correct *here*, where a session really did exist and has ended.
     expect(extractErrorMessage(err)).toBe(STALE_SESSION_FA);
     expect(mockClearTokens).toHaveBeenCalled();
+  });
+});
+
+/**
+ * Token rotation — the cause of the "logged out after a while" reports.
+ *
+ * The server runs simple-jwt with `ROTATE_REFRESH_TOKENS` and
+ * `BLACKLIST_AFTER_ROTATION`. A refresh therefore returns a NEW refresh token
+ * and blacklists the one that was presented — verified against the running
+ * server, which answers a reused token with 401 «Token is blacklisted».
+ *
+ * The client used to save only `data.access`, leaving the dead refresh token
+ * in the keychain. The first refresh worked, and the second — roughly half an
+ * hour later — failed and signed the user out. A 30-day refresh lifetime was
+ * in practice a one-hour session, which is exactly what users reported.
+ *
+ * This is invisible in a single-refresh test: the failure only appears on the
+ * SECOND refresh. So the test below performs two.
+ */
+describe('a rotated refresh token is persisted, not discarded', () => {
+  /** Serve one 401, then honour the retry — the shape of a real expiry. */
+  function stubRotatingServer(opts: { rotate: boolean }) {
+    const refreshCalls: string[] = [];
+    let firstCall = true;
+
+    // The refresh call is made with the bare `axios` instance, not with
+    // `apiClient`, so both adapters have to be stubbed or the refresh escapes
+    // the test entirely.
+    const adapter = ((config: { url?: string; data?: string }) => {
+      if (config.url?.includes(API_ENDPOINTS.AUTH_REFRESH)) {
+        const presented = JSON.parse(config.data ?? '{}').refresh as string;
+        refreshCalls.push(presented);
+        // The server blacklists any token it has already been shown.
+        if (refreshCalls.filter((t) => t === presented).length > 1) {
+          const err = new Error('Request failed with status code 401') as Error & {
+            isAxiosError: boolean; response: unknown; config: unknown;
+          };
+          err.isAxiosError = true;
+          err.config = config;
+          err.response = {
+            status: 401,
+            data: { detail: 'Token is blacklisted', code: 'token_not_valid' },
+            headers: {}, config,
+          };
+          return Promise.reject(err);
+        }
+        const body: Record<string, string> = { access: `access-${refreshCalls.length}` };
+        if (opts.rotate) { body.refresh = `refresh-${refreshCalls.length}`; }
+        return Promise.resolve({ status: 200, data: body, headers: {}, config });
+      }
+
+      if (firstCall) {
+        firstCall = false;
+        const err = new Error('Request failed with status code 401') as Error & {
+          isAxiosError: boolean; response: unknown; config: unknown;
+        };
+        err.isAxiosError = true;
+        err.config = config;
+        err.response = { status: 401, data: { detail: 'expired' }, headers: {}, config };
+        return Promise.reject(err);
+      }
+      return Promise.resolve({ status: 200, data: { ok: true }, headers: {}, config });
+    }) as never;
+
+    apiClient.defaults.adapter = adapter;
+    axios.defaults.adapter = adapter;
+
+    return { refreshCalls, resetFirstCall: () => { firstCall = true; } };
+  }
+
+  it('saves the new refresh token the server hands back', async () => {
+    mockGetTokens.mockResolvedValue({ accessToken: 'a0', refreshToken: 'refresh-0' });
+    stubRotatingServer({ rotate: true });
+
+    await apiClient.get('/api/wellness/').catch(() => undefined);
+
+    // The whole defect in one assertion: what we persist must be the rotated
+    // token, not the one we just spent.
+    const saved = mockSaveTokens.mock.calls.at(-1)?.[0] as { refreshToken?: string };
+    expect(saved?.refreshToken).toBe('refresh-1');
+    expect(saved?.refreshToken).not.toBe('refresh-0');
+  });
+
+  it('survives a second expiry instead of signing the user out', async () => {
+    let stored = { accessToken: 'a0', refreshToken: 'refresh-0' };
+    mockGetTokens.mockImplementation(() => Promise.resolve(stored));
+    mockSaveTokens.mockImplementation((t: unknown) => {
+      stored = t as typeof stored;
+      return Promise.resolve();
+    });
+    const server = stubRotatingServer({ rotate: true });
+
+    await apiClient.get('/api/wellness/').catch(() => undefined);
+    server.resetFirstCall();
+    await apiClient.get('/api/wellness/').catch(() => undefined);
+
+    // Two refreshes, each presenting a DIFFERENT token. Presenting the same
+    // one twice is what the server blacklists, and what logged people out.
+    expect(server.refreshCalls).toEqual(['refresh-0', 'refresh-1']);
+    expect(new Set(server.refreshCalls).size).toBe(2);
+    // The session must still be intact.
+    expect(mockClearTokens).not.toHaveBeenCalled();
+  });
+
+  it('keeps the existing token if the server does not rotate', async () => {
+    mockGetTokens.mockResolvedValue({ accessToken: 'a0', refreshToken: 'refresh-0' });
+    stubRotatingServer({ rotate: false });
+
+    await apiClient.get('/api/wellness/').catch(() => undefined);
+
+    const saved = mockSaveTokens.mock.calls.at(-1)?.[0] as { refreshToken?: string };
+    expect(saved?.refreshToken).toBe('refresh-0');
   });
 });

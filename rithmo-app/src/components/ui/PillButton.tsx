@@ -72,7 +72,7 @@ export const PillButton = memo(function PillButton({
         {
           paddingVertical: currentSize.paddingVertical,
           paddingHorizontal: currentSize.paddingHorizontal,
-          borderRadius: borderRadius.full,
+          borderRadius: borderRadius.pill,
           opacity: disabled ? 0.5 : 1,
         },
         style,

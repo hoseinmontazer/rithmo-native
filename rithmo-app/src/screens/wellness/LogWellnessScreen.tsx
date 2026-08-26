@@ -21,6 +21,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { toFa } from '@utils/persian';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
 import { useCreateOrUpdateWellnessLog, useWellnessLog } from '@hooks/queries/useWellness';
 import { Button, Input, Card } from '@components/ui';
 import { extractErrorMessage } from '@utils/errorHandler';
@@ -246,7 +247,11 @@ export default function LogWellnessScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: spacing[4], paddingBottom: spacing[12] }}
+          contentContainerStyle={{
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottom,
+        }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >

@@ -3,7 +3,7 @@
  * Root component: wires up QueryClient, safe-area, and navigation.
  */
 import React, { useEffect } from 'react';
-import { StatusBar, useColorScheme, Appearance, I18nManager } from 'react-native';
+import { StatusBar, Appearance, I18nManager } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@api/queryClient';

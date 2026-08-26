@@ -133,7 +133,23 @@ apiClient.interceptors.response.use(
         { timeout: API_TIMEOUT_MS },
       );
 
-      const newTokens = { ...tokens, accessToken: data.access };
+      // Persist the ROTATED refresh token, not just the new access token.
+      //
+      // The server runs simple-jwt with ROTATE_REFRESH_TOKENS and
+      // BLACKLIST_AFTER_ROTATION, so this response carries a fresh refresh
+      // token and the one we just presented is now blacklisted. Saving only
+      // `data.access` left the old, dead refresh token in the keychain — so
+      // the first refresh succeeded and the *second* one, about half an hour
+      // later, got «Token is blacklisted» and signed the user out. A 30-day
+      // refresh lifetime was in practice a ~1-hour session.
+      //
+      // `data.refresh` is optional so that a server with rotation turned off
+      // keeps working: without it we simply keep the existing token.
+      const newTokens = {
+        ...tokens,
+        accessToken: data.access,
+        refreshToken: data.refresh ?? tokens.refreshToken,
+      };
       await secureStorage.saveTokens(newTokens);
 
       apiClient.defaults.headers.common.Authorization = `Bearer ${data.access}`;

@@ -7,9 +7,10 @@
  *  • Subtle scale pulse when progress reaches 100%
  *  • useNativeDriver where possible, JS driver for SVG stroke
  */
-import React, { memo, useEffect, useRef, useState } from 'react';
+import React, { memo, useEffect, useRef } from 'react';
 import { View, Animated, Easing, StyleSheet } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop, G } from 'react-native-svg';
+import { useTheme } from '@hooks/useTheme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -27,11 +28,21 @@ export const CircularProgress = memo(function CircularProgress({
   progress,
   size = 120,
   strokeWidth = 12,
-  colors = ['#f43f5e', '#fbbf24', '#22c55e'],
-  backgroundColor = '#f0f0f0',
+  colors: colorsProp,
+  backgroundColor: backgroundColorProp,
   children,
   animationDuration = 1000,
 }: CircularProgressProps) {
+  const { colors: theme } = useTheme();
+
+  // The ramp used to default to Tailwind literals (`#f43f5e`, `#fbbf24`,
+  // `#22c55e`) and a flat `#f0f0f0` track — off-palette, and theme-blind: the
+  // pale track stayed near-white on a dark screen. The defaults now come from
+  // the app's own semantic colours, so the ring reads as low → middling →
+  // good in whatever theme and brand it is drawn in.
+  const colors = colorsProp ?? [theme.error, theme.warning, theme.success];
+  const backgroundColor = backgroundColorProp ?? theme.surfaceSubtle;
+
   const radius       = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const center       = size / 2;

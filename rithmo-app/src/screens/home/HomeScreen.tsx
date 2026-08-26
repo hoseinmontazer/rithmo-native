@@ -52,6 +52,8 @@ import { useToday } from '@hooks/queries/useIntelligence';
 import type { HomeScreenProps } from '@navigation/types';
 import type { GuidedAction } from '@types/intelligence.types';
 import { getBrandGradient } from '@theme/brand';
+import { textRoles } from '@theme/typography';
+import { spacing as spacingScale, screen } from '@theme/spacing';
 import { toFa, faDate } from '@utils/persian';
 import {
   GradientSurface,
@@ -59,6 +61,7 @@ import {
   ContextSkeleton,
   StoryCardSkeleton,
   AccrualSkeleton,
+  Reveal,
 } from '@components/ui';
 import { track } from '@analytics';
 import { CycleContextStrip } from './components/CycleContextStrip';
@@ -70,13 +73,16 @@ type Props = HomeScreenProps<'Home'>;
 
 /** A quiet section label. Deliberately lighter than any card title. */
 function SectionLabel({ children }: { children: string }) {
-  const { colors, typography, spacing } = useTheme();
+  const { colors, spacing } = useTheme();
+  // The `label` role, not a heading: this names a subordinate group and must
+  // not compete with the story card above it.
   return (
     <Text
       style={{
         color: colors.textTertiary,
-        fontSize: typography.caption,
-        fontWeight: '600',
+        fontSize: textRoles.label.fontSize,
+        fontWeight: textRoles.label.fontWeight,
+        lineHeight: textRoles.label.lineHeight,
         marginBottom: spacing[2],
       }}
     >
@@ -87,7 +93,7 @@ function SectionLabel({ children }: { children: string }) {
 
 export default function HomeScreen() {
   const navigation = useNavigation<Props['navigation']>();
-  const { colors, spacing, typography, borderRadius, isDark } = useTheme();
+  const { colors, spacing, borderRadius, isDark } = useTheme();
   const { user } = useAuth();
   const gradient = getBrandGradient(isDark);
 
@@ -184,7 +190,15 @@ export default function HomeScreen() {
       edges={['top', 'left', 'right']}
     >
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: spacing[4], paddingBottom: spacing[20] }}
+        // `SafeAreaView edges={['top',…]}` only clears the status-bar inset —
+        // it adds no breathing room — so with no paddingTop the hero card butted
+        // straight against the status bar. The top now matches the horizontal
+        // inset, so the content sits in an even frame.
+        contentContainerStyle={{
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottomTab,
+        }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -202,10 +216,14 @@ export default function HomeScreen() {
           style={styles.hero}
         >
           <View style={styles.heroTopRow}>
+            {/* The hero gradient is dark in BOTH themes, so its foreground is
+                `textOnDark` at a reduced opacity rather than an rgba literal —
+                the literal was theme-blind and sat outside the palette. */}
             <Text
               style={{
-                color: 'rgba(255,255,255,0.75)',
-                fontSize: typography.caption,
+                color: colors.textOnDark,
+                opacity: 0.75,
+                fontSize: textRoles.caption.fontSize,
                 fontWeight: '600',
               }}
             >
@@ -228,18 +246,27 @@ export default function HomeScreen() {
               ) : null}
             </TouchableOpacity>
           </View>
-          {/* The hero sits on the brand gradient, which is dark in BOTH themes,
-              so a light foreground is right here — but it belongs to the
-              `textOnDark` token rather than a literal. */}
-          <Text style={[styles.greeting, { color: colors.textOnDark, fontSize: typography.heading }]}>
-            {userName ? `سلام، ${userName} 🌸` : 'سلام 🌸'}
+          {/* Text alone. It carried a 🌸 emoji, then an icon in its place;
+              neither earned the space beside someone's own name. */}
+          <Text
+            style={[
+              styles.greeting,
+              {
+                color: colors.textOnDark,
+                fontSize: textRoles.screenTitle.fontSize,
+                lineHeight: textRoles.screenTitle.lineHeight,
+              },
+            ]}
+          >
+            {userName ? `سلام، ${userName}` : 'سلام'}
           </Text>
           <Text
             style={{
-              color: 'rgba(255,255,255,0.75)',
-              fontSize: typography.bodySmall,
+              color: colors.textOnDark,
+              opacity: 0.75,
+              fontSize: textRoles.bodyCompact.fontSize,
+              lineHeight: textRoles.bodyCompact.lineHeight,
               marginTop: 4,
-              lineHeight: 19,
             }}
           >
             {learningMode ? 'هنوز در حال شناختن الگوی توام' : 'امروز چه چیزی مهم است'}
@@ -284,24 +311,32 @@ export default function HomeScreen() {
             <ErrorState error={'مشکلی در بارگذاری پیش آمد'} onRetry={refetchToday} />
           </View>
         ) : (
-          <StoryCard
-            insight={today?.primary_insight ?? null}
-            action={primaryAction}
-            learningMode={learningMode}
-            onOpenAction={primaryAction ? actionOpener(primaryAction) : undefined}
-          />
+          <Reveal>
+            <StoryCard
+              insight={today?.primary_insight ?? null}
+              action={primaryAction}
+              learningMode={learningMode}
+              onOpenAction={primaryAction ? actionOpener(primaryAction) : undefined}
+            />
+          </Reveal>
         )}
 
         {/* ── 3. Secondary actions — subordinate rows ───────────────── */}
         {!todayLoading && secondaryActions.length > 0 ? (
-          <View style={{ marginTop: spacing[5] }}>
-            <SectionLabel>اگر خواستی</SectionLabel>
-            <SecondaryActions actions={secondaryActions} onOpenAction={actionOpener} />
-          </View>
+          <Reveal delay={60}>
+            <View style={{ marginTop: spacing[6] }}>
+              <SectionLabel>اگر خواستی</SectionLabel>
+              <SecondaryActions actions={secondaryActions} onOpenAction={actionOpener} />
+            </View>
+          </Reveal>
         ) : null}
 
         {/* ── 4. Accrual — the reason to come back ──────────────────── */}
-        <View style={{ marginTop: spacing[5] }}>
+        {/* Staggered at 120ms so the column arrives in reading order rather
+            than snapping in as one block. `Reveal` fires once on mount and
+            honours reduced motion, so this costs nothing on a device that
+            has asked for less movement. */}
+        <Reveal delay={120} style={{ marginTop: spacing[6] }}>
           {todayLoading ? (
             <AccrualSkeleton />
           ) : state ? (
@@ -312,9 +347,24 @@ export default function HomeScreen() {
               accessibilityLabel="مشاهده همه الگوها"
             >
               <AccrualLedger state={state} />
+              {/* The whole card has always navigated to Insights, but nothing
+                  said so. The chevron points LEFT because forward is left in a
+                  right-to-left layout, and React Native does not mirror icons. */}
+              <View style={styles.ledgerAffordance}>
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontSize: textRoles.label.fontSize,
+                    fontWeight: textRoles.label.fontWeight,
+                  }}
+                >
+                  مشاهده همه الگوها
+                </Text>
+                <Icon name="chevron-left" size={16} color={colors.primary} />
+              </View>
             </TouchableOpacity>
           ) : null}
-        </View>
+        </Reveal>
       </ScrollView>
     </SafeAreaView>
   );
@@ -322,7 +372,13 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  hero: { padding: 18, paddingBottom: 20, overflow: 'hidden' },
+  // Was a hardcoded 20 while every other card on this screen used
+  // spacing[4] (16) and TodayInsightCard used 14. All three blocks share the
+  // scroll view's horizontal padding, so their OUTER edges lined up while
+  // their text did not: in RTL the greeting sat 20px from the right edge and
+  // the card headings below it sat 16 and 14, so nothing shared a right
+  // margin down the page. One token for card interiors fixes the whole column.
+  hero: { padding: spacingScale[4], overflow: 'hidden' },
   heroTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -342,15 +398,27 @@ const styles = StyleSheet.create({
   unreadDot: {
     position: 'absolute',
     top: 8,
-    right: 9,
+    // `end`, not `right`. React Native does NOT swap left/right under
+    // `I18nManager.forceRTL`; only start/end are logical, so `right` pinned
+    // this dot to the physical right and it sat on the wrong side of the bell.
+    end: 9,
     width: 8,
     height: 8,
     borderRadius: 4,
     borderWidth: 1.5,
   },
-  greeting: { fontWeight: '800', letterSpacing: -0.3, lineHeight: 34 },
+  // 700, not 800: `screenTitle` in the type scale. No negative tracking —
+  // Persian letterforms join, and tightening them damages the joins.
+  greeting: { fontWeight: '700' },
   // A hairline under the strip separates context from the story without
   // making it a second card.
   contextWrap: { borderBottomWidth: StyleSheet.hairlineWidth, marginTop: 4 },
   errorWrap: { borderWidth: 1, overflow: 'hidden' },
+  ledgerAffordance: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+    marginTop: 8,
+  },
 });

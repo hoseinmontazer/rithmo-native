@@ -3,6 +3,8 @@ import {
   View, FlatList, StyleSheet, TouchableOpacity, Text, RefreshControl,
 } from 'react-native';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
+import { textRoles } from '@theme/typography';
 import {
   useNotifications,
   useMarkNotificationRead,
@@ -48,13 +50,33 @@ export default function NotificationsScreen() {
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
-      <View style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.border, margin: spacing[5], marginBottom: spacing[3] }]}>
+      {/* A utility surface, not a marketing one. The title was `2xl` (32) —
+          the display step, reserved for hero numerals — on a screen whose job
+          is to get out of the way. It is `screenTitle` now, and the eyebrow
+          above it already says what the screen is. */}
+      <View style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.border, margin: spacing[4], marginBottom: spacing[3] }]}>
         <View>
           <Text style={[styles.eyebrow, { color: colors.primary }]}>اعلان‌ها</Text>
-          <Text style={[styles.title, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
+          <Text
+            style={[
+              styles.title,
+              {
+                color: colors.textPrimary,
+                fontSize: textRoles.screenTitle.fontSize,
+                lineHeight: textRoles.screenTitle.lineHeight,
+              },
+            ]}
+          >
             به‌روزرسانی‌ها
           </Text>
-          <Text style={{ color: colors.textSecondary, fontSize: typography.sm, fontWeight: '600' }}>
+          <Text
+            style={{
+              color: colors.textSecondary,
+              fontSize: textRoles.bodyCompact.fontSize,
+              lineHeight: textRoles.bodyCompact.lineHeight,
+              fontWeight: '600',
+            }}
+          >
             {toFa(unreadCount)} خوانده‌نشده
           </Text>
         </View>
@@ -66,7 +88,7 @@ export default function NotificationsScreen() {
       </View>
 
       {unreadCount > 0 && (
-        <View style={[styles.headerRow, { paddingHorizontal: spacing[5], paddingBottom: spacing[1] }]}>
+        <View style={[styles.headerRow, { paddingHorizontal: spacing[4], paddingBottom: spacing[1] }]}>
           <TouchableOpacity onPress={() => markAllRead()} accessibilityLabel="خواندن همه">
             <Text style={{ color: colors.primary, fontSize: typography.sm, fontWeight: '600' }}>
               خواندن همه
@@ -79,13 +101,17 @@ export default function NotificationsScreen() {
         data={notifications}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        contentContainerStyle={{ paddingHorizontal: spacing[5], paddingTop: spacing[3], paddingBottom: spacing[8] }}
+        contentContainerStyle={{
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottom,
+        }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         ListEmptyComponent={
-          <EmptyState icon="🔔" title="اعلانی نیست" description="همه چیز به‌روز است!" />
+          <EmptyState icon="bell-outline" title="اعلانی نیست" description="همه چیز به‌روز است!" />
         }
         removeClippedSubviews
         maxToRenderPerBatch={12}
@@ -100,7 +126,8 @@ const styles = StyleSheet.create({
   flex:      { flex: 1 },
   hero:      { borderRadius: 24, borderWidth: 1, padding: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   eyebrow:   { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', marginBottom: 4 },
-  title:     { fontWeight: '800', letterSpacing: 0, marginBottom: 5 },
+  // 700 = the screenTitle role. Persian letterforms join, so no tracking.
+  title:     { fontWeight: '700', marginBottom: 5 },
   heroActions: { flexDirection: 'row', alignItems: 'center' },
   heroIcon:  { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   headerRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' },

@@ -29,6 +29,7 @@ import { PROFILE_ICONS } from '@design-system/iconography';
 import { toFa } from '@utils/persian';
 import { medicationFrequencyLabel } from '@i18n';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
 import { Card, Badge, Button } from '@components/ui';
 import {
   useUserMedications,
@@ -227,7 +228,11 @@ function AddMedicationModal({ visible, onClose, onSuccess }: AddModalProps) {
                   <FlatList
                     data={results}
                     keyExtractor={(item) => String(item.id)}
-                    contentContainerStyle={{ paddingHorizontal: spacing[4], paddingBottom: spacing[6] }}
+                    contentContainerStyle={{
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottom,
+        }}
                     renderItem={({ item }) => (
                       <TouchableOpacity
                         onPress={() => handleSelectDrug(item)}

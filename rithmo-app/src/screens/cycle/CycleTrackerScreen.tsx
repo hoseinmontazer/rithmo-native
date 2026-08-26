@@ -12,18 +12,29 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '@hooks/useTheme';
+import {
+  toJalali,
+  fromJalali,
+  jalaliMonthLength,
+  jalaliWeekColumn,
+  JALALI_MONTHS,
+  JALALI_GRID_WEEKDAYS,
+} from '@utils/jalali';
+import { screen } from '@theme/spacing';
 import { usePeriods } from '@hooks/queries/usePeriods';
 import { useProfile } from '@hooks/queries/useProfile';
 import { Card, Badge, Button, Icon, LoadingState, EmptyState } from '@components/ui';
 import { formatDateISO } from '@utils/dateUtils';
-import { toFa, faDateShort, faDate, faDateYear } from '@utils/persian';
+import { toFa, faDateShort, faDate } from '@utils/persian';
 import type { CycleStackParamList } from '@navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type Props = NativeStackScreenProps<CycleStackParamList, 'CycleTracker'>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const WEEK_DAYS = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه', 'شنبه'];
+// The Iranian week begins on شنبه. This used to start on یکشنبه while the
+// grid offset by `Date.getDay()` (Sunday-first), so every column was shifted.
+const WEEK_DAYS = JALALI_GRID_WEEKDAYS;
 
 type ViewMode = 'calendar' | 'list';
 
@@ -201,12 +212,19 @@ function CycleCalendar({
   const { colors, spacing, typography, borderRadius } = useTheme();
   const today = new Date();
 
-  const [displayYear, setDisplayYear] = useState(today.getFullYear());
-  const [displayMonth, setDisplayMonth] = useState(today.getMonth());
+  // The calendar's cursor is a JALALI (year, month) — months 1-12.
+  //
+  // It used to be a Gregorian (year, month 0-11), so the grid was a Gregorian
+  // month labelled with whichever Jalali month contained its 1st. Storage is
+  // untouched: every cell is still a real `Date` and still keys into the day
+  // map through `formatDateISO`, so no API contract changes here.
+  const todayJ = toJalali(today);
+  const [displayYear, setDisplayYear] = useState(todayJ.jy);
+  const [displayMonth, setDisplayMonth] = useState(todayJ.jm);
 
   // Keep refs in sync for PanResponder
-  const displayMonthRef = useRef(today.getMonth());
-  const displayYearRef = useRef(today.getFullYear());
+  const displayMonthRef = useRef(todayJ.jm);
+  const displayYearRef = useRef(todayJ.jy);
 
   // Animation values for smooth slide transition
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -215,11 +233,11 @@ function CycleCalendar({
   const periodMap = useMemo(() => buildCycleDateMap(periods), [periods]);
 
   // Allow navigating up to 3 months forward into future
-  const isFutureMonth = (() => {
-    const maxFuture = new Date(today.getFullYear(), today.getMonth() + 3, 1);
-    const current = new Date(displayYear, displayMonth, 1);
-    return current >= maxFuture;
-  })();
+  // Three Jalali months ahead, compared as an absolute month ordinal so the
+  // year rollover (Esfand → Farvardin) needs no special case.
+  const monthOrdinal = (jy: number, jm: number) => jy * 12 + (jm - 1);
+  const isFutureMonth =
+    monthOrdinal(displayYear, displayMonth) >= monthOrdinal(todayJ.jy, todayJ.jm) + 3;
 
   const goToMonth = useCallback((direction: 'prev' | 'next') => {
     if (isAnimating.current) return;
@@ -227,9 +245,9 @@ function CycleCalendar({
     const currentMonth = displayMonthRef.current;
     const currentYear = displayYearRef.current;
     if (direction === 'next') {
-      const maxFuture = new Date(now.getFullYear(), now.getMonth() + 3, 1);
-      const nextMonthDate = new Date(currentYear, currentMonth + 1, 1);
-      if (nextMonthDate > maxFuture) return;
+      const nowJ = toJalali(now);
+      const ord = (jy: number, jm: number) => jy * 12 + (jm - 1);
+      if (ord(currentYear, currentMonth) + 1 > ord(nowJ.jy, nowJ.jm) + 3) { return; }
     }
     isAnimating.current = true;
 
@@ -242,12 +260,14 @@ function CycleCalendar({
     }).start(() => {
       let newMonth = currentMonth;
       let newYear = currentYear;
+      // Jalali months are 1-12, so the rollover bounds are 1 and 12 — not
+      // 0 and 11 as they were when this cursor was Gregorian.
       if (direction === 'prev') {
-        if (newMonth === 0) { newMonth = 11; newYear -= 1; }
-        else newMonth -= 1;
+        if (newMonth === 1) { newMonth = 12; newYear -= 1; }
+        else { newMonth -= 1; }
       } else {
-        if (newMonth === 11) { newMonth = 0; newYear += 1; }
-        else newMonth += 1;
+        if (newMonth === 12) { newMonth = 1; newYear += 1; }
+        else { newMonth += 1; }
       }
       displayMonthRef.current = newMonth;
       displayYearRef.current = newYear;
@@ -283,23 +303,28 @@ function CycleCalendar({
 
   // Build calendar grid
   const calendarDays = useMemo(() => {
-    const firstDay = new Date(displayYear, displayMonth, 1);
-    const lastDay = new Date(displayYear, displayMonth + 1, 0);
-    const startOffset = firstDay.getDay();
+    // Built in JALALI space: the month's real length, and a Saturday-first
+    // leading offset. Each cell is still a Gregorian `Date`, produced by
+    // `fromJalali`, so everything downstream — the day map, `formatDateISO`,
+    // the API — is unchanged.
+    const length = jalaliMonthLength(displayYear, displayMonth);
+    const first = fromJalali(displayYear, displayMonth, 1);
+    const startOffset = jalaliWeekColumn(first);
 
     const days: (Date | null)[] = [];
-    for (let i = 0; i < startOffset; i++) days.push(null);
-    for (let d = 1; d <= lastDay.getDate(); d++) {
-      days.push(new Date(displayYear, displayMonth, d));
+    for (let i = 0; i < startOffset; i++) { days.push(null); }
+    for (let d = 1; d <= length; d++) {
+      days.push(fromJalali(displayYear, displayMonth, d));
     }
-    while (days.length % 7 !== 0) days.push(null);
+    while (days.length % 7 !== 0) { days.push(null); }
     return days;
   }, [displayYear, displayMonth]);
 
-  // Jalali, via the canonical formatter. `toLocaleDateString('fa-IR')` does
-  // not convert calendars on Hermes — see utils/jalali.ts.
-  const monthLabel = faDateYear(new Date(displayYear, displayMonth, 1))
-    .split(' ').slice(1).join(' ');
+  // The cursor IS Jalali now, so the label is read straight off it rather than
+  // formatted from a Gregorian date and then string-sliced. That slicing was
+  // how the grid came to be titled with the Jalali month containing the
+  // Gregorian 1st, instead of the month it actually drew.
+  const monthLabel = `${JALALI_MONTHS[displayMonth]} ${toFa(displayYear)}`;
 
   const isToday = (d: Date) => d.toDateString() === today.toDateString();
   const isFuture = (d: Date) => d > today;
@@ -466,7 +491,7 @@ function CycleCalendar({
                         },
                       ]}
                     >
-                      {toFa(day.getDate())}
+                      {toFa(toJalali(day).jd)}
                     </Text>
                   </View>
 
@@ -567,7 +592,11 @@ export default function CycleTrackerScreen() {
   return (
     <ScrollView
       style={[styles.flex, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingHorizontal: spacing[4], paddingTop: spacing[4], paddingBottom: spacing[10] }}
+      contentContainerStyle={{
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottomTab,
+        }}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -645,7 +674,7 @@ export default function CycleTrackerScreen() {
                 },
               ]}
             >
-              Calendar
+              تقویم
             </Text>
           </TouchableOpacity>
 
@@ -675,7 +704,7 @@ export default function CycleTrackerScreen() {
                 },
               ]}
             >
-              List
+              لیست
             </Text>
           </TouchableOpacity>
         </View>

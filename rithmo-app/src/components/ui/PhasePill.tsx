@@ -44,7 +44,7 @@ export const PhasePill = memo(function PhasePill({ phase, day, style }: PhasePil
         styles.pill,
         {
           backgroundColor: phaseBg,
-          borderRadius: borderRadius.full,
+          borderRadius: borderRadius.pill,
           paddingVertical: 4,
           paddingHorizontal: spacing[3],
           borderWidth: 1,

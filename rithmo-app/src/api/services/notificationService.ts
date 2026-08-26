@@ -1,19 +1,6 @@
 import { apiClient } from '@api/client';
 import { API_ENDPOINTS } from '@constants/config';
-import type {
-  Notification,
-  UnreadNotificationsResponse,
-  CreateNotificationRequest,
-  UpdateNotificationRequest,
-  NotificationPreferences,
-  PushToken,
-  RegisterPushTokenRequest,
-  UpdatePushTokenRequest,
-  Message,
-  SendMessageRequest,
-  UpdateMessageRequest,
-  UnreadMessagesResponse,
-} from '@types/notification.types';
+import type { Notification, UnreadNotificationsResponse, CreateNotificationRequest, UpdateNotificationRequest, NotificationPreferences, PushToken, RegisterPushTokenRequest, UpdatePushTokenRequest, Message, SendMessageRequest, UpdateMessageRequest, UnreadMessagesResponse, ConversationResponse } from '@types/notification.types';
 
 export const notificationService = {
   // ── Notifications ─────────────────────────────────────────────────────────
@@ -80,10 +67,31 @@ export const notificationService = {
   sendMessage: (data: SendMessageRequest) =>
     apiClient.post<Message>(API_ENDPOINTS.MESSAGES, data),
 
+  /**
+   * A conversation thread.
+   *
+   * The endpoint does NOT return a bare list: `PartnerMessageViewSet.conversation`
+   * hand-builds `{count, messages}`. This was typed `Message[]` and passed
+   * straight to `useConversation`, so the hook handed `ConversationScreen` an
+   * OBJECT where it expected an array — and `<FlatList data={messages ?? []}>`
+   * rendered nothing at all. The thread appeared permanently empty no matter
+   * what it contained, which is why a message visible in the conversation LIST
+   * could not be opened and read.
+   *
+   * Unwrapped here rather than in the hook or the screen, so the array shape is
+   * guaranteed at the single point where the payload enters the app. Both
+   * shapes are tolerated: a bare list stays valid if the endpoint is ever
+   * simplified, and neither branch can yield a non-array.
+   */
   getConversation: (partnerId: string) =>
-    apiClient.get<Message[]>(API_ENDPOINTS.MESSAGES_CONVERSATION, {
-      params: { partner_id: partnerId },
-    }),
+    apiClient
+      .get<ConversationResponse | Message[]>(API_ENDPOINTS.MESSAGES_CONVERSATION, {
+        params: { partner_id: partnerId },
+      })
+      .then((r) => ({
+        ...r,
+        data: Array.isArray(r.data) ? r.data : r.data?.messages ?? [],
+      })),
 
   getUnreadMessages: () =>
     apiClient.get<UnreadMessagesResponse>(API_ENDPOINTS.MESSAGES_UNREAD),

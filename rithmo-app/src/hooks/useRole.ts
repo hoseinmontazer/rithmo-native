@@ -3,14 +3,34 @@
  * Rhythmo role (cycle owner vs partner).
  *
  * Resolution order:
- *   1. UserProfile.user_role (server, set during onboarding / profile edit)
- *   2. AsyncStorage 'onboarding_role' (set on device during onboarding,
+ *   1. `sex === 'male'` — see below; this OVERRIDES everything under it
+ *   2. UserProfile.user_role (server, set during onboarding / profile edit)
+ *   3. AsyncStorage 'onboarding_role' (set on device during onboarding,
  *      before the profile round-trip settles)
- *   3. 'owner' (safe default: own-data experience)
+ *   4. 'owner' (safe default: own-data experience)
  *
  * Partners are any gender; 'owner' means the cycle data belongs to the
  * user themselves. The role drives navigation (PartnerHome) and copy,
  * never data access — access control stays server-side.
+ *
+ * ── Why `sex === 'male'` forces the partner role ─────────────────────────────
+ *
+ * This must agree with the server, and the server's rule is broader than
+ * `user_role`. `intelligence.views._require_owner` rejects a request when
+ *
+ *     profile.sex == "male" or profile.user_role == "partner"
+ *
+ * so a man is a partner to the API whatever his `user_role` says. `user_role`
+ * defaults to 'owner', so a male account that never went through the partner
+ * branch of onboarding used to resolve to 'owner' here, get routed to the
+ * owner's HomeScreen, and have `/api/intelligence/today/` answer 403 — a home
+ * screen that could only ever show an error, with no way out of it.
+ *
+ * Verified against the running API: a male profile with `user_role='owner'`
+ * gets 403 from `/api/intelligence/today/` and 200 from
+ * `/api/intelligence/partner/today/`. Routing must follow the endpoint that
+ * actually answers, so the client mirrors the server's condition exactly.
+ * If the server's rule changes, this has to change with it.
  */
 import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -60,7 +80,10 @@ export function useRole(): UseRoleResult {
   }, []);
 
   const serverRole = parseRole(profile?.user_role ?? null);
-  const role: UserRole = serverRole ?? localRole ?? 'owner';
+  // Mirrors `_require_owner` server-side: male profiles are partners
+  // regardless of `user_role`. See the note at the top of this file.
+  const forcedPartner = profile?.sex === 'male';
+  const role: UserRole = forcedPartner ? 'partner' : (serverRole ?? localRole ?? 'owner');
 
   // Resolved once the device-local value has been read AND the server has
   // either answered or definitively failed. On failure we fall back to the

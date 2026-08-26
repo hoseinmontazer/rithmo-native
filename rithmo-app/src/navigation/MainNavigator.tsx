@@ -18,7 +18,10 @@ import { InsightsStack } from './stacks/InsightsStack';
 import { ProfileStack }  from './stacks/ProfileStack';
 import { useUnreadNotifications } from '@hooks/queries/useNotifications';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { TAB_ICONS, TAB_ICONS_ACTIVE, ICON_SIZE, type TabKey } from '@design-system/iconography';
+import { TAB_ICON_ART, TAB_ICONS, TAB_ICONS_ACTIVE, ICON_SIZE, type TabKey } from '@design-system/iconography';
+import { AppIcon } from '@components/ui';
+import icons from '@assets/icons';
+import { textRoles } from '@theme/typography';
 import { useTheme } from '@hooks/useTheme';
 import { useRole } from '@hooks/useRole';
 
@@ -35,16 +38,26 @@ interface TabItemProps {
   badge?: number;
 }
 
+/**
+ * Opacity for an unselected tab.
+ *
+ * The icons are full-colour artwork now, so selection can no longer be shown
+ * by changing the icon's hue — tinting a colour PNG collapses it into a
+ * silhouette. Dimming keeps the artwork intact while still reading clearly as
+ * "not the current tab", and the label's colour and weight carry the state
+ * too, so it is never colour alone.
+ */
+const TAB_INACTIVE_OPACITY = 0.5;
+
 function TabItem({ tab, label, focused, color, badge }: TabItemProps) {
   const { colors } = useTheme();
-  // Weight carries selection as well as colour — tint alone was the only
-  // state cue before, and tint alone is not a sufficient one.
-  const glyph = focused ? TAB_ICONS_ACTIVE[tab] : TAB_ICONS[tab];
 
   return (
     <View style={styles.tabItem}>
       <View style={styles.iconWrap}>
-        <Icon name={glyph} size={ICON_SIZE.tab} color={color} />
+        <View style={{ opacity: focused ? 1 : TAB_INACTIVE_OPACITY }}>
+          <AppIcon source={icons[TAB_ICON_ART[tab]]} size={ICON_SIZE.tab} />
+        </View>
 
         {/* Unread badge */}
         {badge !== undefined && badge > 0 && (
@@ -108,6 +121,20 @@ export function MainNavigator() {
 
   return (
     <Tab.Navigator
+      // Android hardware back walks back through the tabs the user actually
+      // visited, in reverse order, and exits the app once there is no history
+      // left (i.e. sitting on the initial Home tab).
+      //
+      // The default for bottom tabs is 'firstRoute', which ignores history
+      // entirely: from any tab, back jumped straight to Home, so the screen
+      // the user came from was unreachable and two presses always closed the
+      // app. 'history' is the Android-idiomatic behaviour and the one users
+      // expect from the system back gesture.
+      //
+      // Screens *inside* a tab's stack are unaffected — the native stack
+      // handles back first and pops its own screens; the tab navigator only
+      // sees the press once a stack is at its root.
+      backBehavior="history"
       screenOptions={{
         headerShown:          false,
         tabBarShowLabel:      false,
@@ -260,12 +287,16 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: '#fff',
-    fontSize: 9,
+    // Was a literal 9 — the smallest text in the product and two steps below
+    // anything on the type ladder. `micro` (11) is the ladder's floor.
+    fontSize: textRoles.tabLabel.fontSize,
     fontWeight: '800',
-    lineHeight: 11,
+    lineHeight: 13,
   },
   tabLabel: {
-    fontSize: 10,
+    // Was a literal 10, the smallest text in the product and outside the type
+    // ladder entirely, so the global size bump could not reach it.
+    fontSize: textRoles.tabLabel.fontSize,
     letterSpacing: 0.1,
   },
 });

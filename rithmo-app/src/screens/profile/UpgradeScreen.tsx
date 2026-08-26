@@ -26,6 +26,7 @@ import { GradientSurface } from '@components/ui';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
+import { screen } from '@theme/spacing';
 import { useThemeStore } from '@store/themeStore';
 import { getBrandGradient } from '@theme/brand';
 import { useSubscription } from '@hooks/queries/useSubscription';
@@ -216,7 +217,11 @@ export default function UpgradeScreen() {
   if (sub?.is_active) {
     return (
       <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['bottom']}>
-        <ScrollView contentContainerStyle={{ padding: spacing[5] }}>
+        <ScrollView contentContainerStyle={{
+          paddingHorizontal: screen.gutter,
+          paddingTop: screen.top,
+          paddingBottom: screen.bottom,
+        }}>
           <GradientSurface colors={[goldFrom, goldTo]} borderRadius={20} style={styles.hero}>
             <View style={[styles.heroIcon, { backgroundColor: 'rgba(255,255,255,0.22)' }]}>
               <Icon name="crown" size={28} color="#FFF8EC" />

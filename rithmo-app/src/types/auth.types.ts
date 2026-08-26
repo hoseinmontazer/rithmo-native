@@ -28,6 +28,15 @@ export interface RefreshTokenRequest {
 
 export interface RefreshTokenResponse {
   access: string;
+  /**
+   * The server rotates refresh tokens (`ROTATE_REFRESH_TOKENS`), so a refresh
+   * returns a NEW refresh token and blacklists the one that was presented
+   * (`BLACKLIST_AFTER_ROTATION`). Callers must persist this; keeping the old
+   * one means the next refresh presents a blacklisted token.
+   *
+   * Optional because a server with rotation disabled omits it.
+   */
+  refresh?: string;
 }
 
 export interface ChangePasswordRequest {

@@ -182,7 +182,7 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {/* ── Hero with gradient background ──────────────────────────── */}
-      <GradientBackground variant="rose" style={{ height: HERO_H }}>
+      <GradientBackground style={{ height: HERO_H }}>
         <View style={[styles.hero, { height: HERO_H }]}>
           {/* Animated decorative concentric rings with pulsing effect */}
           <Animated.View
