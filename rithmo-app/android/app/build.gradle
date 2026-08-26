@@ -72,6 +72,31 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'org.webkit:android-jsc:+'
 
+/**
+ * Release signing credentials — NEVER committed. Loaded from, in order of
+ * precedence:
+ *   1. android/keystore.properties (gitignored; see keystore.properties.example
+ *      for the required keys and where to get the values)
+ *   2. RITHMO_RELEASE_STORE_FILE / RITHMO_RELEASE_STORE_PASSWORD /
+ *      RITHMO_RELEASE_KEY_ALIAS / RITHMO_RELEASE_KEY_PASSWORD environment
+ *      variables (for CI secret injection without writing a file to disk)
+ *
+ * When neither is present, `signingConfigs.release` is left undefined and
+ * `buildTypes.release` does NOT set a signingConfig — `assembleRelease`
+ * then produces an unsigned artifact rather than silently reusing the debug
+ * keystore. A real release build requires one of the two sources above.
+ */
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+def releaseStoreFile = keystoreProperties['RELEASE_STORE_FILE'] ?: System.getenv('RITHMO_RELEASE_STORE_FILE')
+def releaseStorePassword = keystoreProperties['RELEASE_STORE_PASSWORD'] ?: System.getenv('RITHMO_RELEASE_STORE_PASSWORD')
+def releaseKeyAlias = keystoreProperties['RELEASE_KEY_ALIAS'] ?: System.getenv('RITHMO_RELEASE_KEY_ALIAS')
+def releaseKeyPassword = keystoreProperties['RELEASE_KEY_PASSWORD'] ?: System.getenv('RITHMO_RELEASE_KEY_PASSWORD')
+def hasReleaseSigningConfig = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -92,15 +117,27 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        if (hasReleaseSigningConfig) {
+            release {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Must NEVER fall back to signingConfigs.debug — see the
+            // keystore-loading block above. Without real release
+            // credentials configured, this build type is intentionally
+            // left unsigned rather than debug-signed.
+            if (hasReleaseSigningConfig) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
