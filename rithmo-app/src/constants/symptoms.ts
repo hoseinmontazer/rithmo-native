@@ -38,6 +38,8 @@ export const SYMPTOMS: readonly SymptomOption[] = [
   { code: 'cravings', label: 'ولع غذایی' },
   { code: 'acne', label: 'جوش پوستی' },
   { code: 'spotting', label: 'لکه‌بینی' },
+  { code: 'heartburn', label: 'سوزش سردل' },
+  { code: 'swelling', label: 'ورم' },
 ] as const;
 
 /** The subset shown in the fast daily log — the most commonly reported. */
