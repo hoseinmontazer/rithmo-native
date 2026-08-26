@@ -49,6 +49,7 @@ import { useAuth } from '@hooks/useAuth';
 import { useUnreadNotifications } from '@hooks/queries/useNotifications';
 import { useProfile } from '@hooks/queries/useProfile';
 import { useToday } from '@hooks/queries/useIntelligence';
+import { usePregnancyStatus } from '@hooks/queries/usePregnancy';
 import type { HomeScreenProps } from '@navigation/types';
 import type { GuidedAction } from '@types/intelligence.types';
 import { getBrandGradient } from '@theme/brand';
@@ -65,6 +66,7 @@ import {
 } from '@components/ui';
 import { track } from '@analytics';
 import { CycleContextStrip } from './components/CycleContextStrip';
+import { PregnancyContextStrip } from './components/PregnancyContextStrip';
 import { StoryCard } from './components/StoryCard';
 import { SecondaryActions } from './components/SecondaryActions';
 import { AccrualLedger } from './components/AccrualLedger';
@@ -108,6 +110,7 @@ export default function HomeScreen() {
   } = useToday(shouldFetch);
 
   const { data: unreadNotifs } = useUnreadNotifications();
+  const { data: pregnancy } = usePregnancyStatus();
 
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
@@ -159,6 +162,9 @@ export default function HomeScreen() {
   const goToNotifications = useCallback(() => navigation.navigate('Notifications'), [navigation]);
   const goToLogPeriod = useCallback(() => {
     navigation.navigate('CycleTab' as any, { screen: 'LogPeriod' } as any);
+  }, [navigation]);
+  const goToPregnancy = useCallback(() => {
+    navigation.navigate('ProfileTab' as any, { screen: 'Pregnancy' } as any);
   }, [navigation]);
 
   /**
@@ -282,6 +288,8 @@ export default function HomeScreen() {
         >
           {todayLoading ? (
             <ContextSkeleton />
+          ) : pregnancy?.has_active_pregnancy ? (
+            <PregnancyContextStrip pregnancy={pregnancy} onPress={goToPregnancy} />
           ) : (
             <CycleContextStrip
               cycle={state?.cycle}
