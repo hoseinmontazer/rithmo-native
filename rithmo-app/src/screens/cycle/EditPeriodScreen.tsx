@@ -210,8 +210,10 @@ export default function EditPeriodScreen() {
   // Pre-fill form when period is loaded
   useEffect(() => {
     if (!period) return;
-    setStartDate(new Date(period.start_date));
-    setEndDate(period.end_date ? new Date(period.end_date) : null);
+    // Anchor to local midnight — a bare 'YYYY-MM-DD' parses as UTC midnight
+    // otherwise, which is a different local calendar day west of UTC.
+    setStartDate(new Date(period.start_date + 'T00:00:00'));
+    setEndDate(period.end_date ? new Date(period.end_date + 'T00:00:00') : null);
 
     const symsFromAPI = period.symptoms
       ? period.symptoms.split(',').map((s: string) => s.trim()).filter(Boolean)

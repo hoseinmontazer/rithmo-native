@@ -46,8 +46,22 @@ export function toFa(
   return out;
 }
 
+const BARE_CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * A bare `YYYY-MM-DD` string (as sent by the backend for period/log dates)
+ * represents a calendar date, not an instant. `new Date('2026-08-21')`
+ * parses it as UTC midnight per the ECMAScript spec, which is a DIFFERENT
+ * local calendar day in every timezone west of UTC — see the identical
+ * rationale in `dateUtils.ts`'s `formatDateISO()`. Anchoring to local
+ * midnight before parsing keeps the day the backend sent as the day shown.
+ */
 function toDate(value: Date | string | number): Date | null {
-  const d = typeof value === 'object' ? value : new Date(value);
+  const normalized =
+    typeof value === 'string' && BARE_CALENDAR_DATE.test(value)
+      ? `${value}T00:00:00`
+      : value;
+  const d = typeof normalized === 'object' ? normalized : new Date(normalized);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 

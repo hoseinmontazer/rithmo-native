@@ -9,6 +9,9 @@
  * test with known-good values.
  */
 
+import { execFileSync } from 'child_process';
+import path from 'path';
+
 import { faDate, faDateShort, faDateYear, faWeekday, toFa } from '@utils/persian';
 import { fromJalali, isJalaliLeapYear, toJalali } from '@utils/jalali';
 
@@ -75,6 +78,45 @@ describe('user-facing formatters', () => {
   it('returns empty string for an invalid date rather than throwing', () => {
     expect(faDate('not-a-date')).toBe('');
     expect(faDateShort(NaN)).toBe('');
+  });
+});
+
+describe('bare calendar-date strings are timezone-safe', () => {
+  // Regression for a real bug: `persian.ts`'s formatters parsed a bare
+  // 'YYYY-MM-DD' string (exactly what the backend sends for period/log
+  // dates) with `new Date(str)`, which the spec parses as UTC MIDNIGHT, not
+  // local midnight. On any device west of UTC that is a different local
+  // calendar day, so a period logged for 2026-08-21 rendered as 20 Aug
+  // (۲۹ مرداد) instead of 21 Aug (۳۰ مرداد). Iran (UTC+3:30) never showed
+  // the bug, which is exactly why it shipped unnoticed.
+  //
+  // A runtime `process.env.TZ = ...` reassignment inside a running Jest
+  // worker is NOT reliable — the timezone offset is already fixed earlier
+  // in worker startup regardless of later reassignment (confirmed: mutating
+  // it mid-test here does not change `Date#getTimezoneOffset()`). The only
+  // faithful check is a fresh process with `TZ` set before Node starts, so
+  // this spawns the real formatter in a subprocess per timezone.
+  const repoRoot = path.join(__dirname, '..', '..');
+  const jestBin = path.join(repoRoot, 'node_modules', '.bin', 'jest');
+  const probe = path.join(__dirname, 'fixtures', 'tzBareDateProbe.test.ts');
+
+  it.each(['Asia/Tehran', 'America/Los_Angeles', 'Pacific/Kiritimati'])(
+    'renders the correct Jalali day for a bare date string under TZ=%s',
+    (tz) => {
+      expect(() =>
+        execFileSync(jestBin, [probe, '--silent'], {
+          cwd: repoRoot,
+          env: { ...process.env, TZ: tz },
+          stdio: 'pipe',
+        }),
+      ).not.toThrow();
+    },
+    20000,
+  );
+
+  it('a Date object (already a local instant) formats correctly without needing TZ control', () => {
+    const aug21 = new Date(2026, 7, 21);
+    expect(faDateShort(aug21)).toBe('۳۰ مرداد');
   });
 });
 
