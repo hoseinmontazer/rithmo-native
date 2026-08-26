@@ -53,6 +53,7 @@ export const navTitles = {
   DeleteAccount: 'حذف حساب',
   Support: 'پشتیبانی',
   Upgrade: 'ریتمو پریمیوم',
+  Pregnancy: 'بارداری',
 
   // Messages
   MessagesList: 'پیام‌ها',

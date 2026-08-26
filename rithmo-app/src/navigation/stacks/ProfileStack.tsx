@@ -13,6 +13,7 @@ const ChangePasswordScreen = React.lazy(() => import('@screens/profile/ChangePas
 const DeleteAccountScreen  = React.lazy(() => import('@screens/profile/DeleteAccountScreen'));
 const UpgradeScreen        = React.lazy(() => import('@screens/profile/UpgradeScreen'));
 const SupportScreen        = React.lazy(() => import('@screens/support/SupportScreen'));
+const PregnancyScreen      = React.lazy(() => import('@screens/pregnancy/PregnancyScreen'));
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
@@ -40,6 +41,7 @@ export function ProfileStack() {
       <Stack.Screen name="ChangePassword"  component={ChangePasswordScreen} options={{ title: navTitle('ChangePassword') }} />
       <Stack.Screen name="DeleteAccount"   component={DeleteAccountScreen}  options={{ title: navTitle('DeleteAccount') }} />
       <Stack.Screen name="Support"         component={SupportScreen}       options={{ title: navTitle('Support') }} />
+      <Stack.Screen name="Pregnancy"       component={PregnancyScreen as React.ComponentType} options={{ title: navTitle('Pregnancy') }} />
       <Stack.Screen
         name="Upgrade"
         component={UpgradeScreen as React.ComponentType}

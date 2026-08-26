@@ -89,6 +89,7 @@ export const PROFILE_ICONS = {
   deleteAccount: 'account-remove-outline',
   history: 'history',
   medications: 'pill',
+  pregnancy: 'human-pregnant',
 } as const;
 
 export type ProfileIconKey = keyof typeof PROFILE_ICONS;
@@ -148,6 +149,8 @@ export const SYMPTOM_ICONS: Record<string, string> = {
   diarrhea:          'water-alert-outline',
   constipation:      'block-helper',
   hot_flashes:       'thermometer',
+  heartburn:         'fire',
+  swelling:          'arrow-expand-all',
 };
 
 /** Neutral stand-in for a symptom outside the curated vocabulary. */

@@ -58,6 +58,7 @@ export type ProfileStackParamList = {
   DeleteAccount:   undefined;
   Support:         undefined;
   Upgrade:         { featureName?: string };  // paywall — featureName shown in headline
+  Pregnancy:       undefined;                 // premium-gated; shows setup or status internally
 };
 
 // ── Messages Stack ────────────────────────────────────────────────────────────

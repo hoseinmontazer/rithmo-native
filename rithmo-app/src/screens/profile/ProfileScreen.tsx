@@ -565,6 +565,19 @@ export default function ProfileScreen() {
         )}
       </MenuCard>
 
+      {/* ── Pregnancy (premium) ───────────────────────────────────────── */}
+      <SectionHeader label="بارداری" />
+      <MenuCard>
+        <MenuRow
+          icon={PROFILE_ICONS.pregnancy}
+          label="بارداری"
+          sub="هفته و روز بارداری، سه‌ماهه و تاریخ تخمینی زایمان"
+          accentColor={colors.premium}
+          onPress={() => navigation.navigate('Pregnancy')}
+          last
+        />
+      </MenuCard>
+
       {/* ── Support ───────────────────────────────────────────────────── */}
       <SectionHeader label="پشتیبانی" />
       <MenuCard>
