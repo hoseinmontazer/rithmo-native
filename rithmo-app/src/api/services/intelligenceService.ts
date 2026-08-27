@@ -2,6 +2,7 @@ import { apiClient } from '@api/client';
 import { API_ENDPOINTS } from '@constants/config';
 import type {
   ActionStatus,
+  CheckIn,
   GuidedAction,
   Helpfulness,
   Insight,
@@ -53,6 +54,16 @@ export const intelligenceService = {
         { accurate },
       )
       .then((r) => unwrap<{ key: string; accurate: boolean }>(r)),
+
+  respondToCheckIn: (checkinId: number, value: string) =>
+    apiClient
+      .post(`${API_ENDPOINTS.INTELLIGENCE_CHECKIN}${checkinId}/respond/`, { value })
+      .then((r) => unwrap<CheckIn>(r)),
+
+  dismissCheckIn: (checkinId: number) =>
+    apiClient
+      .post(`${API_ENDPOINTS.INTELLIGENCE_CHECKIN}${checkinId}/dismiss/`)
+      .then((r) => unwrap<CheckIn>(r)),
 
   submitFeedback: (
     actionId: number,

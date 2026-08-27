@@ -156,9 +156,34 @@ export interface PersonalStatePayload {
   tracked_signals: string[];
 }
 
+export interface GeneralPhaseContext {
+  phase: string;
+  general_context_fa: string[];
+  suggested_logging: string[];
+}
+
+export type CheckInKind = 'missing_data' | 'deviation_confirm';
+export type CheckInState = 'shown' | 'answered' | 'dismissed';
+
+export interface CheckInOption {
+  label_fa: string;
+  value: string;
+}
+
+export interface CheckIn {
+  id: number;
+  kind: CheckInKind;
+  question_fa: string;
+  options: CheckInOption[];
+  state: CheckInState;
+  answer_value: string | null;
+}
+
 export interface TodayPayload {
   state: PersonalStatePayload;
   learning_mode: boolean;
+  general_context: GeneralPhaseContext | null;
+  check_in: CheckIn | null;
   primary_insight: Insight | null;
   insights: Insight[];
   actions: GuidedAction[];

@@ -48,6 +48,7 @@ export const API_ENDPOINTS = {
   INTELLIGENCE_INSIGHTS: '/api/intelligence/insights/',
   INTELLIGENCE_INSIGHT_DISMISS: '/api/intelligence/insights/',
   INTELLIGENCE_ACTIONS: '/api/intelligence/actions/',
+  INTELLIGENCE_CHECKIN: '/api/intelligence/checkin/',
   INTELLIGENCE_PROGRESS: '/api/intelligence/progress/',
   INTELLIGENCE_PARTNER_TODAY: '/api/intelligence/partner/today/',
 

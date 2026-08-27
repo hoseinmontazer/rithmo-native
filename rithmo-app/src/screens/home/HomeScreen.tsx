@@ -62,6 +62,7 @@ import {
 } from '@components/ui';
 import { track } from '@analytics';
 import { StoryCard } from './components/StoryCard';
+import { CheckInPrompt } from './components/CheckInPrompt';
 import { SecondaryActions } from './components/SecondaryActions';
 import { AccrualLedger } from './components/AccrualLedger';
 import { DailyReflectionCard } from './components/DailyReflectionCard';
@@ -327,10 +328,19 @@ export default function HomeScreen() {
               insight={today?.primary_insight ?? null}
               action={primaryAction}
               learningMode={learningMode}
+              generalContext={today?.general_context ?? null}
               onOpenAction={primaryAction ? actionOpener(primaryAction) : undefined}
             />
           </Reveal>
         )}
+
+        {/* ── Proactive check-in — at most one per day, only when the
+            backend's own eligibility rules found a real reason to ask. */}
+        {!todayLoading && !todayError && today?.check_in ? (
+          <View style={{ marginTop: spacing[4] }}>
+            <CheckInPrompt checkIn={today.check_in} onGoFullLog={goToQuickLog} />
+          </View>
+        ) : null}
 
         {/* ── 4. Secondary actions — subordinate rows ───────────────── */}
         {!todayLoading && secondaryActions.length > 0 ? (

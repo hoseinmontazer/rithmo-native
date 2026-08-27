@@ -3,6 +3,7 @@ import { intelligenceService } from '@api/services/intelligenceService';
 import { queryKeys } from '@api/queryKeys';
 import type {
   ActionStatus,
+  CheckIn,
   GuidedAction,
   Helpfulness,
   Insight,
@@ -134,6 +135,28 @@ export function useSetInsightAccuracy() {
     { key: string; accurate: boolean }
   >({
     mutationFn: ({ key, accurate }) => intelligenceService.setInsightAccuracy(key, accurate),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.all() });
+    },
+  });
+}
+
+export function useRespondToCheckIn() {
+  const queryClient = useQueryClient();
+
+  return useMutation<CheckIn, Error, { checkinId: number; value: string }>({
+    mutationFn: ({ checkinId, value }) => intelligenceService.respondToCheckIn(checkinId, value),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.all() });
+    },
+  });
+}
+
+export function useDismissCheckIn() {
+  const queryClient = useQueryClient();
+
+  return useMutation<CheckIn, Error, number>({
+    mutationFn: (checkinId) => intelligenceService.dismissCheckIn(checkinId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.all() });
     },

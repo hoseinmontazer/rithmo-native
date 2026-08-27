@@ -30,7 +30,7 @@ import { useTheme } from '@hooks/useTheme';
 import { toFa } from '@utils/persian';
 import { track } from '@analytics';
 import { useSubmitActionFeedback, useSetInsightAccuracy } from '@hooks/queries/useIntelligence';
-import type { GuidedAction, Helpfulness, Insight } from '@types/intelligence.types';
+import type { GeneralPhaseContext, GuidedAction, Helpfulness, Insight } from '@types/intelligence.types';
 
 /**
  * The guided action's category, as a full-colour icon.
@@ -124,6 +124,11 @@ interface Props {
   insight: Insight | null;
   action: GuidedAction | null;
   learningMode: boolean;
+  /** General (never personal) knowledge about today's cycle phase — shown
+   * only while there isn't yet enough personal evidence to say something
+   * specific about this user. See ai_gateway/context.py's own separation
+   * of general vs personal for why these must never be the same field. */
+  generalContext?: GeneralPhaseContext | null;
   /** Only for data-collection actions that have somewhere to go. */
   onOpenAction?: (action: GuidedAction) => void;
 }
@@ -132,6 +137,7 @@ export const StoryCard = memo(function StoryCard({
   insight,
   action,
   learningMode,
+  generalContext,
   onOpenAction,
 }: Props) {
   const { colors, typography, spacing, borderRadius } = useTheme();
@@ -259,6 +265,33 @@ export const StoryCard = memo(function StoryCard({
           >
             {insight.body_fa}
           </Text>
+        </View>
+      ) : null}
+
+      {/* ── About this phase — general knowledge, not a personal claim ─
+          Shown only while learning-mode has nothing personal to say yet
+          (once a real insight exists below, that takes over — general
+          context stops being the headline, not because it becomes false,
+          but because personal evidence is always more useful once it
+          exists). */}
+      {learningMode && generalContext ? (
+        <View
+          style={[
+            styles.generalContextBox,
+            { backgroundColor: colors.background, borderRadius: borderRadius.md, padding: spacing[3], marginTop: spacing[3] },
+          ]}
+        >
+          <Text style={{ color: colors.textPrimary, fontSize: typography.caption, fontWeight: '700' }}>
+            درباره‌ی این مرحله
+          </Text>
+          {generalContext.general_context_fa.map((line, i) => (
+            <Text
+              key={i}
+              style={{ color: colors.textSecondary, fontSize: typography.caption, lineHeight: 18, marginTop: spacing[1] }}
+            >
+              {`· ${line}`}
+            </Text>
+          ))}
         </View>
       ) : null}
 
@@ -573,6 +606,7 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: 10, paddingVertical: 4 },
   whyBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   evidenceBox: { marginTop: 10 },
+  generalContextBox: {},
   accuracyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   accuracyBtnRow: { flexDirection: 'row', gap: 8 },
   accuracyBtn: { paddingHorizontal: 14, paddingVertical: 6 },
