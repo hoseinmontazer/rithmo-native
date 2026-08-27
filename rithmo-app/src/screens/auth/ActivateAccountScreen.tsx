@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { Button } from '@components/ui';
 import { authService } from '@api/services/authService';
@@ -40,7 +41,9 @@ export default function ActivateAccountScreen() {
 
       {status === 'success' && (
         <>
-          <Text style={{ fontSize: 64 }}>🎉</Text>
+          <View style={[styles.iconCircle, { backgroundColor: colors.primaryLighter, borderRadius: 999 }]}>
+            <Icon name="check-circle-outline" size={40} color={colors.primary} />
+          </View>
           <Text style={[styles.title, { color: colors.textPrimary, fontSize: typography['2xl'], fontWeight: '700', marginTop: spacing[4] }]}>
             حساب فعال شد!
           </Text>
@@ -53,7 +56,9 @@ export default function ActivateAccountScreen() {
 
       {status === 'error' && (
         <>
-          <Text style={{ fontSize: 64 }}>❌</Text>
+          <View style={[styles.iconCircle, { backgroundColor: colors.clayBg, borderRadius: 999 }]}>
+            <Icon name="close-circle-outline" size={40} color={colors.clay} />
+          </View>
           <Text style={[styles.title, { color: colors.textPrimary, fontSize: typography['2xl'], fontWeight: '700', marginTop: spacing[4] }]}>
             فعال‌سازی ناموفق بود
           </Text>
@@ -68,7 +73,8 @@ export default function ActivateAccountScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title:     { textAlign: 'center' },
-  text:      { textAlign: 'center', lineHeight: 22 },
+  container:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  title:      { textAlign: 'center' },
+  text:       { textAlign: 'center', lineHeight: 22 },
+  iconCircle: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center' },
 });

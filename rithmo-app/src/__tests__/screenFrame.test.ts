@@ -44,7 +44,13 @@ function walk(dir: string): string[] {
 const pages = walk(SCREENS)
   .map((f: string) => ({ file: path.relative(SCREENS, f), text: fs.readFileSync(f, 'utf8') as string }))
   .filter((p: { text: string }) => p.text.includes('contentContainerStyle'))
-  .filter((p: { file: string }) => !EXEMPT.some((e) => p.file.startsWith(e)));
+  .filter((p: { file: string }) => !EXEMPT.some((e) => p.file.startsWith(e)))
+  // A screen's own `components/` folder holds reusable pieces embedded
+  // INSIDE a page's frame (e.g. a small horizontal ScrollView with its own
+  // deliberate inset), not a second content page. `contentContainerStyle`
+  // is not unique to page-level ScrollViews, so without this a nested
+  // component picks up the same match this test uses to find real pages.
+  .filter((p: { file: string }) => !p.file.split(path.sep).includes('components'));
 
 describe('every content page uses the shared screen frame', () => {
   it('found pages to check', () => {

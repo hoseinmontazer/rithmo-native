@@ -1,35 +1,42 @@
 /**
  * Rhythmo Design System — Colors
  *
- * Brand: green, in the family the product owner supplied as a Figma Make
- * reference (its `--primary` was `#16a34a`, Tailwind's green-600).
+ * Brand: green, retuned toward the palette in the "Rhythmo App" Claude
+ * Design mockup (primary `#2F5D50`, a muted pine-teal — hue ~163°, vs. the
+ * prior primary's hue ~142°). The mockup's own literal hex values are used
+ * directly wherever they measured AA-clean; the rest of the ramp (dark-mode
+ * brand tokens, the one text tier the mockup's own value failed on) was
+ * derived by rotating the OLD token's hue by the same ~21° delta and
+ * re-measuring, never by eyeballing.
  *
- * ── Why the neutrals are neutral ─────────────────────────────────────────
+ * ── Why the neutrals are warm now ────────────────────────────────────────
  *
- * The neutrals used to be deliberately green-biased, so that they "belonged
+ * The mockup's screen background (`#FAF7F3`) and card/chip tints
+ * (`#F1EDE7`, `#F1EEEA`) are warm — a different axis from the green-tinted
+ * neutrals this system deliberately moved away from previously (see the
+ * dated history below): warmth is not brand hue. `ink`/`textPrimary` and
+ * `textSecondary` are the mockup's own literal values; `textTertiary` is
+ * the one exception — the mockup's own `#8A848F` measured 3.40:1 on the new
+ * canvas (below AA), so it was darkened along the same hue/warmth until it
+ * cleared 4.5:1 while staying clearly lighter than `textSecondary`.
+ *
+ * ── Why the neutrals were EVER hue-free (history) ────────────────────────
+ *
+ * The neutrals were once deliberately green-biased, so that they "belonged
  * to the palette instead of sitting against it". On device that backfired:
  * with the canvas, every surface, every border AND the text all carrying the
  * brand hue, a screen had no hue contrast anywhere and the whole app read as
- * one flat wash of green. The brand colour cannot register as an accent when
- * the background is a paler version of it.
+ * one flat wash of green. That lesson still holds — it is why this retune
+ * did not chase the brand hue into the neutrals, only warmth.
  *
- * So the neutral ramp is now genuinely hue-free and the green is spent only
- * where it means something — brand, primary action, success. Measured as HLS
- * saturation, light-mode `textPrimary` went 0.429 -> 0.106 and `border`
- * 0.288 -> 0.115.
+ * ── Contrast (this retune) ───────────────────────────────────────────────
  *
- * This *raised* light-mode contrast rather than costing any: `textPrimary` on
- * canvas 15.44 -> 16.60, `textSecondary` 5.61 -> 6.33, `textTertiary`
- * 4.55 -> 4.96. Brand pairs are untouched at 6.81:1.
- *
- * Tokens that are brand tints rather than neutrals — `primaryLight`,
- * `primaryLighter`, `successBg` — keep their green on purpose; they are the
- * accent, not the ground.
- *
- * The reference's own primary is NOT used verbatim: measured, `#16a34a`
- * carries white text at only 3.30:1, so its primary button, its brand-coloured
- * text and its solid green sidebar all fail WCAG AA. The hue is kept and the
- * lightness lowered until white clears AA on it (6.81:1 here).
+ * Re-measured, not inherited: `textOnPrimary` on `primary` 7.49:1, `primary`
+ * as text on `surface` 7.49:1, on `primaryLight` 5.81:1 — all comfortably
+ * above the prior palette's 6.81:1. `textPrimary` on canvas 15.06:1,
+ * `textSecondary` 6.65:1, `textTertiary` 4.76:1 (the retuned value). Dark
+ * mode: `textOnPrimary` on `primary` 9.85:1, `primary` as text on canvas
+ * 10.83:1, on `primaryLight` 7.51:1.
  *
  * ── Why success IS the brand green ───────────────────────────────────────
  *
@@ -38,6 +45,9 @@
  * search, not assumed: across hues 60-140 and every lightness that still
  * carries AA text on its own tint, nothing cleared ΔE 25 from the brand except
  * a dark olive (#6E6E0C), which reads as a warning rather than as success.
+ * The new hue (~163°) does not change that conclusion — nothing in this
+ * retune moved warning/error/accent/the phase palette, so their ΔE distance
+ * from the brand only grew.
  *
  * Two greens that are ALMOST the same look like a mistake; two that are
  * identical look deliberate. So `success` is the brand green, by decision.
@@ -45,66 +55,57 @@
  * which the product already requires, since colour is never allowed to be the
  * sole carrier of meaning (`design-system/iconography.ts`).
  *
- * Everything else stays far apart: the brand is ΔE 76 from warning, 103 from
- * error, 100 from accent and 54 from the nearest cycle phase.
- *
- * ── Contrast ─────────────────────────────────────────────────────────────
- *
- * Every foreground/background pair was re-measured for this palette rather
- * than inherited. Against the rose palette that preceded it, 6 pairs failed
- * WCAG AA in light and 1 in dark; this palette fails 1 and 0. The five that
- * are newly fixed are the semantic text-on-tint pairs — `Badge` renders
- * `colors.success` as TEXT on `colors.successBg`, and in rose that pairing
- * was 2.97:1. The one remaining light-mode miss is `border` on `surface`
- * (1.32:1), an intentionally hairline divider that carries no state; it was
- * 1.25:1 under the green-tinted neutrals.
- *
  * The phase colors (menstrual/follicular/ovulation/luteal) are the
  * DATA-VISUALIZATION language — they stay stable across the redesign, and
- * were deliberately NOT touched when the brand moved to green. The brand sits
- * ΔE 38 from `follicular`, the nearest of them, so it does not read as a
- * fifth phase.
+ * were deliberately NOT touched by this retune either.
  *
- * Premium moments use the gold `premium` tokens (paywall, premium cards).
+ * Premium moments use the gold `premium` tokens (paywall, premium cards) —
+ * also untouched.
+ *
+ * `theme/brand.ts`'s `getBrandGradient()` (the dark hero/gold gradients used
+ * across Home, Cycle and the paywall) is a separate, hand-tuned token set,
+ * not derived from these primitives, and is out of scope for this retune —
+ * it is shared by screens this mockup does not redesign.
  */
 
 const lightColors = {
-  // ── Neutrals (true neutral) ─────────────────────────────────────────────────────
-  ink:             '#15171A',
-  canvas:          '#F5F6F7',
+  // ── Neutrals (warm, per the mockup) ─────────────────────────────────────
+  ink:             '#241F2B',
+  canvas:          '#FAF7F3',
   canvasDark:      '#101215',
   surface:         '#FFFFFF',
-  surfaceSecondary:'#EFF1F3',
-  surfaceSubtle:   '#E8EAED',
-  border:          '#DDE0E4',
-  borderSubtle:    '#EDEFF2',
-  background:      '#F5F6F7',
+  surfaceSecondary:'#F1EDE7',
+  surfaceSubtle:   '#EDE7DF',
+  border:          '#EAE5E0',
+  borderSubtle:    '#F1EEEA',
+  background:      '#FAF7F3',
 
-  // ── Brand (deep pine-emerald) ───────────────────────────────────────────
-  primary:         '#0E6930',
-  primaryDark:     '#0B4F24',
-  primaryLight:    '#D7F4E2',
-  primaryLighter:  '#EEF9F2',
-  primaryPressed:  '#0B4F24',
+  // ── Brand (muted pine-teal) ──────────────────────────────────────────────
+  primary:         '#2F5D50',
+  primaryDark:     '#234A40',
+  primaryLight:    '#D8E6DE',
+  primaryLighter:  '#E6EFEA',
+  primaryPressed:  '#234A40',
   textOnPrimary:   '#FFFFFF',
 
   // ── Text ────────────────────────────────────────────────────────────────
-  textPrimary:     '#15171A',
-  textSecondary:   '#565B61',
-  // Re-measured on the neutral ramp: 4.96:1 on canvas and 5.37:1 on surface,
-  // both AA, while staying clearly subordinate to textSecondary (6.33:1) so
-  // the primary > secondary > tertiary hierarchy still holds.
-  textTertiary:    '#666B72',
-  textDisabled:    '#B4B8BE',
+  textPrimary:     '#241F2B',
+  textSecondary:   '#5C5661',
+  // The mockup's own `#8A848F` measured 3.40:1 on the new canvas (below
+  // AA); darkened along the same hue/warmth to 4.76:1 on canvas / 5.09:1 on
+  // surface, while staying clearly subordinate to textSecondary (6.65:1)
+  // so the primary > secondary > tertiary hierarchy still holds.
+  textTertiary:    '#726C77',
+  textDisabled:    '#B7B0A9',
 
   // ── Accent (violet — data/secondary accent) ─────────────────────────────
   accent:          '#7C5CB8',
   accentLight:     '#EFE9F8',
 
   // ── Semantic ────────────────────────────────────────────────────────────
-  success:         '#0E6930',
-  successBg:       '#D7F4E2',
-  successDark:     '#0B4F24',
+  success:         '#2F5D50',
+  successBg:       '#D8E6DE',
+  successDark:     '#234A40',
   warning:         '#B05426',
   warningBg:       '#FBF0E1',
   error:           '#CE2929',
@@ -113,7 +114,7 @@ const lightColors = {
   infoBg:          '#E8F0FA',
   infoDark:        '#2C5488',
 
-  shadow:          '#5A5F66',
+  shadow:          '#5C554A',
 
   // ── Cycle phase palette (data language — stable) ────────────────────────
   menstrual:       '#E11D48',
@@ -134,10 +135,22 @@ const lightColors = {
   premiumBg:       '#F8F1E2',
   premiumBorder:   '#E7D5AE',
 
+  // ── Clay (warm error/predicted-state accent) ────────────────────────────
+  // From the "Rhythmo App" mockup and the auth design spec — a gentler,
+  // non-alarming tone for predicted-period calendar cells and auth-flow
+  // errors ("wrong password"), deliberately not the harsh `error` red the
+  // rest of the app uses for real failures. The spec's own text value
+  // (#A8654B) measured 4.14:1 on its own tint (below AA); darkened to the
+  // same hue until it cleared 4.85:1, the same "keep the hue, lower the
+  // lightness" fix already applied to the brand green.
+  clay:            '#9C5A41',
+  clayBg:          '#FBF3EE',
+  clayBorder:      '#E7C3B0',
+
   // ── Restored legacy tokens (used by auth/support/AI/streak screens) ─────
-  divider:         '#E9EBEE',
+  divider:         '#EAE5E0',
   ovulationColor:  '#9A6BD0',
-  shadowColor:     '#6E737A',
+  shadowColor:     '#6B6459',
   surfaceDark:     '#232629',
   textOnDark:      '#F4F5F6',
   violet500:       '#8B5CF6',
@@ -156,13 +169,16 @@ const darkColors = {
   borderSubtle:    '#282C30',
   background:      '#0F1113',
 
-  // ── Brand (soft mint — the light-on-dark counterpart) ───────────────────
-  primary:         '#6AD792',
-  primaryDark:     '#4DCB7B',
-  primaryLight:    '#1D3526',
-  primaryLighter:  '#17291D',
-  primaryPressed:  '#4DCB7B',
-  textOnPrimary:   '#081F10',
+  // ── Brand (soft teal-mint — the light-on-dark counterpart) ──────────────
+  // Derived by rotating each old dark-brand token's hue by the same ~21°
+  // delta the light-mode primary underwent (#0E6930 -> #2F5D50), keeping
+  // each token's own lightness/saturation rather than eyeballing new ones.
+  primary:         '#6AD7B7',
+  primaryDark:     '#4DCBA6',
+  primaryLight:    '#1D352E',
+  primaryLighter:  '#172923',
+  primaryPressed:  '#4DCBA6',
+  textOnPrimary:   '#081F18',
 
   // ── Text ────────────────────────────────────────────────────────────────
   textPrimary:     '#E6E8EA',
@@ -177,9 +193,9 @@ const darkColors = {
   accentLight:     '#2C2438',
 
   // ── Semantic ────────────────────────────────────────────────────────────
-  success:         '#6AD792',
-  successBg:       '#1D3526',
-  successDark:     '#92DDAE',
+  success:         '#6AD7B7',
+  successBg:       '#1D352E',
+  successDark:     '#92DDC8',
   warning:         '#E8A23D',
   warningBg:       '#332A18',
   error:           '#E57373',
@@ -208,6 +224,11 @@ const darkColors = {
   premium:         '#D9B25C',
   premiumBg:       '#332A18',
   premiumBorder:   '#57431E',
+
+  // ── Clay (warm error/predicted-state accent) ────────────────────────────
+  clay:            '#D99B7A',
+  clayBg:          '#3A2A20',
+  clayBorder:      '#5A4232',
 
   // ── Restored legacy tokens ──────────────────────────────────────────────
   divider:         '#282C30',

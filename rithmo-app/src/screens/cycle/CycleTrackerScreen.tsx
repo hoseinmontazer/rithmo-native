@@ -26,6 +26,8 @@ import { useProfile } from '@hooks/queries/useProfile';
 import { Card, Badge, Button, Icon, LoadingState, EmptyState } from '@components/ui';
 import { formatDateISO } from '@utils/dateUtils';
 import { toFa, faDateShort, faDate } from '@utils/persian';
+import { buildCycleDateMap } from '@utils/cycleDayMap';
+import { useSelectedDateStore } from '@store/selectedDateStore';
 import type { CycleStackParamList } from '@navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -45,159 +47,6 @@ function safeNextPeriod(period: any): string | null {
   if (!next) return null;
   if (end && next <= end) return null;
   return next;
-}
-
-type DayType = 'period' | 'predicted_period' | 'follicular' | 'ovulation' | 'pms' | 'late' | 'none';
-
-interface DayInfo {
-  type: DayType;
-  periodId?: number;
-  isStart?: boolean;
-  isEnd?: boolean;
-  isOngoing?: boolean;
-  label?: string;
-}
-
-/** Build a map of every date → phase info from period list */
-function buildCycleDateMap(periods: any[]): Map<string, DayInfo> {
-  const map = new Map<string, DayInfo>();
-
-  // Sort ascending by start_date
-  const sorted = [...periods].sort((a, b) =>
-    a.start_date < b.start_date ? -1 : 1
-  );
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  for (let i = 0; i < sorted.length; i++) {
-    const p = sorted[i];
-    const startDate = new Date(p.start_date + 'T00:00:00');
-    const isOngoing = !p.end_date;
-
-    // Red days end at end_date (completed) or predicted_end_date (ongoing)
-    let redEnd: Date;
-    if (p.end_date) {
-      redEnd = new Date(p.end_date + 'T00:00:00');
-    } else if (p.predicted_end_date) {
-      redEnd = new Date(p.predicted_end_date + 'T00:00:00');
-    } else {
-      redEnd = new Date();
-      redEnd.setHours(0, 0, 0, 0);
-    }
-
-    // Next period start: API field → or next period in list
-    let nextStart: Date | null = null;
-    if (p.next_period_start_date) {
-      nextStart = new Date(p.next_period_start_date + 'T00:00:00');
-    } else if (sorted[i + 1]) {
-      nextStart = new Date(sorted[i + 1].start_date + 'T00:00:00');
-    }
-
-    // ── 1. Menstrual (red) ──────────────────────────────────────
-    const redEndStr = formatDateISO(redEnd);
-    const cRed = new Date(startDate);
-    while (cRed <= redEnd) {
-      const key = formatDateISO(cRed);
-      map.set(key, {
-        type: 'period',
-        periodId: p.id,
-        isStart: key === p.start_date,
-        isEnd: key === redEndStr,
-        isOngoing,
-      });
-      cRed.setDate(cRed.getDate() + 1);
-    }
-
-    if (!nextStart || nextStart <= redEnd) continue;
-
-    // PMS: 5 days before next period (also serves as the follicular/
-    // luteal tiling boundary when there is no ovulation estimate).
-    const pmsStart = new Date(nextStart);
-    pmsStart.setDate(nextStart.getDate() - 5);
-
-    // ── Ovulation + fertile window ───────────────────────────────────
-    // The backend is the single source of truth: each period carries
-    // estimated_ovulation_date / fertile_window (null when the backend
-    // has no reliable estimate for that cycle, e.g. the cycle gap is
-    // outside the 15-60 day plausibility window, or ovulation would
-    // land before this period ends).  When the backend says "no
-    // reliable estimate", the calendar draws NO ovulation or fertile
-    // days for that cycle — it does not recompute one locally.
-    let ovStart: Date | null = null;
-    let ovEnd: Date | null = null;
-    if (p.estimated_ovulation_date) {
-      const ovDate = new Date(p.estimated_ovulation_date + 'T00:00:00');
-      ovStart = p.fertile_window?.start
-        ? new Date(p.fertile_window.start + 'T00:00:00')
-        : new Date(ovDate.getTime() - 5 * 86400000);
-      ovEnd = p.fertile_window?.end
-        ? new Date(p.fertile_window.end + 'T00:00:00')
-        : new Date(ovDate.getTime() + 86400000);
-    }
-    const boundaryOvStart = ovStart ?? pmsStart;
-    const boundaryOvEnd = ovEnd ?? pmsStart;
-
-    const dayAfterRed = new Date(redEnd);
-    dayAfterRed.setDate(redEnd.getDate() + 1);
-
-    // ── 2. Follicular ────────────────────────────────────────────
-    const fCur = new Date(dayAfterRed);
-    while (fCur < boundaryOvStart && fCur < nextStart) {
-      const key = formatDateISO(fCur);
-      if (!map.has(key)) map.set(key, { type: 'follicular', periodId: p.id });
-      fCur.setDate(fCur.getDate() + 1);
-    }
-
-    // ── 3. Ovulation / Fertile Window (only when the backend has a
-    //    reliable estimate — see the contract note above) ──────────
-    if (ovStart && ovEnd) {
-      const oCur = new Date(ovStart);
-      while (oCur <= ovEnd && oCur < nextStart) {
-        const key = formatDateISO(oCur);
-        if (!map.has(key)) map.set(key, { type: 'ovulation', periodId: p.id });
-        oCur.setDate(oCur.getDate() + 1);
-      }
-    }
-
-    // ── 4. Luteal ────────────────────────────────────────────────
-    const lCur = new Date(boundaryOvEnd);
-    lCur.setDate(lCur.getDate() + 1);
-    while (lCur < pmsStart && lCur < nextStart) {
-      const key = formatDateISO(lCur);
-      if (!map.has(key)) map.set(key, { type: 'luteal', periodId: p.id });
-      lCur.setDate(lCur.getDate() + 1);
-    }
-
-    // ── 5. PMS ───────────────────────────────────────────────────
-    const pCur = new Date(pmsStart);
-    while (pCur < nextStart) {
-      const key = formatDateISO(pCur);
-      if (!map.has(key)) map.set(key, { type: 'pms', periodId: p.id });
-      pCur.setDate(pCur.getDate() + 1);
-    }
-
-    // ── 6. Map predicted future period for latest cycle ─────────
-    if (i === sorted.length - 1 && p.next_period_start_date) {
-      const predDur = p.period_duration ?? 5;
-      const predEnd = new Date(nextStart);
-      predEnd.setDate(nextStart.getDate() + predDur - 1);
-
-      const predCur = new Date(nextStart);
-      while (predCur <= predEnd) {
-        const key = formatDateISO(predCur);
-        if (!map.has(key)) {
-          map.set(key, {
-            type: nextStart < today ? 'late' : 'predicted_period',
-            label: nextStart < today ? 'دوره با تأخیر' : 'دوره پیش‌بینی‌شده',
-          });
-        }
-        predCur.setDate(predCur.getDate() + 1);
-      }
-    }
-  }
-
-  return map;
 }
 
 // ── Calendar component ────────────────────────────────────────────────────────
@@ -550,7 +399,12 @@ export default function CycleTrackerScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  // Shared with Home's day strip — one selection, not two independent
+  // pickers. Seeded from the shared store so arriving here after picking a
+  // day on Home opens with that same day already selected.
+  const sharedSelectedDate = useSelectedDateStore((s) => s.selectedDate);
+  const setSharedSelectedDate = useSelectedDateStore((s) => s.setSelectedDate);
+  const [selectedDate, setSelectedDate] = useState<string | null>(sharedSelectedDate);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -575,11 +429,18 @@ export default function CycleTrackerScreen() {
   }, [selectedDate, cycleMap]);
 
   const handleDayPress = useCallback((dateStr: string, _periodId: number | null) => {
-    setSelectedDate(prev => prev === dateStr ? null : dateStr);
-  }, []);
+    setSelectedDate(prev => {
+      const next = prev === dateStr ? null : dateStr;
+      // Deselecting locally (tap-to-toggle-off) doesn't clear the shared
+      // selection — Home's day strip always has SOME day selected, so
+      // there is nothing honest to hand it back to but the last real pick.
+      if (next) { setSharedSelectedDate(next); }
+      return next;
+    });
+  }, [setSharedSelectedDate]);
 
   if (isLoading && !refreshing) {
-    return <LoadingState fullScreen message="Loading cycle history…" />;
+    return <LoadingState fullScreen message="در حال بارگذاری تاریخچه‌ی چرخه…" />;
   }
 
   const partnerName =
@@ -618,7 +479,7 @@ export default function CycleTrackerScreen() {
         >
           <Icon name="account-heart-outline" size={18} color={colors.primary} />
           <Text style={[styles.partnerBannerText, { color: colors.textPrimary, fontSize: typography.sm }]}>
-            Viewing {partnerName}'s Cycle History
+            در حال مشاهده‌ی تاریخچه‌ی چرخه‌ی {partnerName}
           </Text>
         </View>
       )}
@@ -746,6 +607,7 @@ export default function CycleTrackerScreen() {
                       <TouchableOpacity
                         onPress={() => navigation.navigate('EditPeriod', { periodId: selectedPeriod.id })}
                         activeOpacity={0.75}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         style={[styles.iconEditBtn, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md }]}
                       >
                         <Icon name="pencil-outline" size={18} color={colors.primary} />
@@ -777,10 +639,10 @@ export default function CycleTrackerScreen() {
                         {selectedPeriod.period_duration > 0 && (
                           <View style={styles.durationPill}>
                             <Text style={[styles.durationValue, { color: colors.menstrual, fontSize: typography.lg }]}>
-                              {selectedPeriod.period_duration}
+                              {toFa(selectedPeriod.period_duration)}
                             </Text>
                             <Text style={[styles.durationUnit, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                              days
+                              روز
                             </Text>
                           </View>
                         )}
@@ -818,7 +680,7 @@ export default function CycleTrackerScreen() {
       {viewMode === 'list' && (
         <View>
           <Text style={[styles.listHeaderTitle, { color: colors.textPrimary, fontSize: typography.lg, marginBottom: spacing[3] }]}>
-            {isMaleWithPartner ? `${partnerName}'s Cycles` : 'Cycle History'}
+            {isMaleWithPartner ? `چرخه‌های ${partnerName}` : 'تاریخچه‌ی چرخه'}
           </Text>
 
           {periodList.length > 0 ? (
@@ -887,6 +749,7 @@ export default function CycleTrackerScreen() {
                         <TouchableOpacity
                           onPress={() => navigation.navigate('EditPeriod', { periodId: period.id })}
                           activeOpacity={0.75}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                           style={[styles.iconEditBtn, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md, marginTop: spacing[2] }]}
                         >
                           <Icon name="pencil-outline" size={17} color={colors.primary} />

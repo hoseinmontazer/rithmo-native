@@ -32,7 +32,7 @@ function PrefRow({
   onToggle: (key: keyof NotificationPreferences, v: boolean) => void;
   last?: boolean;
 }) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, borderRadius } = useTheme();
   return (
     <>
       <View style={[styles.prefRow, { paddingVertical: spacing[3] }]}>
@@ -42,7 +42,7 @@ function PrefRow({
             style={{
               width: 36,
               height: 36,
-              borderRadius: 10,
+              borderRadius: borderRadius.md,
               backgroundColor: colors.primaryLighter,
               alignItems: 'center',
               justifyContent: 'center',
@@ -69,7 +69,7 @@ function PrefRow({
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function SettingsScreen() {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, borderRadius } = useTheme();
   const { mode, setMode } = useThemeStore();
   const { data: prefs, isLoading } = useNotificationPreferences();
   const { mutate: savePrefs } = useSaveNotificationPreferences();
@@ -117,7 +117,7 @@ export default function SettingsScreen() {
               style={[
                 styles.themeOption,
                 {
-                  borderRadius: 12,
+                  borderRadius: borderRadius.md,
                   padding: spacing[3],
                   borderWidth: 1.5,
                   borderColor: mode === opt.value ? colors.primary : colors.border,

@@ -29,7 +29,7 @@ import icons, { type AppIconName } from '@assets/icons';
 import { useTheme } from '@hooks/useTheme';
 import { toFa } from '@utils/persian';
 import { track } from '@analytics';
-import { useSubmitActionFeedback } from '@hooks/queries/useIntelligence';
+import { useSubmitActionFeedback, useSetInsightAccuracy } from '@hooks/queries/useIntelligence';
 import type { GuidedAction, Helpfulness, Insight } from '@types/intelligence.types';
 
 /**
@@ -137,6 +137,7 @@ export const StoryCard = memo(function StoryCard({
   const { colors, typography, spacing, borderRadius } = useTheme();
   const [showEvidence, setShowEvidence] = useState(false);
   const { mutate: submitFeedback, isPending } = useSubmitActionFeedback();
+  const { mutate: setAccuracy, isPending: isAccuracyPending } = useSetInsightAccuracy();
 
   const feedback = action?.feedback ?? null;
   const isDone = feedback?.status === 'completed';
@@ -220,11 +221,16 @@ export const StoryCard = memo(function StoryCard({
       ]}
     >
       {/* Coloured top edge — see the note in AccrualLedger for why this is a
-          bled child rather than `borderTopColor`. */}
+          bled child rather than `borderTopColor`. Brand green, not the
+          generic `accent` (violet) token: violet has no meaning anywhere
+          else in the app's redesigned palette (AccrualLedger's amber
+          specifically signals "evidence still being gathered"; this card
+          has no such distinct semantic, so it takes the same primary the
+          rest of Home's headline elements use). */}
       <View
         style={{
           height: 3,
-          backgroundColor: colors.accent,
+          backgroundColor: colors.primary,
           marginTop: -spacing[4],
           marginHorizontal: -spacing[4],
           marginBottom: spacing[4],
@@ -321,6 +327,57 @@ export const StoryCard = memo(function StoryCard({
               >
                 این یک الگوست، نه تشخیص پزشکی.
               </Text>
+
+              {/* One real question, one real answer — not a running poll.
+                  `accurate` starts null (never asked); once the user
+                  answers, the server has a verdict and this stops asking. */}
+              {insight.accurate == null ? (
+                <View style={[styles.accuracyRow, { marginTop: spacing[3] }]}>
+                  <Text
+                    style={{ color: colors.textSecondary, fontSize: typography.caption, fontWeight: '600' }}
+                  >
+                    این الگو به تجربه‌ات می‌خوره؟
+                  </Text>
+                  <View style={styles.accuracyBtnRow}>
+                    <TouchableOpacity
+                      onPress={() => setAccuracy({ key: insight.key, accurate: true })}
+                      disabled={isAccuracyPending}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityRole="button"
+                      accessibilityLabel="آره، درست است"
+                      style={[
+                        styles.accuracyBtn,
+                        { backgroundColor: colors.primaryLighter, borderRadius: borderRadius.pill },
+                      ]}
+                    >
+                      <Text style={{ color: colors.primaryDark, fontSize: typography.caption, fontWeight: '700' }}>
+                        آره
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setAccuracy({ key: insight.key, accurate: false })}
+                      disabled={isAccuracyPending}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityRole="button"
+                      accessibilityLabel="نه، درست نیست"
+                      style={[
+                        styles.accuracyBtn,
+                        { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.pill },
+                      ]}
+                    >
+                      <Text style={{ color: colors.textSecondary, fontSize: typography.caption, fontWeight: '700' }}>
+                        نه
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <Text
+                  style={{ color: colors.textTertiary, fontSize: typography.caption, marginTop: spacing[3] }}
+                >
+                  {insight.accurate ? 'ممنون — این به بهتر شدن پیشنهادها کمک می‌کند.' : 'متوجه شدیم، ممنون از بازخوردت.'}
+                </Text>
+              )}
             </View>
           ) : null}
         </>
@@ -516,6 +573,9 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: 10, paddingVertical: 4 },
   whyBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   evidenceBox: { marginTop: 10 },
+  accuracyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  accuracyBtnRow: { flexDirection: 'row', gap: 8 },
+  accuracyBtn: { paddingHorizontal: 14, paddingVertical: 6 },
   evidenceRow: { flexDirection: 'row', justifyContent: 'space-between' },
   divider: { height: StyleSheet.hairlineWidth },
   actionHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },

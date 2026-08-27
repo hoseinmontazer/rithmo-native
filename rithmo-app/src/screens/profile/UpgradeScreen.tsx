@@ -26,7 +26,7 @@ import { GradientSurface } from '@components/ui';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
-import { screen } from '@theme/spacing';
+import { screen, borderRadius } from '@theme/spacing';
 import { useThemeStore } from '@store/themeStore';
 import { getBrandGradient } from '@theme/brand';
 import { useSubscription } from '@hooks/queries/useSubscription';
@@ -222,7 +222,7 @@ export default function UpgradeScreen() {
           paddingTop: screen.top,
           paddingBottom: screen.bottom,
         }}>
-          <GradientSurface colors={[goldFrom, goldTo]} borderRadius={20} style={styles.hero}>
+          <GradientSurface colors={[goldFrom, goldTo]} borderRadius={borderRadius.xl} style={styles.hero}>
             <View style={[styles.heroIcon, { backgroundColor: 'rgba(255,255,255,0.22)' }]}>
               <Icon name="crown" size={28} color="#FFF8EC" />
             </View>
@@ -260,7 +260,7 @@ export default function UpgradeScreen() {
         {/* ── Hero (gold) ─────────────────────────────────────────── */}
         <GradientSurface
           colors={[goldFrom, goldTo]}
-          borderRadius={20}
+          borderRadius={borderRadius.xl}
           style={styles.hero}
         >
           <View style={[styles.heroIcon, { backgroundColor: 'rgba(255,255,255,0.22)' }]}>
@@ -371,7 +371,7 @@ export default function UpgradeScreen() {
         <GradientSurface
           colors={[goldFrom, goldTo]}
           diagonal={false}
-          borderRadius={16}
+          borderRadius={borderRadius.lg}
           style={[styles.ctaBtn, { opacity: loading ? 0.7 : 1 }]}
         >
           <TouchableOpacity
@@ -421,19 +421,19 @@ export default function UpgradeScreen() {
 
 const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  retryBtn: { marginTop: 16, paddingHorizontal: 20, paddingVertical: 11, borderRadius: 12 },
+  retryBtn: { marginTop: 16, paddingHorizontal: 20, paddingVertical: 11, borderRadius: borderRadius.md },
   root:           { flex: 1 },
   hero:           { padding: 24, alignItems: 'center', marginBottom: spacing24(), gap: 10 },
-  heroIcon:       { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  heroIcon:       { width: 56, height: 56, borderRadius: borderRadius.lg, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   heroTitle:      { fontWeight: '900', textAlign: 'center' },
   heroSub:        { color: 'rgba(255,248,236,0.85)', fontSize: 13, textAlign: 'center', lineHeight: 20 },
   sectionLabel:   { fontWeight: '800', letterSpacing: 0.4, marginBottom: 10, marginTop: 20 },
-  card:           { borderRadius: 16, borderWidth: 1, overflow: 'hidden', marginBottom: 4 },
+  card:           { borderRadius: borderRadius.lg, borderWidth: 1, overflow: 'hidden', marginBottom: 4 },
   featureRow:     { flexDirection: 'row', alignItems: 'flex-start', padding: 14 },
-  featureIconBubble: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  featureIconBubble: { width: 36, height: 36, borderRadius: borderRadius.md, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   freeRow:        { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14 },
-  planCard:       { borderRadius: 16, borderWidth: 2, padding: 16, alignItems: 'center', position: 'relative', minHeight: 120, justifyContent: 'center' },
-  planBadge:      { position: 'absolute', top: -10, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  planCard:       { borderRadius: borderRadius.lg, borderWidth: 2, padding: 16, alignItems: 'center', position: 'relative', minHeight: 120, justifyContent: 'center' },
+  planBadge:      { position: 'absolute', top: -10, paddingHorizontal: 8, paddingVertical: 3, borderRadius: borderRadius.sm },
   ctaBtn:         { paddingVertical: 18, alignItems: 'center', justifyContent: 'center' },
 });
 

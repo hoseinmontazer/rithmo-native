@@ -6,11 +6,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  Alert,
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { Button, Input } from '@components/ui';
 import { authService } from '@api/services/authService';
@@ -38,6 +38,8 @@ export default function RegisterScreen() {
   });
   const [errors, setErrors] = useState<Partial<typeof form>>({});
   const [loading, setLoading] = useState(false);
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [registered, setRegistered] = useState(false);
 
   const set = useCallback((key: keyof typeof form, value: string) => {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -57,20 +59,17 @@ export default function RegisterScreen() {
 
   const handleRegister = useCallback(async () => {
     if (!validate()) {return;}
+    setRegisterError(null);
     setLoading(true);
     try {
       await authService.register(form);
-      Alert.alert(
-        'حساب کاربری ساخته شد',
-        'برای فعال‌سازی حساب، ایمیلت را بررسی کن.',
-        [{ text: 'ورود', onPress: () => navigation.navigate('Login') }],
-      );
+      setRegistered(true);
     } catch (err) {
-      Alert.alert('ثبت‌نام ناموفق بود', extractErrorMessage(err));
+      setRegisterError(extractErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, [form, validate, navigation]);
+  }, [form, validate]);
 
   const CARD_RADIUS = borderRadius['3xl'];
 
@@ -211,9 +210,42 @@ export default function RegisterScreen() {
           })}
         </View>
 
+        {registered ? (
+          <View
+            style={[
+              styles.successCard,
+              { backgroundColor: colors.primaryLighter, borderRadius: borderRadius['2xl'], padding: spacing[4], marginBottom: spacing[4] },
+            ]}
+          >
+            <Icon name="check-circle-outline" size={20} color={colors.primary} />
+            <Text style={{ color: colors.textPrimary, fontSize: typography.sm, marginLeft: spacing[2], flex: 1 }}>
+              حساب کاربری ساخته شد. برای فعال‌سازی، ایمیلت را بررسی کن.
+            </Text>
+          </View>
+        ) : registerError ? (
+          <View
+            style={[
+              styles.errorCard,
+              {
+                backgroundColor: colors.clayBg,
+                borderColor: colors.clayBorder,
+                borderWidth: 1,
+                borderRadius: borderRadius.md,
+                padding: spacing[3],
+                marginBottom: spacing[4],
+              },
+            ]}
+          >
+            <Icon name="alert-circle-outline" size={16} color={colors.clay} />
+            <Text style={{ color: colors.clay, fontSize: typography.sm, marginLeft: spacing[2], flex: 1 }}>
+              {registerError}
+            </Text>
+          </View>
+        ) : null}
+
         <Button
-          label="ساخت حساب کاربری"
-          onPress={handleRegister}
+          label={registered ? 'رفتن به ورود' : 'ساخت حساب کاربری'}
+          onPress={registered ? () => navigation.navigate('Login') : handleRegister}
           loading={loading}
           fullWidth
           size="lg"
@@ -244,4 +276,6 @@ const styles = StyleSheet.create({
   formScroll: { flexGrow: 1 },
   sexRow:     { flexDirection: 'row' },
   sexOption:  {},
+  successCard: { flexDirection: 'row', alignItems: 'center' },
+  errorCard:   { flexDirection: 'row', alignItems: 'center' },
 });

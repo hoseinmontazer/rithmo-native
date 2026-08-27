@@ -498,6 +498,7 @@ function LogEffectivenessModal({ target, onClose, onSubmit, loading }: LogModalP
                 key={score}
                 onPress={() => onSubmit(score)}
                 disabled={loading}
+                hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                 style={[
                   styles.scoreBtn,
                   {
@@ -588,7 +589,7 @@ export default function MedicationsScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: spacing[4], paddingBottom: spacing[12] }}
+        contentContainerStyle={{ paddingHorizontal: screen.gutter, paddingTop: screen.top, paddingBottom: screen.bottomTab }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
@@ -621,7 +622,7 @@ export default function MedicationsScreen() {
         {medLoading ? (
           <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing[4] }} />
         ) : activeMeds.length === 0 ? (
-          <Card elevated={false} style={{ padding: spacing[6], alignItems: 'center', marginBottom: spacing[4] }}>
+          <Card elevated={false} rounded="2xl" style={{ padding: spacing[6], alignItems: 'center', marginBottom: spacing[4] }}>
             {/* `pill-off` is not a MaterialCommunityIcons glyph — it rendered as a
                 missing-character box and logged a prop-type warning. The empty state
                 is already carried by the copy below; the plain `pill` in tertiary
@@ -635,7 +636,7 @@ export default function MedicationsScreen() {
           activeMeds.map((med) => {
             const medName = med.custom_name || (med as any).medication_name || 'دارو';
             return (
-              <Card key={med.id} elevated={false} style={{ marginBottom: spacing[3], padding: spacing[4] }}>
+              <Card key={med.id} elevated={false} rounded="2xl" style={{ marginBottom: spacing[3], padding: spacing[4] }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing[2] }}>
                   <View style={{ flex: 1, paddingRight: spacing[2] }}>
                     <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700' }}>
@@ -703,14 +704,14 @@ export default function MedicationsScreen() {
         {logsLoading ? (
           <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing[3] }} />
         ) : (logs ?? []).length === 0 ? (
-          <Card elevated={false} style={{ padding: spacing[3], alignItems: 'center', marginBottom: spacing[3] }}>
+          <Card elevated={false} rounded="2xl" style={{ padding: spacing[3], alignItems: 'center', marginBottom: spacing[3] }}>
             <Text style={{ color: colors.textSecondary, fontSize: typography.xs }}>
               هنوز مصرف دارویی ثبت نشده است.
             </Text>
           </Card>
         ) : (
           (logs ?? []).slice(0, 4).map((log) => (
-            <Card key={log.id} elevated={false} style={{ marginBottom: spacing[2], padding: spacing[3] }}>
+            <Card key={log.id} elevated={false} rounded="2xl" style={{ marginBottom: spacing[2], padding: spacing[3] }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View>
                   <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '600' }}>
@@ -733,14 +734,14 @@ export default function MedicationsScreen() {
           یادآورهای فعال
         </Text>
         {(reminders ?? []).length === 0 ? (
-          <Card elevated={false} style={{ padding: spacing[3], alignItems: 'center', marginBottom: spacing[3] }}>
+          <Card elevated={false} rounded="2xl" style={{ padding: spacing[3], alignItems: 'center', marginBottom: spacing[3] }}>
             <Text style={{ color: colors.textSecondary, fontSize: typography.xs }}>
               یادآوری تنظیم نشده است.
             </Text>
           </Card>
         ) : (
           (reminders ?? []).map((r) => (
-            <Card key={r.id} elevated={false} style={{ marginBottom: spacing[2], padding: spacing[3] }}>
+            <Card key={r.id} elevated={false} rounded="2xl" style={{ marginBottom: spacing[2], padding: spacing[3] }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View>
                   <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '600' }}>
@@ -765,7 +766,7 @@ export default function MedicationsScreen() {
             {inactiveMeds.map((med) => {
               const medName = med.custom_name || (med as any).medication_name || 'دارو';
               return (
-                <Card key={med.id} elevated={false} style={{ marginBottom: spacing[2], padding: spacing[3], opacity: 0.6 }}>
+                <Card key={med.id} elevated={false} rounded="2xl" style={{ marginBottom: spacing[2], padding: spacing[3], opacity: 0.6 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '600' }}>
                       {medName}

@@ -39,6 +39,9 @@ export interface Insight {
   first_seen?: string;
   times_seen?: number;
   peak_confidence?: InsightConfidence;
+  /** The user's own verdict on whether this matches their real experience.
+   * `null` = not yet asked/answered — distinct from a dismiss (hard hide). */
+  accurate?: boolean | null;
 }
 
 export type ActionSlot = 'primary' | 'supporting' | 'reflection';

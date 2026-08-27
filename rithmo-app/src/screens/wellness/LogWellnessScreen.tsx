@@ -19,11 +19,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { toFa } from '@utils/persian';
 import { useTheme } from '@hooks/useTheme';
 import { screen } from '@theme/spacing';
 import { useCreateOrUpdateWellnessLog, useWellnessLog } from '@hooks/queries/useWellness';
-import { Button, Input, Card } from '@components/ui';
+import { Button, Input, Card, SliderMetric } from '@components/ui';
 import { extractErrorMessage } from '@utils/errorHandler';
 import type { WellnessScreenProps } from '@navigation/types';
 
@@ -31,154 +30,6 @@ type Props = WellnessScreenProps<'LogWellness'>;
 
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
-
-// ── Slider metric component ───────────────────────────────────────────────────
-
-interface SliderMetricProps {
-  icon: string;
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (v: number) => void;
-  iconColor: string;
-  unit?: string;
-  step?: number;
-}
-
-function SliderMetric({
-  icon,
-  label,
-  value,
-  min,
-  max,
-  onChange,
-  iconColor,
-  unit,
-  step = 1,
-}: SliderMetricProps) {
-  const { colors, spacing, typography, borderRadius } = useTheme();
-  const [trackWidth, setTrackWidth] = useState(0);
-
-  const handleTouch = (event: any) => {
-    if (trackWidth === 0) {return;}
-    const locationX = event.nativeEvent.locationX;
-    const percentage = Math.max(0, Math.min(1, locationX / trackWidth));
-    const rawValue = min + percentage * (max - min);
-    const newValue = Math.round(rawValue / step) * step;
-    onChange(Math.max(min, Math.min(max, newValue)));
-  };
-
-  const handleDecrement = () => {
-    onChange(Math.max(min, value - step));
-  };
-
-  const handleIncrement = () => {
-    onChange(Math.min(max, value + step));
-  };
-
-  const percentage = max > min ? ((value - min) / (max - min)) * 100 : 0;
-
-  return (
-    <View style={{ marginBottom: spacing[4] }}>
-      <View style={styles.metricHeaderRow}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-          <View style={[styles.metricIconWrap, { backgroundColor: iconColor + '18', borderRadius: borderRadius.sm }]}>
-            <Icon name={icon} size={18} color={iconColor} />
-          </View>
-          <Text style={[styles.metricLabelText, { color: colors.textPrimary, fontSize: typography.sm, marginLeft: spacing[2] }]}>
-            {label}
-          </Text>
-        </View>
-
-        {/* Value badge + quick stepper */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <TouchableOpacity
-            onPress={handleDecrement}
-            disabled={value <= min}
-            style={[
-              styles.stepBtn,
-              {
-                backgroundColor: colors.surfaceSecondary,
-                borderColor: colors.border,
-                borderRadius: borderRadius.sm,
-                opacity: value <= min ? 0.3 : 1,
-              },
-            ]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Icon name="minus" size={14} color={colors.textSecondary} />
-          </TouchableOpacity>
-
-          <View style={[styles.metricValueBadge, { backgroundColor: iconColor + '18', borderRadius: borderRadius.md }]}>
-            {/* Persian digits: this badge is the number the user reads for
-                every metric on the form, and it was rendering Latin. */}
-            <Text style={[styles.metricValueText, { color: iconColor, fontSize: typography.sm }]}>
-              {toFa(value)}{unit ? ` ${unit}` : ''}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            onPress={handleIncrement}
-            disabled={value >= max}
-            style={[
-              styles.stepBtn,
-              {
-                backgroundColor: colors.surfaceSecondary,
-                borderColor: colors.border,
-                borderRadius: borderRadius.sm,
-                opacity: value >= max ? 0.3 : 1,
-              },
-            ]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Icon name="plus" size={14} color={colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Interactive slider track */}
-      <View
-        style={[styles.sliderTrack, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.pill }]}
-        onStartShouldSetResponder={() => true}
-        onResponderGrant={handleTouch}
-        onResponderMove={handleTouch}
-        onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
-      >
-        <View
-          style={[
-            styles.sliderFill,
-            {
-              width: `${percentage}%`,
-              backgroundColor: iconColor,
-              borderRadius: borderRadius.pill,
-            },
-          ]}
-        />
-        <View
-          style={[
-            styles.sliderThumb,
-            {
-              left: `${percentage}%`,
-              backgroundColor: iconColor,
-              borderRadius: borderRadius.pill,
-              borderColor: colors.surface,
-            },
-          ]}
-        />
-      </View>
-
-      <View style={styles.rangeLabelsRow}>
-        <Text style={[styles.rangeLabelText, { color: colors.textTertiary, fontSize: typography.xs }]}>
-          {min}
-        </Text>
-        <Text style={[styles.rangeLabelText, { color: colors.textTertiary, fontSize: typography.xs }]}>
-          {max}
-        </Text>
-      </View>
-    </View>
-  );
-}
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
@@ -270,6 +121,7 @@ export default function LogWellnessScreen() {
             </View>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={[
                 styles.closeBtn,
                 {
@@ -285,7 +137,7 @@ export default function LogWellnessScreen() {
           </View>
 
           {/* ── Section 1: Mental Wellness ───────────────────────────── */}
-          <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+          <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[4], padding: spacing[4] }}>
             <View style={styles.sectionHeader}>
               <Icon name="brain" size={20} color={colors.luteal} />
               <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, marginLeft: spacing[2] }]}>
@@ -340,7 +192,7 @@ export default function LogWellnessScreen() {
           </Card>
 
           {/* ── Section 2: Physical Health ───────────────────────────── */}
-          <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+          <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[4], padding: spacing[4] }}>
             <View style={styles.sectionHeader}>
               <Icon name="arm-flex" size={20} color={colors.ovulation} />
               <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, marginLeft: spacing[2] }]}>
@@ -391,7 +243,7 @@ export default function LogWellnessScreen() {
           </Card>
 
           {/* ── Section 3: Lifestyle & Sleep ─────────────────────────── */}
-          <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+          <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[4], padding: spacing[4] }}>
             <View style={styles.sectionHeader}>
               <Icon name="weather-night" size={20} color={colors.primary} />
               <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, marginLeft: spacing[2] }]}>
@@ -445,7 +297,7 @@ export default function LogWellnessScreen() {
           </Card>
 
           {/* ── Section 4: Notes ─────────────────────────────────────── */}
-          <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+          <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[4], padding: spacing[4] }}>
             <View style={styles.sectionHeader}>
               <Icon name="note-text-outline" size={20} color={colors.primary} />
               <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, marginLeft: spacing[2] }]}>
@@ -521,65 +373,5 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontWeight: '700',
-  },
-
-  metricHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  metricIconWrap: {
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  metricLabelText: {
-    fontWeight: '600',
-  },
-  metricValueBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    minWidth: 44,
-    alignItems: 'center',
-  },
-  metricValueText: {
-    fontWeight: '700',
-  },
-  stepBtn: {
-    width: 26,
-    height: 26,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  sliderTrack: {
-    height: 6,
-    width: '100%',
-    position: 'relative',
-    marginVertical: 6,
-  },
-  sliderFill: {
-    height: '100%',
-    position: 'absolute',
-    left: 0,
-    top: 0,
-  },
-  sliderThumb: {
-    width: 18,
-    height: 18,
-    position: 'absolute',
-    top: -6,
-    borderWidth: 2,
-    marginLeft: -9,
-  },
-  rangeLabelsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  rangeLabelText: {
-    fontWeight: '500',
   },
 });

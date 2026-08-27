@@ -18,6 +18,7 @@ import {
   usePeriods,
 } from '@hooks/queries/usePeriods';
 import { useProfile } from '@hooks/queries/useProfile';
+import { usePregnancyStatus } from '@hooks/queries/usePregnancy';
 import { Card, LoadingState, ErrorState, Badge, Icon, Button } from '@components/ui';
 import { confidenceLabel, phaseDescription as phaseDescriptionFa } from '@i18n';
 import { track } from '@analytics';
@@ -33,6 +34,15 @@ export default function CycleAnalysisScreen() {
   const isMale = profile?.sex === 'male';
   const hasPartner = (profile?.partners?.length ?? 0) > 0;
   const isMaleWithPartner = isMale && hasPartner;
+
+  // Pregnancy — the predictions below are NOT pregnancy-aware (same reason
+  // ai_gateway/context.py refuses to build an AI context during pregnancy):
+  // they are cycle_tracker's ordinary prediction machinery, which the
+  // product suspends elsewhere but not inside this query. Never let them
+  // render silently for a pregnant user; the honest state is a pause
+  // notice, not a stale "period in 12 days" fabrication.
+  const { data: pregnancy } = usePregnancyStatus();
+  const isPregnant = Boolean(pregnancy?.has_active_pregnancy);
 
   // Cycle analysis query
   const {
@@ -62,6 +72,8 @@ export default function CycleAnalysisScreen() {
     setRefreshing(false);
   }, [refetchA, refetchI, refetchPeriods]);
 
+  const apiData = (analysis as any)?.data || analysis;
+
   // Analytics must sit ABOVE the early returns below — a hook after a
   // conditional return changes hook order between renders.
   // Presence of data only: no phase, no cycle day, no dates.
@@ -80,7 +92,6 @@ export default function CycleAnalysisScreen() {
     return <ErrorState fullScreen error={aErr} onRetry={refetchA} />;
   }
 
-  const apiData = (analysis as any)?.data || analysis;
   const viewType = (analysis as any)?.view_type || 'self';
   const trackingMode = (apiData as any)?.tracking_mode;
   const isPartnerView =
@@ -203,8 +214,21 @@ export default function CycleAnalysisScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
     >
+      {/* ── Pregnancy pause notice — replaces cycle predictions, never
+          alongside them ─────────────────────────────────────────────── */}
+      {isPregnant && (
+        <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[4], padding: spacing[5], backgroundColor: colors.surfaceSecondary }}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.lg }]}>
+            پیش‌بینی چرخه موقتاً متوقف است
+          </Text>
+          <Text style={{ color: colors.textSecondary, fontSize: typography.sm, lineHeight: 20, marginTop: spacing[2] }}>
+            حالت بارداری روشن است. تاریخچهٔ چرخه‌های گذشته اینجا می‌ماند و ثبت روزانه ادامه دارد.
+          </Text>
+        </Card>
+      )}
+
       {/* ── Partner View Context Banner ────────────────────────────── */}
-      {isPartnerView && (
+      {!isPregnant && isPartnerView && (
         <View
           style={[
             styles.partnerBanner,
@@ -249,8 +273,8 @@ export default function CycleAnalysisScreen() {
       </View>
 
       {/* ── Current Cycle Overview ─────────────────────────────────── */}
-      {currentPhase && (
-        <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+      {!isPregnant && currentPhase && (
+        <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[4], padding: spacing[4] }}>
           <View style={styles.cardHeaderRow}>
             <View>
               <Text style={[styles.sectionOverline, { color: colors.textTertiary, fontSize: typography.xs }]}>
@@ -329,8 +353,8 @@ export default function CycleAnalysisScreen() {
       )}
 
       {/* ── Cycle Regularity ────────────────────────────────────────── */}
-      {apiData && (
-        <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+      {!isPregnant && apiData && (
+        <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[4], padding: spacing[4] }}>
           <Text style={[styles.sectionOverline, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[1] }]}>
             الگوها و پیش‌بینی‌پذیری
           </Text>
@@ -427,7 +451,7 @@ export default function CycleAnalysisScreen() {
 
       {/* ── Recent Periods (Summary) ─────────────────────────────────── */}
       {periods && Array.isArray(periods) && periods.length > 0 && (
-        <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+        <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[4], padding: spacing[4] }}>
           <View style={[styles.cardHeaderRow, { marginBottom: spacing[3] }]}>
             <View>
               <Text style={[styles.sectionOverline, { color: colors.textTertiary, fontSize: typography.xs }]}>
@@ -491,7 +515,7 @@ export default function CycleAnalysisScreen() {
 
       {/* ── AI Period Observations & Insights ──────────────────────── */}
       {insights && (insights as any).insights && (insights as any).insights.length > 0 && (
-        <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+        <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[4], padding: spacing[4] }}>
           <Text style={[styles.sectionOverline, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[1] }]}>
             درک هوشمند
           </Text>
@@ -523,7 +547,7 @@ export default function CycleAnalysisScreen() {
 
       {/* ── Partner Support Tips (for Partner View) ─────────────────── */}
       {isPartnerView && supportTips && supportTips.length > 0 && (
-        <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+        <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[4], padding: spacing[4] }}>
           <Text style={[styles.sectionOverline, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[1] }]}>
             راهنمای شریک
           </Text>
@@ -554,7 +578,7 @@ export default function CycleAnalysisScreen() {
 
       {/* ── Symptom Patterns ───────────────────────────────────────── */}
       {patterns && (patterns as any).patterns && (patterns as any).patterns.length > 0 && (
-        <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+        <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[4], padding: spacing[4] }}>
           <Text style={[styles.sectionOverline, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[1] }]}>
             همبستگی علائم
           </Text>
@@ -583,7 +607,7 @@ export default function CycleAnalysisScreen() {
 
       {/* ── Empty State ────────────────────────────────────────────── */}
       {!hasData && (
-        <Card elevated={false} style={{ padding: spacing[6], alignItems: 'center' }}>
+        <Card elevated={false} rounded="2xl" style={{ padding: spacing[6], alignItems: 'center' }}>
           <Text style={[styles.emptyStateText, { color: colors.textSecondary, fontSize: typography.base }]}>
             هنوز تحلیلی از چرخه در دسترس نیست.{'\n'}ثبت اولین دوره‌ات بینش‌ها را آشکار می‌کند.
           </Text>

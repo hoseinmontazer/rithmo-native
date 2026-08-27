@@ -5,7 +5,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  Alert,
   Dimensions,
   TouchableOpacity,
   Image,
@@ -13,6 +12,7 @@ import {
   Easing,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { useAuth } from '@hooks/useAuth';
 import { Button, Input, GradientBackground } from '@components/ui';
@@ -33,6 +33,11 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
   const [errors, setErrors]     = useState<{ username?: string; password?: string }>({});
+  // Auth failure is not a system-level interruption — a native OS dialog
+  // read as an alarming crash-report, not "wrong password". Shown inline,
+  // in the same warm clay tone the rest of the app uses for a predicted
+  // (not yet certain/harsh) state, never the harsh system-red `error` token.
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -114,7 +119,7 @@ export default function LoginScreen() {
   const handleLogin = useCallback(async () => {
     if (!validate()) {return;}
 
-    // Haptic feedback would go here if available
+    setLoginError(null);
     setLoading(true);
 
     try {
@@ -129,7 +134,11 @@ export default function LoginScreen() {
         Animated.timing(slideAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
       ]).start();
 
-      Alert.alert('ورود ناموفق بود', extractErrorMessage(err));
+      // Password cleared, username kept — the spec's rule for a failed
+      // attempt ("email is kept"), applied to this app's real identity
+      // field.
+      setPassword('');
+      setLoginError(extractErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -361,6 +370,27 @@ export default function LoginScreen() {
           containerStyle={{ marginBottom: spacing[2] }}
         />
 
+        {loginError ? (
+          <View
+            style={[
+              styles.errorCard,
+              {
+                backgroundColor: colors.clayBg,
+                borderColor: colors.clayBorder,
+                borderWidth: 1,
+                borderRadius: borderRadius.md,
+                padding: spacing[3],
+                marginBottom: spacing[3],
+              },
+            ]}
+          >
+            <Icon name="alert-circle-outline" size={16} color={colors.clay} />
+            <Text style={{ color: colors.clay, fontSize: typography.sm, marginLeft: spacing[2], flex: 1 }}>
+              {loginError}
+            </Text>
+          </View>
+        ) : null}
+
         {/* Forgot password */}
         <TouchableOpacity
           onPress={() => navigation.navigate('ForgotPassword')}
@@ -436,6 +466,7 @@ const styles = StyleSheet.create({
   formTitle:    {},
   formSubtitle: {},
   forgotBtn:    { alignSelf: 'flex-end' },
+  errorCard:    { flexDirection: 'row', alignItems: 'center' },
   dividerRow:   { flexDirection: 'row', alignItems: 'center' },
   dividerLine:  { flex: 1, height: 1 },
 });

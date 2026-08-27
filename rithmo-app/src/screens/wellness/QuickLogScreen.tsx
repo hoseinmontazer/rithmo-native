@@ -34,7 +34,7 @@ import {
   useWellnessStreaks,
 } from '@hooks/queries/useWellness';
 import { usePeriods, useCycleAnalysis } from '@hooks/queries/usePeriods';
-import { Button, Card, Badge, CelebrationAnimation, AppIcon } from '@components/ui';
+import { Button, Card, Badge, CelebrationAnimation, AppIcon, SliderMetric } from '@components/ui';
 import { extractErrorMessage } from '@utils/errorHandler';
 import { toFa, faDate } from '@utils/persian';
 import { track } from '@analytics';
@@ -98,8 +98,6 @@ const PAIN_OPTIONS: RatingOption[] = [
   { value: 3, label: 'زیاد', shortLabel: '۳', iconName: 'alert-circle-outline' },
   { value: 4, label: 'خیلی زیاد', shortLabel: '۴', iconName: 'alert-octagon-outline' },
 ];
-
-const SLEEP_OPTIONS = [4, 5, 6, 7, 8, 9, 10];
 
 // Canonical codes + Persian labels, shared with the server's vocabulary.
 // This screen used to hold its own private list of raw Persian display
@@ -562,20 +560,21 @@ export default function QuickLogScreen() {
             </View>
           </Card>
 
-          {/* ── Energy + Pain ───────────────────────────────────────── */}
+          {/* ── Energy: continuous slider, live label ──────────────────
+              Pain stays a discrete picker — it already matches the design
+              mockup's own spec (labeled 0–4 buttons), and its steps are
+              genuinely discrete/named, not a continuous quantity the way
+              energy is. */}
           <Card elevated={false} style={{ padding: spacing[4], marginBottom: spacing[6] }}>
-            {/* One selection colour for every scale on this screen.
-                Mood and symptoms already selected in brand green while energy
-                selected in violet and pain in rose, so a single interaction —
-                "this is the step I chose" — spoke three different colours on
-                one screen. Section identity is carried by the heading and the
-                artwork; it must not be carried by the selection state. */}
-            <RatingPicker
+            <SliderMetric
+              icon="lightning-bolt-outline"
               label="انرژی"
-              options={ENERGY_OPTIONS}
               value={energy}
+              min={1}
+              max={5}
               onChange={setEnergy}
-              accentColor={colors.primary}
+              iconColor={colors.primary}
+              unit={ENERGY_OPTIONS[energy - 1]?.label}
             />
 
             <RatingPicker
@@ -587,48 +586,43 @@ export default function QuickLogScreen() {
             />
           </Card>
 
-          {/* ── Sleep (promoted — core field, not hidden) ───────────── */}
-          <View style={{ marginBottom: spacing[6] }}>
-            <Text style={[styles.sectionSubtitle, { color: colors.textPrimary, fontSize: textRoles.cardTitle.fontSize, fontWeight: textRoles.cardTitle.fontWeight, lineHeight: textRoles.cardTitle.lineHeight, marginBottom: spacing[2] }]}>
-              خواب دیشب (ساعت)
-            </Text>
-            <View style={[styles.chipWrap, { gap: spacing[2] }]}>
-              {SLEEP_OPTIONS.map(h => {
-                const sel = h === sleep;
-                return (
-                  <TouchableOpacity
-                    key={h}
-                    onPress={() => setSleep(h)}
-                    activeOpacity={0.7}
-                    style={[
-                      styles.sleepChip,
-                      {
-                        borderRadius: borderRadius.pill,
-                        backgroundColor: sel ? colors.primary + '18' : colors.surfaceSecondary,
-                        borderColor: sel ? colors.primary : colors.border,
-                        borderWidth: sel ? 1.5 : 1,
-                      },
-                    ]}
-                    accessibilityLabel={`خواب ${toFa(h)} ساعت`}
-                    accessibilityState={{ selected: sel }}
-                  >
-                    <Text
-                      style={[
-                        styles.sleepChipText,
-                        {
-                          color: sel ? colors.primary : colors.textSecondary,
-                          fontSize: typography.xs,
-                          fontWeight: sel ? '700' : '500',
-                        },
-                      ]}
-                    >
-                      {toFa(h)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+          {/* ── Sleep: +/- stepper, half-hour steps ─────────────────── */}
+          <Card elevated={false} style={{ padding: spacing[4], marginBottom: spacing[6] }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ color: colors.textPrimary, fontSize: textRoles.cardTitle.fontSize, fontWeight: textRoles.cardTitle.fontWeight }}>
+                خواب دیشب
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                <TouchableOpacity
+                  onPress={() => setSleep(s => Math.max(3, Math.round((s - 0.5) * 2) / 2))}
+                  disabled={sleep <= 3}
+                  style={[
+                    styles.sleepStepBtn,
+                    { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.pill, opacity: sleep <= 3 ? 0.4 : 1 },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="کاهش ساعت خواب"
+                >
+                  <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '500' }}>−</Text>
+                </TouchableOpacity>
+                <Text style={{ color: colors.textPrimary, fontSize: typography.lg, fontWeight: '700', minWidth: 64, textAlign: 'center' }}>
+                  {toFa(sleep)} ساعت
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setSleep(s => Math.min(12, Math.round((s + 0.5) * 2) / 2))}
+                  disabled={sleep >= 12}
+                  style={[
+                    styles.sleepStepBtn,
+                    { backgroundColor: colors.primaryLighter, borderRadius: borderRadius.pill, opacity: sleep >= 12 ? 0.4 : 1 },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="افزایش ساعت خواب"
+                >
+                  <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '500' }}>+</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          </Card>
 
           {/* ── Symptom chips (with emoji) ──────────────────────────── */}
           <View style={{ marginBottom: spacing[6] }}>
@@ -811,15 +805,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
-  sleepChip: {
-    minWidth: 40,
+  sleepStepBtn: {
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-  },
-  sleepChipText: {
-    textAlign: 'center',
   },
   symptomChip: {
     minHeight: 34,

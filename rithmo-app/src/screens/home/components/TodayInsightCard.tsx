@@ -36,6 +36,20 @@ const KIND_ICON: Record<string, AppIconName> = {
 };
 
 /**
+ * A small label naming what KIND of finding this is, shown above the title
+ * — the same role the "الگوی تکرارشده / تغییر بین چرخه‌ها / رابطهٔ نشانه‌ها"
+ * kicker plays in the "Rhythmo App" design mockup. Derived from the same
+ * `insight.kind` the server already sends, not a new classification: no
+ * mockup label exists for a kind the engine cannot actually produce (there
+ * is no "long-term trend" rule today), so only the three real kinds get one.
+ */
+const KIND_KICKER_FA: Record<string, string> = {
+  phase:     'الگوی تکرارشده',
+  deviation: 'تغییر بین چرخه‌ها',
+  symptom:   'رابطهٔ نشانه‌ها',
+};
+
+/**
  * Confidence gets a colour, but never a "high/low" framing — the words the
  * server sends ("نشانه‌ی اولیه", "الگوی تثبیت‌شده") already describe how
  * much history is behind the claim, which is the thing the user needs.
@@ -121,6 +135,13 @@ interface Props {
   learningMode: boolean;
   isLoading?: boolean;
   onSeeAll?: () => void;
+  /**
+   * Light-green fill, no shadow, no border — for visual rhythm in a stacked
+   * list of these cards (the "Rhythmo App" mockup fills exactly the second
+   * card of four this way). Home only ever shows one card, so it never
+   * passes this.
+   */
+  filled?: boolean;
 }
 
 export const TodayInsightCard = memo(function TodayInsightCard({
@@ -128,18 +149,21 @@ export const TodayInsightCard = memo(function TodayInsightCard({
   learningMode,
   isLoading,
   onSeeAll,
+  filled = false,
 }: Props) {
   const { colors, typography, borderRadius, shadow } = useTheme();
   const [showEvidence, setShowEvidence] = useState(false);
 
   const cardStyle = [
     styles.card,
-    {
-      backgroundColor: colors.surface,
-      borderColor: colors.border,
-      borderRadius: borderRadius.xl,
-      ...shadow.xs,
-    },
+    filled
+      ? { backgroundColor: colors.primaryLighter, borderColor: 'transparent', borderRadius: borderRadius.xl }
+      : {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+          borderRadius: borderRadius.xl,
+          ...shadow.xs,
+        },
   ];
 
   if (isLoading) {
@@ -182,9 +206,15 @@ export const TodayInsightCard = memo(function TodayInsightCard({
 
   const tone = confidenceColor(insight.confidence, colors);
   const iconName = KIND_ICON[insight.kind] ?? 'wellness';
+  const kicker = KIND_KICKER_FA[insight.kind];
 
   return (
     <View style={cardStyle}>
+      {kicker ? (
+        <Text style={{ color: colors.primary, fontSize: typography.overline, fontWeight: '600', marginBottom: 6 }}>
+          {kicker}
+        </Text>
+      ) : null}
       <View style={styles.headRow}>
         <View
           style={[

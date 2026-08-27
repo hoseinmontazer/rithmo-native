@@ -124,3 +124,18 @@ export function useDismissInsight() {
     },
   });
 }
+
+export function useSetInsightAccuracy() {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { key: string; accurate: boolean },
+    Error,
+    { key: string; accurate: boolean }
+  >({
+    mutationFn: ({ key, accurate }) => intelligenceService.setInsightAccuracy(key, accurate),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.all() });
+    },
+  });
+}

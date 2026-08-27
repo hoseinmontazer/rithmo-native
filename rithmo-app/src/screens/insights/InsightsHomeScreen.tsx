@@ -311,12 +311,14 @@ export default function InsightsHomeScreen() {
               insights.map((ins, i) => (
                 <Reveal key={ins.key} delay={i * 60}>
                   {/* Same card as Home, so the evidence behind a claim is
-                      always one tap away wherever the claim appears. */}
-                  <TodayInsightCard insight={ins} learningMode={learningMode} />
+                      always one tap away wherever the claim appears. The
+                      second card in the stack is filled green, matching
+                      the mockup's rhythm treatment for a list of these. */}
+                  <TodayInsightCard insight={ins} learningMode={learningMode} filled={i === 1} />
                 </Reveal>
               ))
             ) : (
-              <Card elevated={false} style={{ padding: spacing[4] }}>
+              <Card elevated={false} rounded="2xl" style={{ padding: spacing[4] }}>
                 <Text style={{ color: colors.textSecondary, fontSize: typography.bodySmall, lineHeight: 20 }}>
                   هنوز الگوی قابل‌اعتمادی پیدا نشده. با ثبت روزانه — و تکمیل چند چرخه — الگوهای شخصی‌ات اینجا ظاهر می‌شوند.
                 </Text>
@@ -337,7 +339,7 @@ export default function InsightsHomeScreen() {
               </Text>
             </View>
 
-            <Card elevated={false} style={{ padding: spacing[4] }}>
+            <Card elevated={false} rounded="2xl" style={{ padding: spacing[4] }}>
               <AvgMetricRow label="خواب"   value={avg.sleep_hours  ?? null} max={10} color={colors.primary}         iconName="weather-night" />
               <AvgMetricRow label="خلق"    value={avg.mood_level   ?? null} max={5}  color={colors.luteal}          iconName="emoticon-outline" />
               <AvgMetricRow label="انرژی"  value={avg.energy_level ?? null} max={10} color={colors.ovulation}       iconName="lightning-bolt-outline" />
@@ -361,7 +363,7 @@ export default function InsightsHomeScreen() {
 
             <View style={[styles.tileRow, { gap: spacing[3] }]}>
               {/* Avg length tile */}
-              <Card elevated={false} style={[styles.regularityTile, { padding: spacing[4] }]}>
+              <Card elevated={false} rounded="2xl" style={[styles.regularityTile, { padding: spacing[4] }]}>
                 <Text style={[styles.overLine, { color: colors.luteal, fontSize: typography.xs, marginBottom: spacing[1] }]}>
                   متوسط
                 </Text>
@@ -374,7 +376,7 @@ export default function InsightsHomeScreen() {
               </Card>
 
               {/* Regularity score tile */}
-              <Card elevated={false} style={[styles.regularityTile, { padding: spacing[4] }]}>
+              <Card elevated={false} rounded="2xl" style={[styles.regularityTile, { padding: spacing[4] }]}>
                 <Text style={[styles.overLine, { color: colors.follicular, fontSize: typography.xs, marginBottom: spacing[1] }]}>
                   انتظام
                 </Text>
@@ -419,6 +421,7 @@ export default function InsightsHomeScreen() {
         >
           <Card
             elevated={false}
+            rounded="2xl"
             style={[
               styles.ctaCard,
               {
@@ -429,7 +432,7 @@ export default function InsightsHomeScreen() {
             ]}
           >
             <View style={styles.ctaHeaderRow}>
-              <Badge label="✦ ویژه پریمیوم" variant="primary" />
+              <Badge label="ویژه پریمیوم" variant="primary" />
               <Icon name="arrow-left" size={18} color={colors.premium} />
             </View>
 

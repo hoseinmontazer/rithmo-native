@@ -46,6 +46,14 @@ export const intelligenceService = {
       )
       .then((r) => unwrap<{ key: string; dismissed: boolean }>(r)),
 
+  setInsightAccuracy: (key: string, accurate: boolean) =>
+    apiClient
+      .post(
+        `${API_ENDPOINTS.INTELLIGENCE_INSIGHT_DISMISS}${encodeURIComponent(key)}/accuracy/`,
+        { accurate },
+      )
+      .then((r) => unwrap<{ key: string; accurate: boolean }>(r)),
+
   submitFeedback: (
     actionId: number,
     status: ActionStatus,

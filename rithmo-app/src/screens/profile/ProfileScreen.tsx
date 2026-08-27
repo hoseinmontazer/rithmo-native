@@ -22,8 +22,11 @@ import { screen } from '@theme/spacing';
 import { useAuth } from '@hooks/useAuth';
 import { useProfile } from '@hooks/queries/useProfile';
 import { useSubscription } from '@hooks/queries/useSubscription';
+import { usePregnancyStatus } from '@hooks/queries/usePregnancy';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { LoadingState, ErrorState, Divider } from '@components/ui';
+import { LoadingState, ErrorState, Divider, GradientSurface, PressScale } from '@components/ui';
+import { useThemeStore } from '@store/themeStore';
+import { getBrandGradient } from '@theme/brand';
 import { PROFILE_ICONS, ICON_SIZE, ACTION_ICONS } from '@design-system/iconography';
 import { toFa, faDateShort } from '@utils/persian';
 import type { ProfileScreenProps } from '@navigation/types';
@@ -81,7 +84,7 @@ function MenuRow({
   danger?: boolean;
   last?: boolean;
 }) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, borderRadius } = useTheme();
   const textColor = danger ? colors.error : colors.textPrimary;
 
   return (
@@ -98,7 +101,7 @@ function MenuRow({
           style={{
             width: 44,
             height: 44,
-            borderRadius: 13,
+            borderRadius: borderRadius.md,
             backgroundColor: accentColor + '18',
             alignItems: 'center',
             justifyContent: 'center',
@@ -146,13 +149,13 @@ function StatPill({
   value: string;
   accent: string;
 }) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, borderRadius } = useTheme();
   return (
     <View
       style={{
         flex: 1,
         backgroundColor: accent + '12',
-        borderRadius: 16,
+        borderRadius: borderRadius.lg,
         paddingVertical: spacing[3],
         paddingHorizontal: spacing[2],
         alignItems: 'center',
@@ -192,13 +195,13 @@ function SectionHeader({ label }: { label: string }) {
 
 /** Card container */
 function MenuCard({ children }: { children: React.ReactNode }) {
-  const { colors, spacing } = useTheme();
+  const { colors, spacing, borderRadius } = useTheme();
   return (
     <View
       style={{
         marginHorizontal: spacing[5],
         backgroundColor: colors.surface,
-        borderRadius: 20,
+        borderRadius: borderRadius.xl,
         overflow: 'hidden',
         paddingHorizontal: spacing[4],
         shadowColor: colors.shadowColor,
@@ -217,10 +220,13 @@ function MenuCard({ children }: { children: React.ReactNode }) {
 
 export default function ProfileScreen() {
   const navigation = useNavigation<Props['navigation']>();
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, borderRadius } = useTheme();
   const { user, logout } = useAuth();
   const { data: profile, isLoading, isError, error, refetch } = useProfile();
   const { data: premium } = useSubscription();
+  const { data: pregnancy } = usePregnancyStatus();
+  const isDark = useThemeStore((s) => s.isDark);
+  const { premiumGreenFrom, premiumGreenTo } = getBrandGradient(isDark);
   // Hoisted above the early returns below — hooks must run in the same
   // order on every render.
   const { isPartner } = useRole();
@@ -287,7 +293,7 @@ export default function ProfileScreen() {
           style={{
             width: 96,
             height: 96,
-            borderRadius: 48,
+            borderRadius: borderRadius.pill,
             backgroundColor: colors.primaryDark,
             alignItems: 'center',
             justifyContent: 'center',
@@ -319,7 +325,7 @@ export default function ProfileScreen() {
           style={{
             marginTop: spacing[3],
             backgroundColor: colors.primaryLighter,
-            borderRadius: 20,
+            borderRadius: borderRadius.xl,
             paddingHorizontal: spacing[4],
             paddingVertical: spacing[1],
             // Row + gap rather than a directional margin: the layout is RTL,
@@ -371,6 +377,104 @@ export default function ProfileScreen() {
         </View>
       </View>
 
+      {/* ── Premium (gold moment) — its own gradient card, not a menu row,
+          matching the "Rhythmo App" mockup's premium card treatment. Placed
+          right after the hero, same as the mockup, rather than buried in
+          the section stack. ─────────────────────────────────────────── */}
+      <PressScale
+        onPress={() => navigation.navigate('Upgrade', {})}
+        accessibilityRole="button"
+        accessibilityLabel={premium?.is_active ? 'مدیریت اشتراک پریمیوم' : 'ارتقاء به پریمیوم'}
+        style={{ marginHorizontal: spacing[5] }}
+      >
+        <GradientSurface colors={[premiumGreenFrom, premiumGreenTo]} borderRadius={borderRadius['2xl']} style={{ padding: spacing[5] }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing[3] }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.textOnDark, fontSize: typography.base, fontWeight: '800' }}>
+                ریتمو پریمیوم
+              </Text>
+              <Text style={{ color: colors.textOnDark, opacity: 0.85, fontSize: typography.xs, marginTop: spacing[1], lineHeight: 18 }}>
+                {premium?.is_active
+                  ? (premium.current_period_end
+                      ? `طرح ${planLabel(premium.plan)} · فعال تا ${faDateShort(premium.current_period_end)}`
+                      : `طرح ${planLabel(premium.plan)} · فعال`)
+                  : 'بازتاب روزانه، حالت بارداری و الگوهای بلندمدت.'}
+              </Text>
+            </View>
+            <View
+              style={{
+                paddingHorizontal: spacing[4],
+                paddingVertical: spacing[2],
+                borderRadius: borderRadius.pill,
+                backgroundColor: 'rgba(255,255,255,0.18)',
+                minHeight: 40,
+                justifyContent: 'center',
+              }}
+            >
+              <Text style={{ color: colors.textOnDark, fontSize: typography.sm, fontWeight: '700' }}>
+                {premium?.is_active ? 'مدیریت' : 'فعال‌سازی'}
+              </Text>
+            </View>
+          </View>
+        </GradientSurface>
+      </PressScale>
+
+      {/* ── Pregnancy (premium) — a real toggle switch, matching the mockup's
+          treatment, but it opens the real Pregnancy flow rather than firing
+          an instant on/off: turning it on needs a starting date to compute
+          the week from, which a bare toggle has no way to collect, and
+          turning it off is a real deactivation the setup/status screen
+          already handles correctly. The switch shows the true current
+          state; it just doesn't pretend one tap is the whole action. ───── */}
+      <SectionHeader label="بارداری" />
+      <MenuCard>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Pregnancy')}
+          activeOpacity={0.72}
+          style={[styles.menuRow, { paddingVertical: spacing[4] }]}
+          accessibilityRole="button"
+          accessibilityLabel={pregnancy?.has_active_pregnancy
+            ? `حالت بارداری روشن است، هفتهٔ ${toFa(pregnancy.gestational_week ?? 0)}`
+            : 'حالت بارداری خاموش است'}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '600' }}>
+              حالت بارداری
+            </Text>
+            <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2, lineHeight: 16 }}>
+              {pregnancy?.has_active_pregnancy
+                ? `روشن — هفتهٔ ${toFa(pregnancy.gestational_week ?? 0)}`
+                : 'خاموش — پیش‌بینی چرخه فعال است'}
+            </Text>
+          </View>
+          <View
+            style={{
+              width: 58,
+              height: 32,
+              borderRadius: borderRadius.pill,
+              backgroundColor: pregnancy?.has_active_pregnancy ? colors.primary : colors.border,
+              padding: 3,
+              flexDirection: 'row',
+              justifyContent: pregnancy?.has_active_pregnancy ? 'flex-start' : 'flex-end',
+            }}
+          >
+            <View
+              style={{
+                width: 26,
+                height: 26,
+                borderRadius: borderRadius.pill,
+                backgroundColor: colors.surface,
+                shadowColor: colors.shadowColor,
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.18,
+                shadowRadius: 4,
+                elevation: 2,
+              }}
+            />
+          </View>
+        </TouchableOpacity>
+      </MenuCard>
+
       {/* ── Partner ────────────────────────────────────────────────────── */}
       <SectionHeader label="شریک" />
       <MenuCard>
@@ -383,7 +487,7 @@ export default function ProfileScreen() {
                     style={{
                       width: 44,
                       height: 44,
-                      borderRadius: 22,
+                      borderRadius: borderRadius.pill,
                       backgroundColor: colors.follicular + '20',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -400,7 +504,7 @@ export default function ProfileScreen() {
                       {p.email}
                     </Text>
                   </View>
-                  <View style={{ backgroundColor: colors.success + '18', borderRadius: 8, paddingHorizontal: spacing[2], paddingVertical: 3 }}>
+                  <View style={{ backgroundColor: colors.success + '18', borderRadius: borderRadius.sm, paddingHorizontal: spacing[2], paddingVertical: 3 }}>
                     <Text style={{ color: colors.success, fontSize: typography.overline, fontWeight: '800' }}>ارتباط فعال</Text>
                   </View>
                 </View>
@@ -442,17 +546,16 @@ export default function ProfileScreen() {
         )}
       </MenuCard>
 
-      {/* ── Account ────────────────────────────────────────────────────── */}
-      {/* ── Logging & history ──────────────────────────────────────────
-          These two screens have working, tested backends but no way in.
-          WellnessDashboard lost its entry when F-02 removed Home's
-          «روزهای اخیر» strip; Medications never had one. Restored as rows
-          on the existing account hub rather than as a new navigation
-          paradigm — one discoverable entry each, nothing more. */}
-      {isCycleOwner && (
-        <>
-          <SectionHeader label="ثبت و تاریخچه" />
-          <MenuCard>
+      {/* ── Settings — one dense list, not five separate section+card
+          blocks. Every real destination from the old Account / Logging &
+          history / Support / Session sections is still one tap away; they
+          just no longer each carry their own header and card, which was
+          the actual source of the "messy" read against the mockup's single
+          compact settings list. ─────────────────────────────────────── */}
+      <SectionHeader label="تنظیمات" />
+      <MenuCard>
+        {isCycleOwner && (
+          <>
             <MenuRow
               icon={PROFILE_ICONS.history}
               label="تاریخچه سلامت"
@@ -466,14 +569,9 @@ export default function ProfileScreen() {
               sub="یادآور و سابقه‌ی مصرف"
               accentColor={colors.luteal}
               onPress={() => navigation.navigate('LogTab' as never, { screen: 'Medications' } as never)}
-              last
             />
-          </MenuCard>
-        </>
-      )}
-
-      <SectionHeader label="حساب" />
-      <MenuCard>
+          </>
+        )}
         <MenuRow
           icon={PROFILE_ICONS.editProfile}
           label="ویرایش پروفایل"
@@ -494,106 +592,14 @@ export default function ProfileScreen() {
           sub="اعلان‌ها، ظاهر برنامه و ترجیحات"
           accentColor={colors.follicular}
           onPress={() => navigation.navigate('Settings')}
-          last
         />
-      </MenuCard>
-
-      {/* ── Premium (gold moment) ─────────────────────────────────────── */}
-      <SectionHeader label="اشتراک" />
-      <MenuCard>
-        {premium && premium.is_active ? (
-          <MenuRow
-            icon={PROFILE_ICONS.premium}
-            label={`پریمیوم — ${planLabel(premium.plan)}`}
-            sub={premium.current_period_end
-              ? `فعال تا ${faDateShort(premium.current_period_end)}`
-              : 'فعال'}
-            accentColor={colors.premium}
-            onPress={() => navigation.navigate('Upgrade', {})}
-            last
-          />
-        ) : (
-          <View style={{ paddingVertical: spacing[3] }}>
-            {/* The WHOLE card is the target.
-                It used to be a plain View with only the small «ارتقاء»
-                label wrapped in a Touchable — a ~40x16pt hit area, far
-                under the 48dp minimum. Tapping the obvious place (the
-                card) did nothing, so the only route to subscribing was
-                effectively unreachable. */}
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate('Upgrade', {})}
-              accessibilityRole="button"
-              accessibilityLabel="ارتقاء به پریمیوم"
-              style={{
-                backgroundColor: colors.premiumBg,
-                borderColor: colors.premiumBorder,
-                borderWidth: 1,
-                borderRadius: 16,
-                padding: spacing[4],
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
-            >
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 13,
-                  backgroundColor: colors.premium + '22',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginRight: spacing[3],
-                }}
-              >
-                <Icon name={PROFILE_ICONS.premium} size={ICON_SIZE.lg} color={colors.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700' }}>
-                  اشتراک پریمیوم
-                </Text>
-                <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2, lineHeight: 16 }}>
-                  بینش عمیق، همبستگی‌ها و مقایسه هفتگی — همه از داده‌های خودت محاسبه‌شده
-                </Text>
-              </View>
-              {/* Affordance only — the card itself carries the press. */}
-              <Text style={{ color: colors.premium, fontSize: typography.xs, fontWeight: '800' }}>
-                ارتقاء
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </MenuCard>
-
-      {/* ── Pregnancy (premium) ───────────────────────────────────────── */}
-      <SectionHeader label="بارداری" />
-      <MenuCard>
-        <MenuRow
-          icon={PROFILE_ICONS.pregnancy}
-          label="بارداری"
-          sub="هفته و روز بارداری، سه‌ماهه و تاریخ تخمینی زایمان"
-          accentColor={colors.premium}
-          onPress={() => navigation.navigate('Pregnancy')}
-          last
-        />
-      </MenuCard>
-
-      {/* ── Support ───────────────────────────────────────────────────── */}
-      <SectionHeader label="پشتیبانی" />
-      <MenuCard>
         <MenuRow
           icon={PROFILE_ICONS.support}
           label="کمک و پشتیبانی"
           sub="صورتحساب، حریم خصوصی و مسائل شریک — سریع جواب می‌دهیم"
           accentColor={colors.warning}
           onPress={() => navigation.navigate('Support')}
-          last
         />
-      </MenuCard>
-
-      {/* ── Session ────────────────────────────────────────────────────── */}
-      <SectionHeader label="جلسه" />
-      <MenuCard>
         <MenuRow
           icon={PROFILE_ICONS.logout}
           label="خروج"
@@ -612,6 +618,18 @@ export default function ProfileScreen() {
           last
         />
       </MenuCard>
+
+      <Text
+        style={{
+          color: colors.textTertiary,
+          fontSize: typography.xs,
+          textAlign: 'center',
+          marginTop: spacing[4],
+          marginHorizontal: spacing[6],
+        }}
+      >
+        داده‌های تو روی دستگاه خودت رمزگذاری می‌شوند.
+      </Text>
     </ScrollView>
   );
 }

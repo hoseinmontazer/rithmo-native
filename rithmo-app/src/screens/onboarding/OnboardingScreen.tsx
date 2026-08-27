@@ -56,7 +56,7 @@ interface OptionItemProps {
 }
 
 function OptionItem({ label, icon, selected, onPress, accent, sub }: OptionItemProps) {
-  const { colors, typography } = useTheme();
+  const { colors, typography, borderRadius } = useTheme();
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -64,9 +64,10 @@ function OptionItem({ label, icon, selected, onPress, accent, sub }: OptionItemP
       style={[
         styles.option,
         {
-          backgroundColor: selected ? accent + '18' : colors.surface,
+          backgroundColor: selected ? colors.primaryLighter : colors.surface,
           borderColor: selected ? accent : colors.border,
           borderWidth: selected ? 2 : 1,
+          borderRadius: borderRadius.xl,
         },
       ]}
     >
@@ -90,7 +91,7 @@ function OptionItem({ label, icon, selected, onPress, accent, sub }: OptionItemP
         ) : null}
       </View>
       {selected && (
-        <View style={[styles.checkDot, { backgroundColor: accent }]}>
+        <View style={[styles.checkDot, { backgroundColor: accent, borderRadius: borderRadius.pill }]}>
           <Icon name="check" size={12} color={colors.textOnPrimary} />
         </View>
       )}
@@ -147,7 +148,7 @@ interface OnboardingScreenProps {
 }
 
 export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
-  const { colors, spacing, typography } = useTheme();
+  const { colors, spacing, typography, borderRadius } = useTheme();
   const { mutateAsync: createPeriod } = useCreatePeriod();
 
   const [role, setRole] = useState<OnboardingRole | null>(null);
@@ -434,7 +435,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
           <TouchableOpacity
             onPress={goToNextStep}
             disabled={step === 1 && role === null}
-            style={[styles.nextBtn, { backgroundColor: accent, opacity: step === 1 && role === null ? 0.45 : 1 }]}
+            style={[styles.nextBtn, { backgroundColor: accent, borderRadius: borderRadius.xl, opacity: step === 1 && role === null ? 0.45 : 1 }]}
             activeOpacity={0.87}
           >
             <Text style={[styles.nextBtnText, { color: colors.textOnPrimary, fontSize: typography.base }]}>
@@ -446,7 +447,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
           <TouchableOpacity
             onPress={handleComplete}
             disabled={saving}
-            style={[styles.nextBtn, { backgroundColor: accent, opacity: saving ? 0.6 : 1 }]}
+            style={[styles.nextBtn, { backgroundColor: accent, borderRadius: borderRadius.xl, opacity: saving ? 0.6 : 1 }]}
             activeOpacity={0.87}
           >
             <Text style={[styles.nextBtnText, { color: colors.textOnPrimary, fontSize: typography.base }]}>
@@ -487,9 +488,11 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   option: {
+    // Corner radius comes from the theme (borderRadius.xl) inline — the
+    // scale lives in one place, theme/spacing.ts, per the design-system
+    // contract test that pins it there.
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 4,
     paddingHorizontal: 16,
     paddingVertical: 14,
     gap: 12,
@@ -507,7 +510,6 @@ const styles = StyleSheet.create({
   checkDot: {
     width: 20,
     height: 20,
-    borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -515,7 +517,6 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   nextBtn: {
-    borderRadius: 4,
     paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',

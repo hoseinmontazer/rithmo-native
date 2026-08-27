@@ -32,3 +32,5 @@ export { SectionHeading }      from './SectionHeading';
 export { Reveal }              from './Reveal';
 export { MoodTimeline }        from './MoodTimeline';
 export { WellnessScoreRing }   from '../cycle/WellnessScoreRing';
+export { SliderMetric }        from './SliderMetric';
+export { PressScale }          from './PressScale';

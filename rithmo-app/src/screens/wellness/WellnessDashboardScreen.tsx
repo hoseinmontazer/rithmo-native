@@ -178,7 +178,7 @@ export default function WellnessDashboardScreen() {
   const avgEnergy = useMemo(() => mean(logsArr.map(l => l.energy_level).filter(e => e > 0)), [logsArr]);
 
   const renderItem = useCallback(({ item }: { item: WellnessLog }) => (
-    <Card elevated={false} style={{ marginBottom: spacing[3], padding: spacing[4] }}>
+    <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[3], padding: spacing[4] }}>
       <View style={styles.logHeader}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View style={[styles.dateDot, { backgroundColor: colors.primary }]} />
@@ -192,7 +192,7 @@ export default function WellnessDashboardScreen() {
           style={[styles.editBtn, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.sm }]}
           accessibilityLabel="ویرایش گزارش سلامت"
         >
-          <Icon name="pencil-outline" size={14} color={colors.textSecondary} />
+          <Icon name="pencil-outline" size={ICON_SIZE.xs} color={colors.textSecondary} />
           <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginLeft: 4, fontWeight: '600' }}>
             ویرایش
           </Text>
@@ -203,7 +203,7 @@ export default function WellnessDashboardScreen() {
       <View style={[styles.chipsRow, { gap: spacing[2], marginVertical: spacing[3] }]}>
         {item.sleep_hours > 0 && (
           <View style={[styles.metricChip, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md }]}>
-            <Icon name="weather-night" size={14} color={colors.primary} />
+            <Icon name="weather-night" size={ICON_SIZE.xs} color={colors.primary} />
             <Text style={[styles.metricChipText, { color: colors.textPrimary, fontSize: typography.xs }]}>
               {toFa(item.sleep_hours)} ساعت خواب
             </Text>
@@ -211,14 +211,14 @@ export default function WellnessDashboardScreen() {
         )}
 
         <View style={[styles.metricChip, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md }]}>
-          <Icon name="emoticon-outline" size={14} color={colors.luteal} />
+          <Icon name="emoticon-outline" size={ICON_SIZE.xs} color={colors.luteal} />
           <Text style={[styles.metricChipText, { color: colors.textPrimary, fontSize: typography.xs }]}>
             خلق {toFa(mood5(item.mood_level) ?? 3)}/۵
           </Text>
         </View>
 
         <View style={[styles.metricChip, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md }]}>
-          <Icon name="lightning-bolt-outline" size={14} color={colors.ovulation} />
+          <Icon name="lightning-bolt-outline" size={ICON_SIZE.xs} color={colors.ovulation} />
           <Text style={[styles.metricChipText, { color: colors.textPrimary, fontSize: typography.xs }]}>
             انرژی {toFa(item.energy_level)}/۱۰
           </Text>
@@ -226,7 +226,7 @@ export default function WellnessDashboardScreen() {
 
         {item.pain_level != null && item.pain_level > 0 && (
           <View style={[styles.metricChip, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md }]}>
-            <Icon name="pill" size={14} color={colors.menstrual} />
+            <Icon name="pill" size={ICON_SIZE.xs} color={colors.menstrual} />
             <Text style={[styles.metricChipText, { color: colors.textPrimary, fontSize: typography.xs }]}>
               درد {toFa(item.pain_level)}/۱۰
             </Text>
@@ -299,7 +299,7 @@ export default function WellnessDashboardScreen() {
                   دایره: خلق · خط: درد
                 </Text>
               </View>
-              <Card elevated={false} style={{ padding: spacing[4] }}>
+              <Card elevated={false} rounded="2xl" style={{ padding: spacing[4] }}>
                 <MoodTimeline logs={logsArr} days={30} showPain />
               </Card>
             </View>
@@ -311,7 +311,7 @@ export default function WellnessDashboardScreen() {
                 <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.lg, marginBottom: spacing[3] }]}>
                   رایج‌ترین علائم — {toFa(windowDays)} روز اخیر
                 </Text>
-                <Card elevated={false} style={{ padding: spacing[4] }}>
+                <Card elevated={false} rounded="2xl" style={{ padding: spacing[4] }}>
                   {symptomTrends.map(t => (
                     <SymptomTrendBar
                       key={t.name}
@@ -330,7 +330,7 @@ export default function WellnessDashboardScreen() {
             <Reveal delay={160}>
               <View style={[styles.tileRow, { gap: spacing[2], marginBottom: spacing[5] }]}>
                 {avgSleep !== null && (
-                  <Card elevated={false} style={{ flex: 1, padding: 12 }}>
+                  <Card elevated={false} rounded="2xl" style={{ flex: 1, padding: 12 }}>
                     <Text style={[styles.avgValue, { color: colors.textPrimary, fontSize: typography.xl }]}>
                       {toFa(avgSleep.toFixed(1))}
                     </Text>
@@ -340,7 +340,7 @@ export default function WellnessDashboardScreen() {
                   </Card>
                 )}
                 {avgMood !== null && (
-                  <Card elevated={false} style={{ flex: 1, padding: 12 }}>
+                  <Card elevated={false} rounded="2xl" style={{ flex: 1, padding: 12 }}>
                     <View style={styles.avgValueRow}>
                       <Icon
                         name={moodIcon(mood5(avgMood) ?? 3)}
@@ -357,7 +357,7 @@ export default function WellnessDashboardScreen() {
                   </Card>
                 )}
                 {avgEnergy !== null && (
-                  <Card elevated={false} style={{ flex: 1, padding: 12 }}>
+                  <Card elevated={false} rounded="2xl" style={{ flex: 1, padding: 12 }}>
                     <Text style={[styles.avgValue, { color: colors.textPrimary, fontSize: typography.xl }]}>
                       {toFa(avgEnergy.toFixed(1))}
                     </Text>

@@ -181,7 +181,7 @@ function InsufficientDataCard({ logCount }: { logCount: number }) {
   const pct = Math.min(1, Math.max(0, logCount / MIN_LOGS_FOR_CORRELATIONS));
 
   return (
-    <Card elevated={false} style={{ padding: spacing[4] }}>
+    <Card elevated={false} rounded="2xl" style={{ padding: spacing[4] }}>
       <View style={[styles.row, { marginBottom: spacing[3] }]}>
         <View style={[styles.iconBubble, { backgroundColor: colors.primary + '18', borderRadius: borderRadius.md }]}>
           <Icon name="chart-timeline-variant" size={22} color={colors.primary} />
@@ -310,7 +310,7 @@ export default function DeepInsightsScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['left', 'right', 'bottom']}>
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: spacing[4], paddingBottom: spacing[20] }}
+        contentContainerStyle={{ paddingHorizontal: screen.gutter, paddingTop: screen.top, paddingBottom: screen.bottom }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -319,6 +319,7 @@ export default function DeepInsightsScreen() {
         {/* ── Hero ───────────────────────────────────────────────────── */}
         <Card
           elevated={false}
+          rounded="2xl"
           style={[
             styles.heroCard,
             {
@@ -350,7 +351,7 @@ export default function DeepInsightsScreen() {
               title="این هفته در برابر هفته‌ی قبل"
               sub="میانگین هفت روز اخیر با هفته‌ی قبل مقایسه شده"
             />
-            <Card elevated={false} style={{ paddingHorizontal: spacing[4], paddingVertical: spacing[2] }}>
+            <Card elevated={false} rounded="2xl" style={{ paddingHorizontal: spacing[4], paddingVertical: spacing[2] }}>
               {comparisonRows.map((row, i) => (
                 <ComparisonMetric key={row.label} row={row} isLast={i === comparisonRows.length - 1} />
               ))}
@@ -368,13 +369,13 @@ export default function DeepInsightsScreen() {
           {!hasEnoughData ? (
             <InsufficientDataCard logCount={logCount} />
           ) : correlationRows.length === 0 ? (
-            <Card elevated={false} style={{ alignItems: 'center', paddingVertical: spacing[6] }}>
+            <Card elevated={false} rounded="2xl" style={{ alignItems: 'center', paddingVertical: spacing[6] }}>
               <Text style={{ color: colors.textSecondary, fontSize: typography.sm, textAlign: 'center', lineHeight: 20 }}>
                 هنوز همبستگی معناداری پیدا نشده. ادامه بده ثبت کنی تا الگوها ظاهر شوند.
               </Text>
             </Card>
           ) : (
-            <Card elevated={false} style={{ padding: spacing[4] }}>
+            <Card elevated={false} rounded="2xl" style={{ padding: spacing[4] }}>
               {correlationRows.map((row, i) => (
                 <CorrelationRow key={`${row.title}-${i}`} row={row} isLast={i === correlationRows.length - 1} />
               ))}
@@ -386,6 +387,7 @@ export default function DeepInsightsScreen() {
         {hasEnoughData && correlationRows.length > 0 && (
           <Card
             elevated={false}
+            rounded="2xl"
             style={[
               styles.explainerCard,
               {

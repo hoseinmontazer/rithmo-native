@@ -1,30 +1,26 @@
 /**
  * HomeScreen — one story, not a stack of cards.
  *
- * Four sections, in descending weight:
+ * Sections, in descending weight:
  *
- *   CONTEXT   flat strip     — where am I
- *   STORY     elevated card  — what was noticed, why, and what to do
+ *   HERO      ring card       — where am I (cycle day / gestational week)
+ *   MOOD      quick-pick card — a one-tap real write, not a route
+ *   REFLECTION premium card   — today's AI reflection (renders nothing if unavailable)
+ *   STORY     elevated card   — what was noticed, why, and what to do
  *   SECONDARY collapsed rows — optional, subordinate
  *   ACCRUAL   quiet card     — what is known, what is nearly known
  *
- * What changed and why (F-02):
+ * Retuned to the "Rhythmo App" design mockup (warm/green palette — see
+ * theme/colors.ts) while preserving F-02's actual lesson, not just its
+ * layout: the old quick-action row was removed because it and the card
+ * below it BOTH navigated to QuickLog — two routes to one screen. The mood
+ * row here is not that: picking a mood is a real, immediate write
+ * (useCreateOrUpdateWellnessLog, see MoodQuickPick), never a navigation.
+ * "ثبت کامل روز" is still the only route into the full logger.
  *
- * - **Insight and action are one card.** They were two cards of equal
- *   weight, so the user had to infer that the recommendation came from the
- *   observation — and that inference is the whole product claim. See
- *   StoryCard.
- * - **Context is a strip, not a card.** Home opened with two elevated
- *   elements competing to be the headline, the first of which carried
- *   generic wellness advice true of everyone.
- * - **Secondary actions collapsed.** Three identical cards put six CTAs on
- *   one screen; nothing was primary because everything looked primary.
- * - **The quick-action row is gone.** «ثبت امروز» duplicated the reflection
- *   action 200px below it, and both went to QuickLog — which is also the
- *   centre tab. Three routes to one screen.
- * - **Accrual added.** The loop broke at feedback: logging produced no
- *   visible consequence. The evidence ledger is the answer to "why log
- *   again", and every number in it is real.
+ * Context (cycle day / phase / prediction) is no longer a separate flat
+ * strip — it is now the hero ring card's content (see HeroRingCard), so
+ * there is exactly one headline element, not two competing for it.
  *
  * Data: ONE query. `/api/intelligence/today/` already carries cycle context,
  * insight, actions, evidence and baselines, so the separate
@@ -52,12 +48,12 @@ import { useToday } from '@hooks/queries/useIntelligence';
 import { usePregnancyStatus } from '@hooks/queries/usePregnancy';
 import type { HomeScreenProps } from '@navigation/types';
 import type { GuidedAction } from '@types/intelligence.types';
-import { getBrandGradient } from '@theme/brand';
 import { textRoles } from '@theme/typography';
-import { spacing as spacingScale, screen } from '@theme/spacing';
+import { screen } from '@theme/spacing';
 import { toFa, faDate } from '@utils/persian';
+import { todayISO } from '@utils/dateUtils';
+import { useSelectedDateStore } from '@store/selectedDateStore';
 import {
-  GradientSurface,
   ErrorState,
   ContextSkeleton,
   StoryCardSkeleton,
@@ -65,12 +61,12 @@ import {
   Reveal,
 } from '@components/ui';
 import { track } from '@analytics';
-import { CycleContextStrip } from './components/CycleContextStrip';
-import { PregnancyContextStrip } from './components/PregnancyContextStrip';
 import { StoryCard } from './components/StoryCard';
 import { SecondaryActions } from './components/SecondaryActions';
 import { AccrualLedger } from './components/AccrualLedger';
 import { DailyReflectionCard } from './components/DailyReflectionCard';
+import { HeroRingCard } from './components/HeroRingCard';
+import { MoodQuickPick } from './components/MoodQuickPick';
 
 type Props = HomeScreenProps<'Home'>;
 
@@ -96,9 +92,8 @@ function SectionLabel({ children }: { children: string }) {
 
 export default function HomeScreen() {
   const navigation = useNavigation<Props['navigation']>();
-  const { colors, spacing, borderRadius, isDark } = useTheme();
+  const { colors, spacing, borderRadius } = useTheme();
   const { user } = useAuth();
-  const gradient = getBrandGradient(isDark);
 
   const { data: profile, refetch: refetchProfile } = useProfile();
   const shouldFetch = profile !== undefined;
@@ -123,6 +118,12 @@ export default function HomeScreen() {
   // ── Derived ───────────────────────────────────────────────────────────────
   const state = today?.state ?? null;
   const learningMode = today?.learning_mode ?? false;
+
+  // Shared with the day strip and the Cycle tab — one selection everywhere.
+  const selectedDate = useSelectedDateStore((s) => s.selectedDate);
+  const todayStr = todayISO();
+  const isFutureSelected = selectedDate > todayStr;
+  const isPastSelected = selectedDate < todayStr;
 
   const { primaryAction, secondaryActions } = useMemo(() => {
     const actions: GuidedAction[] = today?.actions ?? [];
@@ -216,97 +217,97 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* ── Header ────────────────────────────────────────────────── */}
-        <GradientSurface
-          colors={[gradient.heroFrom, gradient.heroTo]}
-          borderRadius={borderRadius['2xl']}
-          style={styles.hero}
-        >
-          <View style={styles.heroTopRow}>
-            {/* The hero gradient is dark in BOTH themes, so its foreground is
-                `textOnDark` at a reduced opacity rather than an rgba literal —
-                the literal was theme-blind and sat outside the palette. */}
+        {/* ── Header — plain, no dark banner ─────────────────────────── */}
+        <View style={styles.headerRow}>
+          <View style={styles.headerTextCol}>
+            <Text
+              style={[
+                styles.greeting,
+                { color: colors.textPrimary, fontSize: textRoles.screenTitle.fontSize, lineHeight: textRoles.screenTitle.lineHeight },
+              ]}
+            >
+              {userName ? `سلام، ${userName}` : 'سلام'}
+            </Text>
             <Text
               style={{
-                color: colors.textOnDark,
-                opacity: 0.75,
-                fontSize: textRoles.caption.fontSize,
-                fontWeight: '600',
+                color: colors.textTertiary,
+                fontSize: textRoles.bodyCompact.fontSize,
+                lineHeight: textRoles.bodyCompact.lineHeight,
+                marginTop: 3,
               }}
             >
               {dateStr}
             </Text>
-            <TouchableOpacity
-              onPress={goToNotifications}
-              style={[styles.bellBtn, { borderRadius: borderRadius.lg }]}
-              accessibilityRole="button"
-              accessibilityLabel={`اعلان‌ها${unreadCount > 0 ? `، ${toFa(unreadCount)} خوانده‌نشده` : ''}`}
-            >
-              <Icon name="bell-outline" size={20} color={colors.textOnDark} />
-              {unreadCount > 0 ? (
-                <View
-                  style={[
-                    styles.unreadDot,
-                    { backgroundColor: colors.menstrual, borderColor: gradient.heroTo },
-                  ]}
-                />
-              ) : null}
-            </TouchableOpacity>
           </View>
-          {/* Text alone. It carried a 🌸 emoji, then an icon in its place;
-              neither earned the space beside someone's own name. */}
-          <Text
-            style={[
-              styles.greeting,
-              {
-                color: colors.textOnDark,
-                fontSize: textRoles.screenTitle.fontSize,
-                lineHeight: textRoles.screenTitle.lineHeight,
-              },
-            ]}
+          <TouchableOpacity
+            onPress={goToNotifications}
+            style={[styles.bellBtn, { backgroundColor: colors.primaryLighter, borderRadius: borderRadius.pill }]}
+            accessibilityRole="button"
+            accessibilityLabel={`اعلان‌ها${unreadCount > 0 ? `، ${toFa(unreadCount)} خوانده‌نشده` : ''}`}
           >
-            {userName ? `سلام، ${userName}` : 'سلام'}
-          </Text>
-          <Text
-            style={{
-              color: colors.textOnDark,
-              opacity: 0.75,
-              fontSize: textRoles.bodyCompact.fontSize,
-              lineHeight: textRoles.bodyCompact.lineHeight,
-              marginTop: 4,
-            }}
-          >
-            {learningMode ? 'هنوز در حال شناختن الگوی توام' : 'امروز چه چیزی مهم است'}
-          </Text>
-        </GradientSurface>
+            <Icon name="bell-outline" size={20} color={colors.primaryDark} />
+            {unreadCount > 0 ? (
+              <View
+                style={[
+                  styles.unreadDot,
+                  { backgroundColor: colors.menstrual, borderColor: colors.primaryLighter },
+                ]}
+              />
+            ) : null}
+          </TouchableOpacity>
+        </View>
 
-        {/* ── 1. Context — flat strip ───────────────────────────────── */}
-        <View
-          style={[
-            styles.contextWrap,
-            { borderBottomColor: colors.borderSubtle, marginBottom: spacing[4] },
-          ]}
-        >
-          {todayLoading ? (
-            <ContextSkeleton />
-          ) : pregnancy?.has_active_pregnancy ? (
-            <PregnancyContextStrip pregnancy={pregnancy} onPress={goToPregnancy} />
-          ) : (
-            <CycleContextStrip
+        {/* ── 1. Hero — cycle/pregnancy ring, the SELECTED day's fact ─── */}
+        {todayLoading ? (
+          <ContextSkeleton />
+        ) : (
+          <View style={{ marginTop: spacing[4] }}>
+            <HeroRingCard
               cycle={state?.cycle}
-              onPress={goToCycle}
+              pregnancy={pregnancy}
+              onPress={pregnancy?.has_active_pregnancy ? goToPregnancy : goToCycle}
               onStartTracking={goToLogPeriod}
+            />
+          </View>
+        )}
+
+        {/* ── 2. Quick mood pick + full log ───────────────────────────── */}
+        {/* Selecting a day beyond today on the strip swaps the mood card
+            for a one-line notice — logging only ever applies to a real day
+            that happened, never a future one. Selecting a PAST day keeps
+            the card, retitled, so an earlier day can still be logged/edited. */}
+        <View style={{ marginTop: spacing[4] }}>
+          {isFutureSelected ? (
+            <View style={{ paddingHorizontal: spacing[1] }}>
+              <Text style={{ color: colors.textTertiary, fontSize: textRoles.bodyCompact.fontSize, lineHeight: textRoles.bodyCompact.lineHeight }}>
+                برای روزهای آینده ثبت انجام نمی‌شود.
+              </Text>
+            </View>
+          ) : (
+            <MoodQuickPick
+              onGoFullLog={goToQuickLog}
+              title={isPastSelected ? 'آن روز چطور بود؟' : 'امروز چطوری؟'}
+              writeTarget={isPastSelected ? 'other' : 'today'}
             />
           )}
         </View>
 
-        {/* ── 2. The story ──────────────────────────────────────────── */}
+        {/* Smallest possible Premium AI surface — renders nothing at all
+            when not premium/available, so it never affects free users or
+            the AI-unavailable case. See DailyReflectionCard's header. */}
+        <View style={{ marginTop: spacing[4] }}>
+          <DailyReflectionCard />
+        </View>
+
+        {/* ── 3. The story — insight + the action it produced ─────────── */}
         {todayLoading ? (
-          <StoryCardSkeleton />
+          <View style={{ marginTop: spacing[4] }}>
+            <StoryCardSkeleton />
+          </View>
         ) : todayError ? (
-          /* Section-scoped failure: the header, context and everything
-             below stay on screen. A single failed query must not blank
-             the whole of Home. */
+          /* Section-scoped failure: the header, hero and everything below
+             stay on screen. A single failed query must not blank all of
+             Home. */
           <View
             style={[
               styles.errorWrap,
@@ -314,13 +315,14 @@ export default function HomeScreen() {
                 backgroundColor: colors.surface,
                 borderColor: colors.border,
                 borderRadius: borderRadius.xl,
+                marginTop: spacing[4],
               },
             ]}
           >
             <ErrorState error={'مشکلی در بارگذاری پیش آمد'} onRetry={refetchToday} />
           </View>
         ) : (
-          <Reveal>
+          <Reveal style={{ marginTop: spacing[4] }}>
             <StoryCard
               insight={today?.primary_insight ?? null}
               action={primaryAction}
@@ -330,7 +332,7 @@ export default function HomeScreen() {
           </Reveal>
         )}
 
-        {/* ── 3. Secondary actions — subordinate rows ───────────────── */}
+        {/* ── 4. Secondary actions — subordinate rows ───────────────── */}
         {!todayLoading && secondaryActions.length > 0 ? (
           <Reveal delay={60}>
             <View style={{ marginTop: spacing[6] }}>
@@ -340,7 +342,7 @@ export default function HomeScreen() {
           </Reveal>
         ) : null}
 
-        {/* ── 4. Accrual — the reason to come back ──────────────────── */}
+        {/* ── 5. Accrual — the reason to come back ──────────────────── */}
         {/* Staggered at 120ms so the column arrives in reading order rather
             than snapping in as one block. `Reveal` fires once on mount and
             honours reduced motion, so this costs nothing on a device that
@@ -374,11 +376,6 @@ export default function HomeScreen() {
             </TouchableOpacity>
           ) : null}
         </Reveal>
-
-        {/* Smallest possible Premium AI surface — renders nothing at all
-            when not premium/available, so it never affects free users or
-            the AI-unavailable case. See DailyReflectionCard's header. */}
-        <DailyReflectionCard />
       </ScrollView>
     </SafeAreaView>
   );
@@ -386,25 +383,16 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  // Was a hardcoded 20 while every other card on this screen used
-  // spacing[4] (16) and TodayInsightCard used 14. All three blocks share the
-  // scroll view's horizontal padding, so their OUTER edges lined up while
-  // their text did not: in RTL the greeting sat 20px from the right edge and
-  // the card headings below it sat 16 and 14, so nothing shared a right
-  // margin down the page. One token for card interiors fixes the whole column.
-  hero: { padding: spacingScale[4], overflow: 'hidden' },
-  heroTopRow: {
+  headerRow: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
+    gap: 12,
   },
+  headerTextCol: { flex: 1 },
   bellBtn: {
     width: 42,
     height: 42,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -424,9 +412,6 @@ const styles = StyleSheet.create({
   // 700, not 800: `screenTitle` in the type scale. No negative tracking —
   // Persian letterforms join, and tightening them damages the joins.
   greeting: { fontWeight: '700' },
-  // A hairline under the strip separates context from the story without
-  // making it a second card.
-  contextWrap: { borderBottomWidth: StyleSheet.hairlineWidth, marginTop: 4 },
   errorWrap: { borderWidth: 1, overflow: 'hidden' },
   ledgerAffordance: {
     flexDirection: 'row',
