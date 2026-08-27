@@ -70,6 +70,7 @@ import { PregnancyContextStrip } from './components/PregnancyContextStrip';
 import { StoryCard } from './components/StoryCard';
 import { SecondaryActions } from './components/SecondaryActions';
 import { AccrualLedger } from './components/AccrualLedger';
+import { DailyReflectionCard } from './components/DailyReflectionCard';
 
 type Props = HomeScreenProps<'Home'>;
 
@@ -373,6 +374,11 @@ export default function HomeScreen() {
             </TouchableOpacity>
           ) : null}
         </Reveal>
+
+        {/* Smallest possible Premium AI surface — renders nothing at all
+            when not premium/available, so it never affects free users or
+            the AI-unavailable case. See DailyReflectionCard's header. */}
+        <DailyReflectionCard />
       </ScrollView>
     </SafeAreaView>
   );

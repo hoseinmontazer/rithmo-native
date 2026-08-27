@@ -102,6 +102,10 @@ export const API_ENDPOINTS = {
   PREGNANCY:     '/api/pregnancy/',
   PREGNANCY_END: '/api/pregnancy/end/',
 
+  // AI Daily Reflection (premium) — backend-owned Qwen pipeline; the app
+  // never talks to the AI provider directly.
+  AI_DAILY_REFLECTION: '/api/ai/daily-reflection/',
+
   // Support (user-facing tickets; internal notes are server-side only)
   SUPPORT_TICKETS: '/api/support/tickets/',
 } as const;
