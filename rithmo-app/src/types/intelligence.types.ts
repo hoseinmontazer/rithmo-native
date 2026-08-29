@@ -171,6 +171,27 @@ export interface GeneralPhaseContext {
   suggested_logging: string[];
 }
 
+/**
+ * The honest, evolving thing Rhythmo says before it has a real Insight to
+ * lead with — see `intelligence/domain/noticing.py` on the server. Every
+ * decision about WHICH signal/mechanism this concerns, and whether a real
+ * Insight should be shown instead, is made server-side; the client only
+ * ever renders `headline_fa` verbatim. Never present alongside
+ * `primary_insight` — the server only computes one when the other is null.
+ */
+export type NoticingMechanism = 'signal' | 'symptom' | 'cycle' | 'empty';
+export type NoticingTier = 'empty' | 'one_point' | 'two_point' | 'range' | 'baseline';
+
+export interface NoticingPayload {
+  key: string;
+  mechanism: NoticingMechanism;
+  tier: NoticingTier;
+  headline_fa: string;
+  basis: Record<string, unknown>;
+  related_signals: string[];
+  onboarding_reference: string | null;
+}
+
 export type CheckInKind = 'missing_data' | 'deviation_confirm' | 'partner_support';
 export type CheckInState = 'shown' | 'answered' | 'dismissed';
 
@@ -196,6 +217,7 @@ export interface TodayPayload {
   primary_insight: Insight | null;
   insights: Insight[];
   actions: GuidedAction[];
+  noticing: NoticingPayload | null;
 }
 
 export interface ProgressPayload {

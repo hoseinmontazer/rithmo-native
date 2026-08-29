@@ -333,6 +333,7 @@ export default function HomeScreen() {
               action={primaryAction}
               learningMode={learningMode}
               generalContext={today?.general_context ?? null}
+              noticing={today?.noticing ?? null}
               onOpenAction={primaryAction ? actionOpener(primaryAction) : undefined}
               onOpenDetail={goToInsightDetail}
             />

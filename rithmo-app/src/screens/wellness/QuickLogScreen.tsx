@@ -7,7 +7,7 @@
  *
  * Preserves ALL payload fields, scales, prefill, and observation logic.
  */
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -32,17 +32,20 @@ import {
   useTodayWellnessLog,
   useWellnessAnalytics,
   useWellnessStreaks,
+  useWellnessLogs,
 } from '@hooks/queries/useWellness';
 import { usePeriods, useCycleAnalysis } from '@hooks/queries/usePeriods';
 import { Button, Card, Badge, CelebrationAnimation, AppIcon, SliderMetric } from '@components/ui';
 import { extractErrorMessage } from '@utils/errorHandler';
 import { toFa, faDate } from '@utils/persian';
+import { todayISO } from '@utils/dateUtils';
 import { track } from '@analytics';
 import { MOODS } from '@utils/insightsEngine';
 import { QUICK_SYMPTOMS, parseSymptomCodes } from '@constants/symptoms';
 import { symptomIcon, ICON_SIZE } from '@design-system/iconography';
 import icons, { type AppIconName } from '@assets/icons';
 import type { WellnessScreenProps } from '@navigation/types';
+import type { WellnessLog } from '@types/wellness.types';
 
 type Props = WellnessScreenProps<'QuickLog'>;
 
@@ -197,17 +200,74 @@ function deriveDataState(periodCount: number, logCount: number): DataState {
   return 'multi_cycle';
 }
 
+/**
+ * The most recent PRIOR day's mood/energy, for the 'building'-state
+ * day-over-day comparison — or null per field when that field was never
+ * actually entered on that log.
+ *
+ * `reported_fields` is the server's provenance record (see
+ * `wellness.types.ts`). A field absent from it was never entered by the
+ * user, whatever the column holds — this mirrors the backend's own
+ * `signals.reported_value` provenance rule, but deliberately more
+ * conservative for the one case that rule handles by guessing (a legacy
+ * row with no `reported_fields` at all): that rule falls back to "differs
+ * from the model default", which needs the model's default value to
+ * replicate faithfully; this returns null instead — losing a data point
+ * is safe, inventing one is not.
+ */
+export interface PriorSameSignal {
+  mood: number | null;
+  energy: number | null;
+}
+
+function reportedOrNull(log: WellnessLog, field: 'mood_level' | 'energy_level'): number | null {
+  const reported = log.reported_fields;
+  if (!Array.isArray(reported) || !reported.includes(field)) { return null; }
+  return log[field];
+}
+
+function derivePriorSameSignal(recentLogs: WellnessLog[] | undefined, today: string): PriorSameSignal | null {
+  if (!Array.isArray(recentLogs)) { return null; }
+  const prior = recentLogs.find((l) => l.date !== today);
+  if (!prior) { return null; }
+  const moodVal = reportedOrNull(prior, 'mood_level');
+  const energyRaw = reportedOrNull(prior, 'energy_level');
+  if (moodVal === null && energyRaw === null) { return null; }
+  // The picker scale is 1-5; `energy_level` is stored 0-10 (picker * 2) —
+  // same halving convention already used for `personalAvgEnergy` below.
+  return { mood: moodVal, energy: energyRaw !== null ? energyRaw / 2 : null };
+}
+
 function buildPostLogObservation(
   dataState: DataState,
   todayMood: number,
   todayEnergy: number,
   avgMood: number | null,
   avgEnergy: number | null,
+  priorSameSignal?: PriorSameSignal | null,
 ): string | null {
   if (dataState === 'empty') {
     return 'ریتمو شروع می‌کنه به شناخت تو.';
   }
   if (dataState === 'building') {
+    if (priorSameSignal && (priorSameSignal.mood !== null || priorSameSignal.energy !== null)) {
+      const moodDiff = priorSameSignal.mood !== null ? todayMood - priorSameSignal.mood : null;
+      const energyDiff = priorSameSignal.energy !== null ? todayEnergy - priorSameSignal.energy : null;
+
+      if (moodDiff !== null && energyDiff !== null && moodDiff !== 0 && energyDiff !== 0) {
+        const same = (moodDiff > 0) === (energyDiff > 0);
+        if (same) {
+          return `امروز خلق و انرژی‌ات نسبت به ثبت قبلی‌ات ${moodDiff > 0 ? 'بالاتر' : 'پایین‌تر'} بود.`;
+        }
+      }
+      if (energyDiff !== null && energyDiff !== 0) {
+        return `امروز انرژی‌ات نسبت به ثبت قبلی‌ات ${energyDiff > 0 ? 'بالاتر' : 'پایین‌تر'} بود.`;
+      }
+      if (moodDiff !== null && moodDiff !== 0) {
+        return `امروز خلقت نسبت به ثبت قبلی‌ات ${moodDiff > 0 ? 'بالاتر' : 'پایین‌تر'} بود.`;
+      }
+      return 'خلق و انرژی‌ات مثل ثبت قبلی‌ات بود.';
+    }
     return 'داریم الگو را می‌سازیم — چند روز دیگر صبر کن.';
   }
 
@@ -267,6 +327,15 @@ export default function QuickLogScreen() {
   const { data: periods } = usePeriods();
   const { data: cycleAnalysis } = useCycleAnalysis();
   const { mutateAsync: saveLog, isPending } = useCreateOrUpdateWellnessLog();
+  /**
+   * The one prior real observation the 'building'-state day-over-day
+   * comparison needs. Bounded to 2 so this stays a small, existing-shape
+   * request (the same `useWellnessLogs` hook `DeepInsightsScreen`/
+   * `WellnessDashboardScreen` already use, just with `limit` instead of
+   * `days`) — enough to cover "today's log already exists, the prior one
+   * is the entry before it" without fetching anything unbounded.
+   */
+  const { data: recentLogs } = useWellnessLogs({ limit: 2 });
 
   const prefillSource = logId ? existing : (todayLog ?? existing);
 
@@ -331,6 +400,11 @@ export default function QuickLogScreen() {
     ? analytics.averages.energy_level / 2
     : null;
 
+  const priorSameSignal = useMemo(
+    () => derivePriorSameSignal(recentLogs, todayISO()),
+    [recentLogs],
+  );
+
   const cycleDay: number | null = (cycleAnalysis as any)?.current_status?.cycle_day ?? null;
 
   const toggleSymptom = useCallback((sym: string) => {
@@ -373,6 +447,7 @@ export default function QuickLogScreen() {
         energy,
         personalAvgMood,
         personalAvgEnergy,
+        priorSameSignal,
       );
       setObservation(obs);
       setSaved(true);
@@ -391,7 +466,7 @@ export default function QuickLogScreen() {
     }
   }, [
     mood, energy, pain, sleep, selectedSymptoms, notes,
-    saveLog, dataState, personalAvgMood, personalAvgEnergy,
+    saveLog, dataState, personalAvgMood, personalAvgEnergy, priorSameSignal,
     fadeAnim, goBack,
   ]);
 

@@ -35,6 +35,18 @@ export interface WellnessLog {
   user?: number;
   created_at?: string;
   updated_at?: string;
+  /**
+   * Which metric fields this specific log actually had a value entered
+   * for — the server's provenance record (see the backend's
+   * `WellnessLog.reported_fields` / `signals.reported_value`). Serialized
+   * via `fields = '__all__'` so it has always been on the wire; this just
+   * types it. A field absent from this list was never entered by the
+   * user, whatever the column holds — never treat its stored value as a
+   * real observation without checking this first. Absent entirely (not
+   * an empty array) on a row that predates provenance tracking; treat
+   * that case as unknown, not as "nothing reported".
+   */
+  reported_fields?: string[] | null;
 }
 
 // Fields the server assigns a model default for when the client omits them

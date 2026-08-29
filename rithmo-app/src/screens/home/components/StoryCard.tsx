@@ -30,7 +30,7 @@ import { useTheme } from '@hooks/useTheme';
 import { toFa } from '@utils/persian';
 import { track } from '@analytics';
 import { useSubmitActionFeedback, useSetInsightAccuracy } from '@hooks/queries/useIntelligence';
-import type { GeneralPhaseContext, GuidedAction, Helpfulness, Insight } from '@types/intelligence.types';
+import type { GeneralPhaseContext, GuidedAction, Helpfulness, Insight, NoticingPayload } from '@types/intelligence.types';
 
 /**
  * The guided action's category, as a full-colour icon.
@@ -135,6 +135,15 @@ interface Props {
    * specific about this user. See ai_gateway/context.py's own separation
    * of general vs personal for why these must never be the same field. */
   generalContext?: GeneralPhaseContext | null;
+  /**
+   * The evolving, honest sentence to show instead of a real insight, for
+   * the period before one exists — see `intelligence/domain/noticing.py`.
+   * The server sends this only when `insight` is absent or is the generic
+   * `coverage` insight; when a real insight exists, this is always null.
+   * The client never chooses between them — it only renders what it was
+   * given.
+   */
+  noticing?: NoticingPayload | null;
   /** Only for data-collection actions that have somewhere to go. */
   onOpenAction?: (action: GuidedAction) => void;
   /** «چرا Rhythmo این را می‌گوید؟» — opens the full explanation. Omitted
@@ -148,6 +157,7 @@ export const StoryCard = memo(function StoryCard({
   action,
   learningMode,
   generalContext,
+  noticing,
   onOpenAction,
   onOpenDetail,
 }: Props) {
@@ -217,7 +227,7 @@ export const StoryCard = memo(function StoryCard({
   }, [action, onOpenAction, complete]);
 
   // Nothing at all — not an error, just a day with no supportable claim.
-  if (!insight && !action) {
+  if (!insight && !action && !noticing) {
     return null;
   }
 
@@ -253,8 +263,24 @@ export const StoryCard = memo(function StoryCard({
           marginBottom: spacing[4],
         }}
       />
-      {/* ── The observation ─────────────────────────────────────────── */}
-      {insight ? (
+      {/* ── The observation — a real insight, or the evolving Noticing
+          sentence when there isn't one yet. The server decides which of
+          the two exists for today (see domain/noticing.py); this card
+          only ever renders whichever one it was given, never both. */}
+      {noticing ? (
+        <View accessible accessibilityLabel={noticing.headline_fa}>
+          <Text
+            style={{
+              color: colors.textPrimary,
+              fontSize: typography.title,
+              fontWeight: '800',
+              lineHeight: 26,
+            }}
+          >
+            {noticing.headline_fa}
+          </Text>
+        </View>
+      ) : insight ? (
         <TouchableOpacity
           activeOpacity={onOpenDetail ? 0.7 : 1}
           disabled={!onOpenDetail}
@@ -291,12 +317,12 @@ export const StoryCard = memo(function StoryCard({
       ) : null}
 
       {/* ── About this phase — general knowledge, not a personal claim ─
-          Shown only while learning-mode has nothing personal to say yet
-          (once a real insight exists below, that takes over — general
-          context stops being the headline, not because it becomes false,
-          but because personal evidence is always more useful once it
-          exists). */}
-      {learningMode && generalContext ? (
+          Shown only while learning-mode has nothing personal to say yet,
+          AND Noticing has nothing to say either (Noticing is the more
+          specific, personal alternative — general phase context steps
+          aside for it exactly as it already steps aside for a real
+          insight). */}
+      {!noticing && learningMode && generalContext ? (
         <View
           style={[
             styles.generalContextBox,
