@@ -62,3 +62,4 @@ yarn-error.log
 # Firebase / Google Services — per-environment app config, not committed.
 google-services.json
 GoogleService-Info.plist
+rithmo-app/dist/
