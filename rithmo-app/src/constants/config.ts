@@ -51,6 +51,7 @@ export const API_ENDPOINTS = {
   INTELLIGENCE_CHECKIN: '/api/intelligence/checkin/',
   INTELLIGENCE_PROGRESS: '/api/intelligence/progress/',
   INTELLIGENCE_PARTNER_TODAY: '/api/intelligence/partner/today/',
+  INTELLIGENCE_PARTNER_ACTION: '/api/intelligence/partner/action/',
 
   // Ovulation — nested under analytics/, not a top-level router (there was
   // never a bare "/api/ovulation/" route; this pointed at a 404).
@@ -106,6 +107,7 @@ export const API_ENDPOINTS = {
   // AI Daily Reflection (premium) — backend-owned Qwen pipeline; the app
   // never talks to the AI provider directly.
   AI_DAILY_REFLECTION: '/api/ai/daily-reflection/',
+  AI_PARTNER_REFLECTION: '/api/ai/partner-reflection/',
 
   // Support (user-facing tickets; internal notes are server-side only)
   SUPPORT_TICKETS: '/api/support/tickets/',

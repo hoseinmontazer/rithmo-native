@@ -398,7 +398,9 @@ export default function ProfileScreen() {
                   ? (premium.current_period_end
                       ? `طرح ${planLabel(premium.plan)} · فعال تا ${faDateShort(premium.current_period_end)}`
                       : `طرح ${planLabel(premium.plan)} · فعال`)
-                  : 'بازتاب روزانه، حالت بارداری و الگوهای بلندمدت.'}
+                  : isCycleOwner
+                    ? 'بازتاب روزانه، حالت بارداری و الگوهای بلندمدت.'
+                    : 'بازتاب روزانه و الگوهای بلندمدت.'}
               </Text>
             </View>
             <View
@@ -419,61 +421,71 @@ export default function ProfileScreen() {
         </GradientSurface>
       </PressScale>
 
-      {/* ── Pregnancy (premium) — a real toggle switch, matching the mockup's
-          treatment, but it opens the real Pregnancy flow rather than firing
-          an instant on/off: turning it on needs a starting date to compute
-          the week from, which a bare toggle has no way to collect, and
-          turning it off is a real deactivation the setup/status screen
-          already handles correctly. The switch shows the true current
-          state; it just doesn't pretend one tap is the whole action. ───── */}
-      <SectionHeader label="بارداری" />
-      <MenuCard>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Pregnancy')}
-          activeOpacity={0.72}
-          style={[styles.menuRow, { paddingVertical: spacing[4] }]}
-          accessibilityRole="button"
-          accessibilityLabel={pregnancy?.has_active_pregnancy
-            ? `حالت بارداری روشن است، هفتهٔ ${toFa(pregnancy.gestational_week ?? 0)}`
-            : 'حالت بارداری خاموش است'}
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '600' }}>
-              حالت بارداری
-            </Text>
-            <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2, lineHeight: 16 }}>
-              {pregnancy?.has_active_pregnancy
-                ? `روشن — هفتهٔ ${toFa(pregnancy.gestational_week ?? 0)}`
-                : 'خاموش — پیش‌بینی چرخه فعال است'}
-            </Text>
-          </View>
-          <View
-            style={{
-              width: 58,
-              height: 32,
-              borderRadius: borderRadius.pill,
-              backgroundColor: pregnancy?.has_active_pregnancy ? colors.primary : colors.border,
-              padding: 3,
-              flexDirection: 'row',
-              justifyContent: pregnancy?.has_active_pregnancy ? 'flex-start' : 'flex-end',
-            }}
-          >
-            <View
-              style={{
-                width: 26,
-                height: 26,
-                borderRadius: borderRadius.pill,
-                backgroundColor: colors.surface,
-                shadowColor: colors.shadowColor,
-                shadowOffset: { width: 0, height: 1 },
-                shadowOpacity: 0.18,
-                shadowRadius: 4,
-                elevation: 2,
-              }}
-            />
-          </View>
-        </TouchableOpacity>
-      </MenuCard>
+      {/* ── Pregnancy (premium, cycle owner only) — a real toggle switch,
+          matching the mockup's treatment, but it opens the real Pregnancy
+          flow rather than firing an instant on/off: turning it on needs a
+          starting date to compute the week from, which a bare toggle has
+          no way to collect, and turning it off is a real deactivation the
+          setup/status screen already handles correctly. The switch shows
+          the true current state; it just doesn't pretend one tap is the
+          whole action.
+          Owner-only, same gate as the cycle/period stat pills above:
+          pregnancy is a state of the cycle being tracked, and a partner
+          account has no cycle of their own to be pregnant with — this
+          section was rendering unconditionally, showing a male partner's
+          own profile a "Pregnancy Mode" toggle for himself. ───────────── */}
+      {isCycleOwner && (
+        <>
+          <SectionHeader label="بارداری" />
+          <MenuCard>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Pregnancy')}
+              activeOpacity={0.72}
+              style={[styles.menuRow, { paddingVertical: spacing[4] }]}
+              accessibilityRole="button"
+              accessibilityLabel={pregnancy?.has_active_pregnancy
+                ? `حالت بارداری روشن است، هفتهٔ ${toFa(pregnancy.gestational_week ?? 0)}`
+                : 'حالت بارداری خاموش است'}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '600' }}>
+                  حالت بارداری
+                </Text>
+                <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2, lineHeight: 16 }}>
+                  {pregnancy?.has_active_pregnancy
+                    ? `روشن — هفتهٔ ${toFa(pregnancy.gestational_week ?? 0)}`
+                    : 'خاموش — پیش‌بینی چرخه فعال است'}
+                </Text>
+              </View>
+              <View
+                style={{
+                  width: 58,
+                  height: 32,
+                  borderRadius: borderRadius.pill,
+                  backgroundColor: pregnancy?.has_active_pregnancy ? colors.primary : colors.border,
+                  padding: 3,
+                  flexDirection: 'row',
+                  justifyContent: pregnancy?.has_active_pregnancy ? 'flex-start' : 'flex-end',
+                }}
+              >
+                <View
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: borderRadius.pill,
+                    backgroundColor: colors.surface,
+                    shadowColor: colors.shadowColor,
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.18,
+                    shadowRadius: 4,
+                    elevation: 2,
+                  }}
+                />
+              </View>
+            </TouchableOpacity>
+          </MenuCard>
+        </>
+      )}
 
       {/* ── Partner ────────────────────────────────────────────────────── */}
       <SectionHeader label="شریک" />

@@ -123,6 +123,97 @@ describe('removed routes stay removed', () => {
   });
 });
 
+describe('InsightDetail is owner-only by construction (M5)', () => {
+  it('is registered on HomeStack, and nowhere else', () => {
+    const stacks = ['stacks/CycleStack.tsx', 'stacks/HomeStack.tsx', 'stacks/InsightsStack.tsx',
+      'stacks/MessagesStack.tsx', 'stacks/ProfileStack.tsx', 'stacks/WellnessStack.tsx'];
+    const owners = stacks.filter(f => registered(f).includes('InsightDetail'));
+    expect(owners).toEqual(['stacks/HomeStack.tsx']);
+  });
+
+  it('has at least one real incoming navigation call', () => {
+    const callers = SOURCES.filter(
+      s => !s.file.startsWith('navigation') && /['"]InsightDetail['"]/.test(s.text),
+    );
+    expect(callers.length).toBeGreaterThan(0);
+  });
+
+  it('PartnerHomeScreen never navigates there — the partner has no route in', () => {
+    const partnerHome = SOURCES.find(s => s.file === 'screens/home/PartnerHomeScreen.tsx');
+    expect(partnerHome).toBeDefined();
+    expect(partnerHome!.text).not.toMatch(/InsightDetail/);
+  });
+
+  it('SupportActionRow and PartnerReflectionCard — the partner surfaces that DO render insight-adjacent copy — never reference InsightDetail either', () => {
+    const partnerFiles = SOURCES.filter(s =>
+      s.file === 'screens/home/components/SupportActionRow.tsx' ||
+      s.file === 'screens/home/components/PartnerReflectionCard.tsx',
+    );
+    for (const f of partnerFiles) {
+      expect(f.text).not.toMatch(/InsightDetail/);
+    }
+  });
+});
+
+describe('LearningTimeline is owner-only by construction (M6)', () => {
+  it('is registered on InsightsStack, and nowhere else', () => {
+    const stacks = ['stacks/CycleStack.tsx', 'stacks/HomeStack.tsx', 'stacks/InsightsStack.tsx',
+      'stacks/MessagesStack.tsx', 'stacks/ProfileStack.tsx', 'stacks/WellnessStack.tsx'];
+    const owners = stacks.filter(f => registered(f).includes('LearningTimeline'));
+    expect(owners).toEqual(['stacks/InsightsStack.tsx']);
+  });
+
+  it('inherits owner-only from InsightsTab itself being omitted for a partner', () => {
+    // The structural guarantee this route relies on: InsightsTab (which
+    // mounts InsightsStack, which mounts LearningTimeline) is wrapped in
+    // `{!isPartner && ...}` in MainNavigator — omitted, not hidden.
+    const mainNav = SOURCES.find(s => s.file === 'navigation/MainNavigator.tsx');
+    expect(mainNav).toBeDefined();
+    expect(mainNav!.text).toMatch(/!isPartner\s*&&/);
+    // And InsightsTab's own registration sits textually after that guard,
+    // inside the same conditional block that also gates CycleTab/LogTab.
+    const guardIndex = mainNav!.text.indexOf('!isPartner');
+    const tabIndex = mainNav!.text.indexOf('name="InsightsTab"');
+    expect(guardIndex).toBeGreaterThan(-1);
+    expect(tabIndex).toBeGreaterThan(guardIndex);
+  });
+
+  it('has at least one real incoming navigation call', () => {
+    const callers = SOURCES.filter(
+      s => !s.file.startsWith('navigation') && /['"]LearningTimeline['"]/.test(s.text),
+    );
+    expect(callers.length).toBeGreaterThan(0);
+  });
+
+  it('PartnerHomeScreen never navigates there', () => {
+    const partnerHome = SOURCES.find(s => s.file === 'screens/home/PartnerHomeScreen.tsx');
+    expect(partnerHome).toBeDefined();
+    expect(partnerHome!.text).not.toMatch(/LearningTimeline/);
+  });
+
+  it('no partner-facing surface references owner InsightRecord history fields', () => {
+    const partnerFiles = SOURCES.filter(s =>
+      s.file === 'screens/home/components/SupportActionRow.tsx' ||
+      s.file === 'screens/home/components/PartnerReflectionCard.tsx' ||
+      s.file === 'screens/home/PartnerHomeScreen.tsx',
+    );
+    for (const f of partnerFiles) {
+      expect(f.text).not.toMatch(/first_seen|times_seen|peak_confidence/);
+    }
+  });
+
+  it('no partner-facing surface references cross-signal relationship evidence (M7)', () => {
+    const partnerFiles = SOURCES.filter(s =>
+      s.file === 'screens/home/components/SupportActionRow.tsx' ||
+      s.file === 'screens/home/components/PartnerReflectionCard.tsx' ||
+      s.file === 'screens/home/PartnerHomeScreen.tsx',
+    );
+    for (const f of partnerFiles) {
+      expect(f.text).not.toMatch(/paired_days|supporting_days|relationship:/);
+    }
+  });
+});
+
 describe('no route points at a screen that no longer exists', () => {
   it('every lazy/static screen import in a navigator resolves', () => {
     const navFiles = ['AuthNavigator.tsx', 'MainNavigator.tsx', 'stacks/CycleStack.tsx',

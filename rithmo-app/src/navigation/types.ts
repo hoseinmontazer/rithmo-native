@@ -1,5 +1,6 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { Insight } from '@types/intelligence.types';
 
 // ── Auth Stack ────────────────────────────────────────────────────────────────
 export type AuthStackParamList = {
@@ -23,6 +24,13 @@ export type MainTabParamList = {
 export type HomeStackParamList = {
   Home:            undefined;
   Notifications:   undefined;
+  // Owner-only. The insight is passed as-is — it's already the exact object
+  // TodayView/InsightListView returned, and re-fetching it by key would be a
+  // duplicate call for data the caller already has in hand. There is no
+  // partner-reachable route to this screen: PartnerHomeScreen renders no
+  // trigger that navigates here, and the underlying data itself requires an
+  // owner-authenticated request server-side regardless.
+  InsightDetail:   { insight: Insight };
 };
 
 // ── Cycle Stack ───────────────────────────────────────────────────────────────
@@ -43,8 +51,12 @@ export type WellnessStackParamList = {
 
 // ── Insights Stack ────────────────────────────────────────────────────────────
 export type InsightsStackParamList = {
-  InsightsHome:   undefined;
-  DeepInsights:   undefined;
+  InsightsHome:      undefined;
+  DeepInsights:      undefined;
+  // Owner-only by construction: InsightsTab is never mounted for a partner
+  // role at all (see MainNavigator's `{!isPartner && ...}` gate), so this
+  // route inherits that same guarantee without any privacy code of its own.
+  LearningTimeline:  undefined;
 };
 
 // ── Profile Stack ─────────────────────────────────────────────────────────────

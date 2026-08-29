@@ -47,7 +47,7 @@ import { useProfile } from '@hooks/queries/useProfile';
 import { useToday } from '@hooks/queries/useIntelligence';
 import { usePregnancyStatus } from '@hooks/queries/usePregnancy';
 import type { HomeScreenProps } from '@navigation/types';
-import type { GuidedAction } from '@types/intelligence.types';
+import type { GuidedAction, Insight } from '@types/intelligence.types';
 import { textRoles } from '@theme/typography';
 import { screen } from '@theme/spacing';
 import { toFa, faDate } from '@utils/persian';
@@ -169,6 +169,10 @@ export default function HomeScreen() {
   const goToPregnancy = useCallback(() => {
     navigation.navigate('ProfileTab' as any, { screen: 'Pregnancy' } as any);
   }, [navigation]);
+  const goToInsightDetail = useCallback(
+    (insight: Insight) => navigation.navigate('InsightDetail', { insight }),
+    [navigation],
+  );
 
   /**
    * Only data-collection actions have somewhere to go; the rest are done in
@@ -330,6 +334,7 @@ export default function HomeScreen() {
               learningMode={learningMode}
               generalContext={today?.general_context ?? null}
               onOpenAction={primaryAction ? actionOpener(primaryAction) : undefined}
+              onOpenDetail={goToInsightDetail}
             />
           </Reveal>
         )}

@@ -22,13 +22,22 @@ export type InsightConfidence =
   | 'repeated'
   | 'established';
 
-export type InsightKind = 'deviation' | 'phase' | 'symptom' | 'coverage';
+export type InsightKind = 'deviation' | 'phase' | 'recurrence' | 'relationship' | 'symptom' | 'coverage';
+
+/**
+ * What the engine is entitled to claim about its own evidence — a
+ * different axis from `kind` (source) and `confidence` (evidence tier).
+ * `null` for a `coverage` insight, which makes no claim about the body.
+ */
+export type EpistemicKind = 'observation' | 'hypothesis' | 'pattern';
 
 export interface Insight {
   key: string;
   kind: InsightKind;
   confidence: InsightConfidence;
   confidence_label_fa: string;
+  epistemic_kind: EpistemicKind | null;
+  epistemic_kind_label_fa: string;
   title_fa: string;
   body_fa: string;
   /** The numbers behind the claim — shown when the user asks "why?". */
@@ -162,7 +171,7 @@ export interface GeneralPhaseContext {
   suggested_logging: string[];
 }
 
-export type CheckInKind = 'missing_data' | 'deviation_confirm';
+export type CheckInKind = 'missing_data' | 'deviation_confirm' | 'partner_support';
 export type CheckInState = 'shown' | 'answered' | 'dismissed';
 
 export interface CheckInOption {
@@ -220,7 +229,13 @@ export interface PartnerTodayPayload {
     is_on_period?: boolean;
     days_until_next_period?: number;
   } | null;
+  /** General (never personal) phase knowledge, addressed to the partner —
+   * shown only while phase sharing is on. */
+  general_context: string[] | null;
   themes: string[];
+  /** One deterministic PartnerAction value, only for a real (non-neutral)
+   * theme — never invented, never LLM-derived. */
+  suggested_action: string | null;
   context: Array<{
     theme: string;
     signal: string;
@@ -236,6 +251,7 @@ export interface PartnerTodayPayload {
     mood: boolean;
   };
   disclaimer_fa: string;
+  check_in: CheckIn | null;
 }
 
 export type PartnerTodayResponse =

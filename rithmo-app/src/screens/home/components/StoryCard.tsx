@@ -99,6 +99,12 @@ function EvidenceRows({ insight }: { insight: Insight }) {
   if (typeof e.cycles === 'number') {
     rows.push(['چرخه‌های بررسی‌شده', toFa(e.cycles)]);
   }
+  if (typeof e.cycles_matched === 'number' && typeof e.cycles_observed === 'number') {
+    rows.push(['دیده‌شده در', `${toFa(e.cycles_matched)} از ${toFa(e.cycles_observed)} چرخه`]);
+  }
+  if (typeof e.supporting_days === 'number' && typeof e.paired_days === 'number') {
+    rows.push(['هم‌زمان دیده‌شده در', `${toFa(e.supporting_days)} از ${toFa(e.paired_days)} روز`]);
+  }
 
   if (rows.length === 0) { return null; }
 
@@ -131,6 +137,10 @@ interface Props {
   generalContext?: GeneralPhaseContext | null;
   /** Only for data-collection actions that have somewhere to go. */
   onOpenAction?: (action: GuidedAction) => void;
+  /** «چرا Rhythmo این را می‌گوید؟» — opens the full explanation. Omitted
+   * entirely when absent, so this card stays usable anywhere it's reused
+   * without a detail route available. */
+  onOpenDetail?: (insight: Insight) => void;
 }
 
 export const StoryCard = memo(function StoryCard({
@@ -139,6 +149,7 @@ export const StoryCard = memo(function StoryCard({
   learningMode,
   generalContext,
   onOpenAction,
+  onOpenDetail,
 }: Props) {
   const { colors, typography, spacing, borderRadius } = useTheme();
   const [showEvidence, setShowEvidence] = useState(false);
@@ -244,7 +255,18 @@ export const StoryCard = memo(function StoryCard({
       />
       {/* ── The observation ─────────────────────────────────────────── */}
       {insight ? (
-        <View accessible accessibilityLabel={`${insight.title_fa}. ${insight.body_fa}`}>
+        <TouchableOpacity
+          activeOpacity={onOpenDetail ? 0.7 : 1}
+          disabled={!onOpenDetail}
+          onPress={() => onOpenDetail?.(insight)}
+          accessible
+          accessibilityRole={onOpenDetail ? 'button' : undefined}
+          accessibilityLabel={
+            onOpenDetail
+              ? `${insight.title_fa}. ${insight.body_fa}. برای توضیح کامل ضربه بزن.`
+              : `${insight.title_fa}. ${insight.body_fa}`
+          }
+        >
           <Text
             style={{
               color: colors.textPrimary,
@@ -265,7 +287,7 @@ export const StoryCard = memo(function StoryCard({
           >
             {insight.body_fa}
           </Text>
-        </View>
+        </TouchableOpacity>
       ) : null}
 
       {/* ── About this phase — general knowledge, not a personal claim ─
@@ -299,20 +321,36 @@ export const StoryCard = memo(function StoryCard({
       {insight && insight.kind !== 'coverage' ? (
         <>
           <View style={[styles.metaRow, { marginTop: spacing[3] }]}>
-            {!learningMode && insight.confidence_label_fa ? (
-              <View
-                style={[
-                  styles.chip,
-                  { backgroundColor: colors.primaryLighter, borderRadius: borderRadius.pill },
-                ]}
-              >
-                <Text
-                  style={{ color: colors.primary, fontSize: typography.overline, fontWeight: '700' }}
+            <View style={styles.chipGroup}>
+              {insight.epistemic_kind ? (
+                <View
+                  style={[
+                    styles.epistemicChip,
+                    { borderColor: colors.borderSubtle, borderRadius: borderRadius.pill },
+                  ]}
                 >
-                  {insight.confidence_label_fa}
-                </Text>
-              </View>
-            ) : <View />}
+                  <Text
+                    style={{ color: colors.textTertiary, fontSize: typography.overline, fontWeight: '600' }}
+                  >
+                    {insight.epistemic_kind_label_fa}
+                  </Text>
+                </View>
+              ) : null}
+              {!learningMode && insight.confidence_label_fa ? (
+                <View
+                  style={[
+                    styles.chip,
+                    { backgroundColor: colors.primaryLighter, borderRadius: borderRadius.pill },
+                  ]}
+                >
+                  <Text
+                    style={{ color: colors.primary, fontSize: typography.overline, fontWeight: '700' }}
+                  >
+                    {insight.confidence_label_fa}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
 
             <TouchableOpacity
               onPress={toggleEvidence}
@@ -603,7 +641,9 @@ function RateButton({
 const styles = StyleSheet.create({
   card: { borderWidth: 1, overflow: 'hidden' },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  chipGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   chip: { paddingHorizontal: 10, paddingVertical: 4 },
+  epistemicChip: { paddingHorizontal: 10, paddingVertical: 4, borderWidth: StyleSheet.hairlineWidth },
   whyBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   evidenceBox: { marginTop: 10 },
   generalContextBox: {},

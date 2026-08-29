@@ -6,6 +6,7 @@ import { useTheme } from '@hooks/useTheme';
 
 const InsightsHomeScreen = React.lazy(() => import('@screens/insights/InsightsHomeScreen'));
 const DeepInsightsScreen = React.lazy(() => import('@screens/insights/DeepInsightsScreen'));
+const LearningTimelineScreen = React.lazy(() => import('@screens/insights/LearningTimelineScreen'));
 
 const Stack = createNativeStackNavigator<InsightsStackParamList>();
 
@@ -31,6 +32,11 @@ export function InsightsStack() {
         name="DeepInsights"
         component={DeepInsightsScreen}
         options={{ title: navTitle('DeepInsights') }}
+      />
+      <Stack.Screen
+        name="LearningTimeline"
+        component={LearningTimelineScreen}
+        options={{ title: navTitle('LearningTimeline') }}
       />
     </Stack.Navigator>
   );

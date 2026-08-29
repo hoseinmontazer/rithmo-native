@@ -29,10 +29,12 @@ import icons, { type AppIconName } from '@assets/icons';
  * the screen the same green as everything else. Colour is the point here.
  */
 const KIND_ICON: Record<string, AppIconName> = {
-  deviation: 'healthcare',       // a measured change — heart/pulse
-  phase:     'menstruation',     // cycle calendar
-  symptom:   'betterHealth',     // physical signal
-  coverage:  'userInfoWriting',  // how much has been logged
+  deviation:    'healthcare',       // a measured change — heart/pulse
+  phase:        'menstruation',     // cycle calendar
+  recurrence:   'menstruation',     // same family as `phase` — also cycle-linked
+  relationship: 'collaborate',      // two things, linked — not a body-signal icon
+  symptom:      'betterHealth',     // physical signal
+  coverage:     'userInfoWriting',  // how much has been logged
 };
 
 /**
@@ -44,9 +46,11 @@ const KIND_ICON: Record<string, AppIconName> = {
  * is no "long-term trend" rule today), so only the three real kinds get one.
  */
 const KIND_KICKER_FA: Record<string, string> = {
-  phase:     'الگوی تکرارشده',
-  deviation: 'تغییر بین چرخه‌ها',
-  symptom:   'رابطهٔ نشانه‌ها',
+  phase:        'الگوی تکرارشده',
+  recurrence:   'تکرار در چند چرخه',
+  relationship: 'رابطهٔ بین دو سیگنال',
+  deviation:    'تغییر بین چرخه‌ها',
+  symptom:      'رابطهٔ نشانه‌ها',
 };
 
 /**
@@ -84,6 +88,12 @@ function EvidenceRows({ insight }: { insight: Insight }) {
   }
   if (typeof e.cycles === 'number') {
     rows.push(['چرخه‌های بررسی‌شده', toFa(e.cycles)]);
+  }
+  if (typeof e.cycles_matched === 'number' && typeof e.cycles_observed === 'number') {
+    rows.push(['دیده‌شده در', `${toFa(e.cycles_matched)} از ${toFa(e.cycles_observed)} چرخه`]);
+  }
+  if (typeof e.supporting_days === 'number' && typeof e.paired_days === 'number') {
+    rows.push(['هم‌زمان دیده‌شده در', `${toFa(e.supporting_days)} از ${toFa(e.paired_days)} روز`]);
   }
   if (typeof e.recent_observations === 'number') {
     rows.push(['روزهای اخیر', toFa(e.recent_observations)]);
@@ -142,6 +152,8 @@ interface Props {
    * passes this.
    */
   filled?: boolean;
+  /** «چرا Rhythmo این را می‌گوید؟» — opens the full explanation. */
+  onOpenDetail?: (insight: Insight) => void;
 }
 
 export const TodayInsightCard = memo(function TodayInsightCard({
@@ -150,6 +162,7 @@ export const TodayInsightCard = memo(function TodayInsightCard({
   isLoading,
   onSeeAll,
   filled = false,
+  onOpenDetail,
 }: Props) {
   const { colors, typography, borderRadius, shadow } = useTheme();
   const [showEvidence, setShowEvidence] = useState(false);
@@ -215,50 +228,73 @@ export const TodayInsightCard = memo(function TodayInsightCard({
           {kicker}
         </Text>
       ) : null}
-      <View style={styles.headRow}>
-        <View
-          style={[
-            styles.iconBg,
-            { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.lg },
-          ]}
-        >
-          <AppIcon source={icons[iconName]} size={24} />
-        </View>
-        <Text
-          style={[
-            styles.title,
-            { color: colors.textPrimary, fontSize: typography.body },
-          ]}
-        >
-          {insight.title_fa}
-        </Text>
-      </View>
-
-      <Text
-        style={{
-          color: colors.textSecondary,
-          fontSize: typography.bodySmall,
-          lineHeight: 21,
-        }}
+      <TouchableOpacity
+        activeOpacity={onOpenDetail ? 0.7 : 1}
+        disabled={!onOpenDetail}
+        onPress={() => onOpenDetail?.(insight)}
+        accessibilityRole={onOpenDetail ? 'button' : undefined}
       >
-        {insight.body_fa}
-      </Text>
-
-      <View style={styles.footRow}>
-        {!learningMode && (
+        <View style={styles.headRow}>
           <View
             style={[
-              styles.confidenceChip,
-              { backgroundColor: tone.bg, borderRadius: borderRadius.pill },
+              styles.iconBg,
+              { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.lg },
             ]}
           >
-            <Text
-              style={{ color: tone.fg, fontSize: typography.overline, fontWeight: '700' }}
-            >
-              {insight.confidence_label_fa}
-            </Text>
+            <AppIcon source={icons[iconName]} size={24} />
           </View>
-        )}
+          <Text
+            style={[
+              styles.title,
+              { color: colors.textPrimary, fontSize: typography.body },
+            ]}
+          >
+            {insight.title_fa}
+          </Text>
+        </View>
+
+        <Text
+          style={{
+            color: colors.textSecondary,
+            fontSize: typography.bodySmall,
+            lineHeight: 21,
+          }}
+        >
+          {insight.body_fa}
+        </Text>
+      </TouchableOpacity>
+
+      <View style={styles.footRow}>
+        <View style={styles.chipGroup}>
+          {insight.epistemic_kind && (
+            <View
+              style={[
+                styles.epistemicChip,
+                { borderColor: colors.borderSubtle, borderRadius: borderRadius.pill },
+              ]}
+            >
+              <Text
+                style={{ color: colors.textTertiary, fontSize: typography.overline, fontWeight: '600' }}
+              >
+                {insight.epistemic_kind_label_fa}
+              </Text>
+            </View>
+          )}
+          {!learningMode && (
+            <View
+              style={[
+                styles.confidenceChip,
+                { backgroundColor: tone.bg, borderRadius: borderRadius.pill },
+              ]}
+            >
+              <Text
+                style={{ color: tone.fg, fontSize: typography.overline, fontWeight: '700' }}
+              >
+                {insight.confidence_label_fa}
+              </Text>
+            </View>
+          )}
+        </View>
 
         {insight.kind !== 'coverage' && (
           <TouchableOpacity
@@ -360,7 +396,9 @@ const styles = StyleSheet.create({
     marginTop: 12,
     gap: 8,
   },
+  chipGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   confidenceChip: { paddingHorizontal: 10, paddingVertical: 4 },
+  epistemicChip: { paddingHorizontal: 10, paddingVertical: 4, borderWidth: StyleSheet.hairlineWidth },
   whyBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   evidenceBox: {
     marginTop: 12,

@@ -42,6 +42,7 @@ export const navTitles = {
   // Insights
   InsightsHome: 'الگوهای من',
   DeepInsights: 'تحلیل عمیق',
+  LearningTimeline: 'چیزهایی که یاد گرفته‌ام',
 
   // Profile
   Profile: 'من',

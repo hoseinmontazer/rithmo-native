@@ -82,6 +82,7 @@ export const queryKeys = {
   },
   aiReflection: {
     daily: () => ['aiReflection', 'daily'] as const,
+    partner: () => ['aiReflection', 'partner'] as const,
   },
   support: {
     all: () => ['support'] as const,

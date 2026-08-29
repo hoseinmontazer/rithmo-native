@@ -36,12 +36,15 @@ import { textRoles } from '@theme/typography';
 import { useAuth } from '@hooks/useAuth';
 import { useProfile } from '@hooks/queries/useProfile';
 import { useUnreadNotifications } from '@hooks/queries/useNotifications';
-import { usePartnerToday } from '@hooks/queries/useIntelligence';
+import { usePartnerToday, useLogPartnerAction } from '@hooks/queries/useIntelligence';
+import { usePartnerReflection } from '@hooks/queries/usePartnerReflection';
+import { CheckInPrompt } from './components/CheckInPrompt';
+import { PartnerReflectionCard } from './components/PartnerReflectionCard';
+import { SupportActionRow } from './components/SupportActionRow';
 import { track } from '@analytics';
 import { toFa, faDate } from '@utils/persian';
 import { Card, SectionHeading, Reveal, LoadingState, Button, AppIcon } from '@components/ui';
 import icons, { type AppIconName } from '@assets/icons';
-import type { PartnerTodayPayload } from '@types/intelligence.types';
 
 /**
  * How each theme reads to the partner. Kept as short, non-clinical
@@ -85,9 +88,9 @@ const THEME_COPY: Record<string, { icon: AppIconName; title: string; body: strin
     body: 'خبر خاصی نیست — همین حضور معمولت کافی است.',
   },
   unknown: {
-    icon: 'search',
-    title: 'هنوز چیزی برای گفتن ندارم',
-    body: 'وقتی داده‌ی بیشتری ثبت شود، می‌توانم بهتر راهنمایی‌ات کنم.',
+    icon: 'collaborate',
+    title: 'همیشه لازم نیست همه‌چیز را بدانی',
+    body: 'برای کنارش بودن، نیازی به جزئیات دقیق نداری — همین توجه‌ات کافی است.',
   },
 };
 
@@ -143,60 +146,6 @@ function StateMessage({
   );
 }
 
-function SharingSummary({ sharing }: { sharing: PartnerTodayPayload['sharing'] }) {
-  const { colors, typography, borderRadius } = useTheme();
-
-  const rows: Array<[string, boolean]> = [
-    ['وضعیت چرخه', sharing.period_status],
-    ['پیش‌بینی دوره بعد', sharing.upcoming_period],
-    ['حال عمومی', sharing.wellbeing],
-    ['خلق', sharing.mood],
-  ];
-
-  return (
-    <Card>
-      <Text
-        style={{
-          color: colors.textPrimary,
-          fontSize: typography.bodySmall,
-          fontWeight: '700',
-          marginBottom: 10,
-        }}
-      >
-        او چه چیزی را با تو به اشتراک گذاشته
-      </Text>
-      <View style={{ gap: 8 }}>
-        {rows.map(([label, on]) => (
-          <View key={label} style={styles.sharingRow}>
-            <Text style={{ color: colors.textSecondary, fontSize: typography.bodySmall }}>
-              {label}
-            </Text>
-            <View
-              style={[
-                styles.sharingChip,
-                {
-                  backgroundColor: on ? colors.successBg : colors.borderSubtle,
-                  borderRadius: borderRadius.pill,
-                },
-              ]}
-            >
-              <Text
-                style={{
-                  color: on ? colors.success : colors.textTertiary,
-                  fontSize: typography.overline,
-                  fontWeight: '700',
-                }}
-              >
-                {on ? 'به اشتراک گذاشته' : 'خصوصی'}
-              </Text>
-            </View>
-          </View>
-        ))}
-      </View>
-    </Card>
-  );
-}
-
 export default function PartnerHomeScreen() {
   const { colors, spacing, typography, borderRadius } = useTheme();
   const navigation = useNavigation<any>();
@@ -233,6 +182,12 @@ export default function PartnerHomeScreen() {
    */
   const partnerName = profile?.first_name || user?.username || '';
   const { data, isLoading, refetch } = usePartnerToday();
+  // Cheap: same query key PartnerReflectionCard itself uses, so this is a
+  // cache read, not a second request — only used here to decide whether
+  // the deterministic fallback cards below should show.
+  const { reflection: partnerReflection } = usePartnerReflection();
+  const hasReflection = Boolean(partnerReflection);
+  const { mutate: logPartnerAction } = useLogPartnerAction();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -274,12 +229,20 @@ export default function PartnerHomeScreen() {
     }
 
     if (data.status === 'not_shared') {
+      // No shared data ≠ no useful experience — the respected-choice
+      // message stays, but it is no longer the ONLY thing here. A
+      // partner can always do this, regardless of what she's shared.
       return (
-        <StateMessage
-          icon="secure"
-          title="او فعلاً چیزی به اشتراک نگذاشته"
-          body="این انتخاب اوست و کاملاً محترم است. هر وقت بخواهد، می‌تواند تغییرش دهد."
-        />
+        <>
+          <StateMessage
+            icon="secure"
+            title="او فعلاً چیزی به اشتراک نگذاشته"
+            body="این انتخاب اوست و کاملاً محترم است. هر وقت بخواهد، می‌تواند تغییرش دهد."
+          />
+          <View style={{ marginTop: spacing[5] }}>
+            <SupportActionRow />
+          </View>
+        </>
       );
     }
 
@@ -352,8 +315,51 @@ export default function PartnerHomeScreen() {
           </Reveal>
         </View>
 
-        {/* ── How to support ───────────────────────────────────────── */}
-        {payload.suggestions.length > 0 && (
+        {/* ── Always-available support action — the "own data loop":
+            never conditional on what she's shared, unlike everything
+            below it. Highlighted suggestion only when a real theme
+            exists — payload.suggested_action is already null otherwise,
+            per the backend's own "no context = no fake suggestion" rule. */}
+        <SupportActionRow suggestedAction={payload.suggested_action} />
+
+        {/* ── AI-synthesised reflection (premium) — when available, this
+            already covers what the general-context/suggestion cards
+            below would otherwise say, in one coherent, third-person
+            piece. Renders nothing itself when unavailable (not
+            premium, AI down, nothing grounded to say), in which case
+            the deterministic cards below are the real content, not a
+            degraded fallback. */}
+        <PartnerReflectionCard />
+
+        {/* ── About this phase — general knowledge, not a personal claim,
+            same pattern as the owner's own Home. Shown whenever she's
+            shared the phase, regardless of how much personal signal
+            exists yet — this is exactly the content that fills the
+            silence while a real deviation hasn't been established.
+            Skipped while the AI reflection above already said this. */}
+        {!hasReflection && payload.general_context && payload.general_context.length > 0 && (
+          <View style={{ marginBottom: spacing[5] }}>
+            <Reveal delay={60}>
+              <Card>
+                <Text style={{ color: colors.textPrimary, fontSize: typography.bodySmall, fontWeight: '700' }}>
+                  درباره‌ی این مرحله
+                </Text>
+                {payload.general_context.map((line, i) => (
+                  <Text
+                    key={i}
+                    style={{ color: colors.textSecondary, fontSize: typography.caption, lineHeight: 19, marginTop: i === 0 ? 8 : 4 }}
+                  >
+                    {`· ${line}`}
+                  </Text>
+                ))}
+              </Card>
+            </Reveal>
+          </View>
+        )}
+
+        {/* ── How to support — skipped while the AI reflection already
+            covered this, same reasoning as the general-context card. ── */}
+        {!hasReflection && payload.suggestions.length > 0 && (
           <>
             <SectionHeading title="چطور می‌توانی همراهش باشی" />
             <View style={{ marginBottom: spacing[5] }}>
@@ -387,13 +393,20 @@ export default function PartnerHomeScreen() {
           </>
         )}
 
-        {/* ── Privacy: say what is NOT shared ──────────────────────── */}
-        <SectionHeading title="حریم خصوصی" />
-        <View style={{ marginBottom: spacing[4] }}>
-          <Reveal delay={160}>
-            <SharingSummary sharing={payload.sharing} />
-          </Reveal>
-        </View>
+        {/* ── Proactive check-in — Partner Mode's own, at most one per
+            day, built only from the same already-filtered themes above. */}
+        {payload.check_in ? (
+          <View style={{ marginBottom: spacing[5] }}>
+            <CheckInPrompt
+              checkIn={payload.check_in}
+              onAnswered={(value) => {
+                if (payload.check_in?.kind === 'partner_support' && value === 'acted') {
+                  logPartnerAction('checked_in');
+                }
+              }}
+            />
+          </View>
+        ) : null}
 
         <Text
           style={{
@@ -523,10 +536,4 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 6, right: 6,
     width: 10, height: 10, borderRadius: 5, borderWidth: 2,
   },
-  sharingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sharingChip: { paddingHorizontal: 10, paddingVertical: 4 },
 });

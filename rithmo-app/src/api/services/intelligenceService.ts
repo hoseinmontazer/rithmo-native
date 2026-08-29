@@ -65,6 +65,11 @@ export const intelligenceService = {
       .post(`${API_ENDPOINTS.INTELLIGENCE_CHECKIN}${checkinId}/dismiss/`)
       .then((r) => unwrap<CheckIn>(r)),
 
+  logPartnerAction: (action: string) =>
+    apiClient
+      .post(API_ENDPOINTS.INTELLIGENCE_PARTNER_ACTION, { action })
+      .then((r) => unwrap<{ action: string }>(r)),
+
   submitFeedback: (
     actionId: number,
     status: ActionStatus,

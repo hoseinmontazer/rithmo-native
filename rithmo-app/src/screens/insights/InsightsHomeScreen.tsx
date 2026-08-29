@@ -40,6 +40,7 @@ import { useInsights, useProgress } from '@hooks/queries/useIntelligence';
 import { track } from '@analytics';
 import { TodayInsightCard } from '../home/components/TodayInsightCard';
 import type { CycleAnalysis } from '@types/period.types';
+import type { Insight } from '@types/intelligence.types';
 import type { InsightsScreenProps } from '@navigation/types';
 
 type Props = InsightsScreenProps<'InsightsHome'>;
@@ -172,6 +173,13 @@ function AvgMetricRow({
 export default function InsightsHomeScreen() {
   const { colors, spacing, typography } = useTheme();
   const navigation = useNavigation<Props['navigation']>();
+  // Cross-tab, same pattern HomeScreen already uses for Pregnancy/QuickLog —
+  // InsightDetail lives on HomeStack (owner-only there), not on this stack.
+  const goToInsightDetail = useCallback(
+    (insight: Insight) =>
+      navigation.navigate('HomeTab' as any, { screen: 'InsightDetail', params: { insight } } as any),
+    [navigation],
+  );
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -314,7 +322,12 @@ export default function InsightsHomeScreen() {
                       always one tap away wherever the claim appears. The
                       second card in the stack is filled green, matching
                       the mockup's rhythm treatment for a list of these. */}
-                  <TodayInsightCard insight={ins} learningMode={learningMode} filled={i === 1} />
+                  <TodayInsightCard
+                    insight={ins}
+                    learningMode={learningMode}
+                    filled={i === 1}
+                    onOpenDetail={goToInsightDetail}
+                  />
                 </Reveal>
               ))
             ) : (
@@ -411,6 +424,34 @@ export default function InsightsHomeScreen() {
             </View>
           </View>
         )}
+
+        {/* ══ LEARNING TIMELINE CTA (free — M6) ═════════════════════════
+            Deliberately plain, not premium-styled: this is the free "what
+            Rhythmo has learned over time" view, same insight data as the
+            list above, ordered and explained rather than a raw feed. */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('LearningTimeline')}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="چیزهایی که درباره‌ی تو یاد گرفته‌ام"
+          style={{ marginBottom: spacing[4] }}
+        >
+          <Card
+            elevated={false}
+            rounded="2xl"
+            style={[styles.ctaCard, { backgroundColor: colors.surface, borderColor: colors.border, padding: spacing[4] }]}
+          >
+            <View style={styles.ctaHeaderRow}>
+              <Text style={[styles.ctaTitle, { color: colors.textPrimary, fontSize: typography.lg }]}>
+                چیزهایی که درباره‌ی تو یاد گرفته‌ام
+              </Text>
+              <Icon name="arrow-left" size={18} color={colors.primary} />
+            </View>
+            <Text style={[styles.ctaBody, { color: colors.textSecondary, fontSize: typography.sm, marginTop: spacing[1] }]}>
+              الگوهایی که رفته‌رفته شناخته‌ام، و چیزهایی که هنوز در حال یادگیری‌شان هستم.
+            </Text>
+          </Card>
+        </TouchableOpacity>
 
         {/* ══ DEEP INSIGHTS CTA (premium, honest copy) ══════════════════ */}
         <TouchableOpacity

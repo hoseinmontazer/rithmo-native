@@ -15,6 +15,10 @@
  * `deviation_confirm` has no natural navigation of its own; both answers
  * just record a real yes/no against an established pattern, which is
  * already useful signal on its own.
+ * `partner_support` (Partner Mode's own check-in, same component reused
+ * rather than a second one) has no navigation either — `onAnswered` lets
+ * the caller log a `PartnerAction` alongside the answer, which is Partner
+ * Mode's own job, not this component's.
  */
 import React, { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -25,10 +29,11 @@ import type { CheckIn } from '@types/intelligence.types';
 
 interface Props {
   checkIn: CheckIn | null | undefined;
-  onGoFullLog: () => void;
+  onGoFullLog?: () => void;
+  onAnswered?: (value: string) => void;
 }
 
-export const CheckInPrompt = memo(function CheckInPrompt({ checkIn, onGoFullLog }: Props) {
+export const CheckInPrompt = memo(function CheckInPrompt({ checkIn, onGoFullLog, onAnswered }: Props) {
   const { colors, spacing, borderRadius, typography } = useTheme();
   const { mutate: respond, isPending } = useRespondToCheckIn();
   const { mutate: dismiss, isPending: isDismissing } = useDismissCheckIn();
@@ -44,8 +49,9 @@ export const CheckInPrompt = memo(function CheckInPrompt({ checkIn, onGoFullLog 
       {
         onSuccess: () => {
           if (checkIn.kind === 'missing_data' && value === 'log') {
-            onGoFullLog();
+            onGoFullLog?.();
           }
+          onAnswered?.(value);
         },
       },
     );

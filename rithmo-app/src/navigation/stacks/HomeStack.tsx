@@ -5,6 +5,7 @@ import type { HomeStackParamList } from '@navigation/types';
 import { useTheme } from '@hooks/useTheme';
 import HomeScreen from '@screens/home/HomeScreen';
 import PartnerHomeScreen from '@screens/home/PartnerHomeScreen';
+import InsightDetailScreen from '@screens/home/InsightDetailScreen';
 import { useRole } from '@hooks/useRole';
 import NotificationsScreen from '@screens/notifications/NotificationsScreen';
 
@@ -36,6 +37,15 @@ export function HomeStack() {
         name="Notifications"
         component={NotificationsScreen}
         options={{ title: navTitle('Notifications') }}
+      />
+      {/* Owner-only by construction — see the HomeStackParamList comment.
+          isPartner's screen above (PartnerHomeScreen) has no button or tap
+          target that navigates here, so a partner-role user has no route
+          to it even though it is technically registered on this stack. */}
+      <Stack.Screen
+        name="InsightDetail"
+        component={InsightDetailScreen}
+        options={{ title: 'چیزی که درباره تو یاد گرفته‌ام' }}
       />
     </Stack.Navigator>
   );

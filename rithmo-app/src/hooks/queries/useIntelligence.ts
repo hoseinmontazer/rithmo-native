@@ -162,3 +162,10 @@ export function useDismissCheckIn() {
     },
   });
 }
+
+/** Partner Mode's own data — nothing here is ever read back by the owner. */
+export function useLogPartnerAction() {
+  return useMutation<{ action: string }, Error, string>({
+    mutationFn: (action) => intelligenceService.logPartnerAction(action),
+  });
+}
