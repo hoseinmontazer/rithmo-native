@@ -24,6 +24,7 @@ import icons from '@assets/icons';
 import { textRoles } from '@theme/typography';
 import { useTheme } from '@hooks/useTheme';
 import { useRole } from '@hooks/useRole';
+import { usePushTokenRegistration } from '@hooks/usePushTokenRegistration';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -102,6 +103,11 @@ export function MainNavigator() {
   const { data: unreadNotifs } = useUnreadNotifications();
   const { colors }             = useTheme();
   const { isResolved, isPartner } = useRole();
+  // Registers the device's FCM token with the backend once authenticated —
+  // both roles can receive a message, so this runs regardless of isPartner.
+  // A no-op until the native Firebase setup exists (see the hook's own
+  // docstring); safe to mount unconditionally.
+  usePushTokenRegistration();
 
   // Do not mount the tab navigator until the role is known.
   //

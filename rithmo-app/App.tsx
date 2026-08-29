@@ -14,6 +14,7 @@ import { applyGlobalFont } from '@theme/applyGlobalFont';
 import { ErrorBoundary } from '@components/ErrorBoundary';
 import { ToastProvider } from './src/context/ToastContext';
 import { ConfirmProvider } from './src/context/ConfirmContext';
+import { requestUserPermission, getFCMToken, setupNotificationListeners } from './src/services/pushNotifications';
 
 // ── Persian-first: full RTL layout (Android; iOS follows locale) ─────────────
 I18nManager.forceRTL(true);
@@ -40,6 +41,21 @@ export default function App() {
   // Bootstrap: restore auth session from secure storage on mount
   useEffect(() => {
     initialize();
+
+    // Initialize Push Notifications
+    const initPushNotifications = async () => {
+      const hasPermission = await requestUserPermission();
+      if (hasPermission) {
+        await getFCMToken();
+      }
+    };
+    initPushNotifications();
+
+    const unsubscribe = setupNotificationListeners();
+    
+    return () => {
+      unsubscribe();
+    };
   }, [initialize]);
 
   // Keep system theme in sync when mode === 'system'

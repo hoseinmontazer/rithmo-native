@@ -21,15 +21,12 @@
  * CI, pre-Firebase-setup development).
  *
  * Usage:
- *   Call once inside MainNavigator (authenticated root):
+ *   Called once inside MainNavigator (authenticated root):
  *     usePushTokenRegistration();
  *
- * Not currently called anywhere — push notifications are deliberately
- * deferred post-MVP. See PRODUCT_EVOLUTION.md §5 ("Push notifications
- * (FCM) — deferred post-MVP") for the scope decision and what's still
- * needed (this hook, the native setup above, and a backend rewrite —
- * notifications/push_service.py currently targets a discontinued FCM
- * endpoint) before this can be wired up for real.
+ * Wired up in MainNavigator.tsx. `notifications/push_service.py` already
+ * uses FCM's current HTTP v1 API via firebase-admin, gated by
+ * FIREBASE_CREDENTIALS_PATH/FCM_ENABLED — see that module's own docstring.
  */
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
