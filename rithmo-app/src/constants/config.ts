@@ -108,6 +108,8 @@ export const API_ENDPOINTS = {
   // never talks to the AI provider directly.
   AI_DAILY_REFLECTION: '/api/ai/daily-reflection/',
   AI_PARTNER_REFLECTION: '/api/ai/partner-reflection/',
+  AI_CYCLE_CHANGE_REVIEW: '/api/ai/cycle-change-review/',
+  AI_WEEKLY_REVIEW: '/api/ai/weekly-review/',
 
   // Support (user-facing tickets; internal notes are server-side only)
   SUPPORT_TICKETS: '/api/support/tickets/',

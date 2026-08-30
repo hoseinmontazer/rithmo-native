@@ -139,7 +139,8 @@ export function PremiumGate({ children, featureName, overlay = false }: PremiumG
             marginBottom: spacing[4],
           }}
         >
-          این امکان در طرح پرمیوم گنجانده شده — همراه سلامتی شخصی که با ثبت‌های بیشتر، عمیق‌تر می‌شود.
+          ریتمو الگوهایی را که در زندگی روزمره به چشم نمی‌آیند، از روی داده‌های خودت پیدا می‌کند —
+          نه با میانگین دیگران، فقط با تاریخچه‌ی خودت.
         </Text>
 
         <TouchableOpacity

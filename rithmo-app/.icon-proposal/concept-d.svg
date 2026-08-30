@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFBF4"/>
+      <stop offset="1" stop-color="#F1EDE7"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.75">
+      <stop offset="0" stop-color="#D8E6DE" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#D8E6DE" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <!-- side petals, converging at (512,700) -->
+  <path d="M 512 700 C 430 676 300 596 252 400 C 356 470 456 566 512 700 Z" fill="#2F5D50"/>
+  <path d="M 512 700 C 594 676 724 596 772 400 C 668 470 568 566 512 700 Z" fill="#2F5D50"/>
+  <!-- center petal, same convergence point -->
+  <path d="M 512 700 C 414 628 404 420 512 236 C 620 420 610 628 512 700 Z" fill="#234A40"/>
+  <!-- heart of the bloom -->
+  <circle cx="512" cy="520" r="48" fill="#E11D48"/>
+</svg>

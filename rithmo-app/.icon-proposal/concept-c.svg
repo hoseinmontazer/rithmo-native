@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#357261"/>
+      <stop offset="1" stop-color="#1E4238"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.44" r="0.7">
+      <stop offset="0" stop-color="#6AD7B7" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#6AD7B7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <!-- the cycle: full ring -->
+  <circle cx="512" cy="512" r="330" fill="none" stroke="#FFF8EC" stroke-width="96"/>
+  <!-- the rhythm: pulse beating inside the cycle -->
+  <path d="M 300 560 L 420 560 L 470 470 L 530 560 L 596 380 L 650 640 L 700 560 L 724 560"
+        fill="none" stroke="#FFF8EC" stroke-width="58" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="596" cy="380" r="44" fill="#6AD7B7"/>
+</svg>

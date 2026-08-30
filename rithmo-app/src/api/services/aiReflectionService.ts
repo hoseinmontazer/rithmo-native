@@ -8,4 +8,10 @@ export const aiReflectionService = {
 
   getPartnerReflection: () =>
     apiClient.get<DailyReflectionResponse>(API_ENDPOINTS.AI_PARTNER_REFLECTION),
+
+  getCycleChangeReview: () =>
+    apiClient.get<DailyReflectionResponse>(API_ENDPOINTS.AI_CYCLE_CHANGE_REVIEW),
+
+  getWeeklyReview: () =>
+    apiClient.get<DailyReflectionResponse>(API_ENDPOINTS.AI_WEEKLY_REVIEW),
 };

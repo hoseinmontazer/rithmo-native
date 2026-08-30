@@ -39,6 +39,9 @@ import { toFa } from '@utils/persian';
 import { useInsights, useProgress } from '@hooks/queries/useIntelligence';
 import { track } from '@analytics';
 import { TodayInsightCard } from '../home/components/TodayInsightCard';
+import { CycleChangeCard } from './components/CycleChangeCard';
+import { WeeklyReviewCard } from './components/WeeklyReviewCard';
+import { PremiumGate } from '@components/PremiumGate';
 import type { CycleAnalysis } from '@types/period.types';
 import type { Insight } from '@types/intelligence.types';
 import type { InsightsScreenProps } from '@navigation/types';
@@ -246,6 +249,14 @@ export default function InsightsHomeScreen() {
   // boundary is not a second data point.
   const observedCycles = progress?.evidence.usable_cycles ?? null;
 
+  // A real, already-fetched grounding line for the Premium AI cards below —
+  // the same two counts the hero stat tiles above already show, echoed so
+  // the AI text visibly traces back to real evidence, not floating text.
+  const aiEvidenceNote =
+    loggedDayCount !== null && observedCycles !== null
+      ? `بر اساس ${toFa(loggedDayCount)} روز ثبت و ${toFa(observedCycles)} چرخه‌ی کامل`
+      : null;
+
   return (
     <SafeAreaView style={[styles.flex1, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       <ScrollView
@@ -452,6 +463,21 @@ export default function InsightsHomeScreen() {
             </Text>
           </Card>
         </TouchableOpacity>
+
+        {/* ══ PREMIUM AI SYNTHESIS (Cycle Change + Weekly Review) ═══════
+            Free users see the standard PremiumGate upsell card here;
+            premium users see the real cards, each of which renders
+            nothing on its own when there is no review yet (e.g. still in
+            Learning Mode) — same "absence, not an error" rule as
+            DailyReflectionCard. Grouped together since both are the same
+            kind of surface: an AI synthesis of the exact patterns already
+            listed above, not a separate feature area. */}
+        <View style={{ marginBottom: spacing[4] }}>
+          <PremiumGate featureName="این چرخه چه فرقی داشت؟">
+            <CycleChangeCard evidenceNote={aiEvidenceNote} />
+            <WeeklyReviewCard evidenceNote={aiEvidenceNote} />
+          </PremiumGate>
+        </View>
 
         {/* ══ DEEP INSIGHTS CTA (premium, honest copy) ══════════════════ */}
         <TouchableOpacity
