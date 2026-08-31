@@ -5,15 +5,15 @@ import type { ProfileStackParamList } from '@navigation/types';
 import { useTheme } from '@hooks/useTheme';
 import { MessagesStack } from './MessagesStack';
 
-const ProfileScreen        = React.lazy(() => import('@screens/profile/ProfileScreen'));
-const EditProfileScreen    = React.lazy(() => import('@screens/profile/EditProfileScreen'));
-const PartnerManageScreen  = React.lazy(() => import('@screens/profile/PartnerManageScreen'));
-const SettingsScreen       = React.lazy(() => import('@screens/profile/SettingsScreen'));
-const ChangePasswordScreen = React.lazy(() => import('@screens/profile/ChangePasswordScreen'));
-const DeleteAccountScreen  = React.lazy(() => import('@screens/profile/DeleteAccountScreen'));
-const UpgradeScreen        = React.lazy(() => import('@screens/profile/UpgradeScreen'));
-const SupportScreen        = React.lazy(() => import('@screens/support/SupportScreen'));
-const PregnancyScreen      = React.lazy(() => import('@screens/pregnancy/PregnancyScreen'));
+import ProfileScreen from '@screens/profile/ProfileScreen';
+import EditProfileScreen from '@screens/profile/EditProfileScreen';
+import PartnerManageScreen from '@screens/profile/PartnerManageScreen';
+import SettingsScreen from '@screens/profile/SettingsScreen';
+import ChangePasswordScreen from '@screens/profile/ChangePasswordScreen';
+import DeleteAccountScreen from '@screens/profile/DeleteAccountScreen';
+import UpgradeScreen from '@screens/profile/UpgradeScreen';
+import SupportScreen from '@screens/support/SupportScreen';
+import PregnancyScreen from '@screens/pregnancy/PregnancyScreen';
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
@@ -29,7 +29,7 @@ export function ProfileStack() {
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-      <Stack.Screen name="Profile"         component={ProfileScreen}        options={{ title: navTitle('Profile') }} />
+      <Stack.Screen name="Profile"         component={ProfileScreen}        options={{ headerShown: false }} />
       <Stack.Screen name="EditProfile"     component={EditProfileScreen}    options={{ title: navTitle('EditProfile') }} />
       <Stack.Screen name="PartnerManage"   component={PartnerManageScreen}  options={{ title: navTitle('PartnerManage') }} />
       <Stack.Screen

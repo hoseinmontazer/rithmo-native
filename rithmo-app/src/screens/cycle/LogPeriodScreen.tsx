@@ -111,7 +111,7 @@ function CustomDatePickerSheet({
             <Text style={[styles.modalTitle, { color: colors.textPrimary, fontSize: typography.base }]}>
               انتخاب تاریخ شروع
             </Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="بستن">
               <Icon name="close" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
@@ -247,7 +247,7 @@ function EndPeriodSheet({
                 شروع: {faDateShort(startDate)}
               </Text>
             </View>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="بستن">
               <Icon name="close" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
@@ -745,7 +745,6 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   headerTitle: {
     fontWeight: '700',
-    letterSpacing: -0.3,
   },
   headerSubtitle: {
     lineHeight: 18,

@@ -22,8 +22,8 @@
  * so no native module is added for what is decoration.
  */
 
-import React, { memo, useId } from 'react';
-import { StyleSheet, View, type ViewStyle } from 'react-native';
+import React, { memo, useId, useState } from 'react';
+import { LayoutChangeEvent, StyleSheet, View, type ViewStyle } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 export interface GradientSurfaceProps {
@@ -44,30 +44,61 @@ export const GradientSurface = memo(function GradientSurface({
   diagonal = true,
   borderRadius = 0,
 }: GradientSurfaceProps) {
-  // Gradient ids must be unique per instance — two surfaces sharing an id
-  // would make the second one paint with the first one's stops.
+  const [layout, setLayout] = useState<{ width: number; height: number } | null>(null);
   const gradientId = `grad-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
 
-  const from = colors[0] ?? 'transparent';
+  const from = colors[0] ?? '#1B4D3E';
   const to = colors[colors.length - 1] ?? from;
 
+  const handleLayout = (e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    if (width > 0 && height > 0) {
+      if (!layout || layout.width !== width || layout.height !== height) {
+        setLayout({ width, height });
+      }
+    }
+  };
+
   return (
-    <View style={[{ overflow: 'hidden', borderRadius }, style]}>
-      <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Defs>
-          <LinearGradient
-            id={gradientId}
-            x1="0"
-            y1="0"
-            x2={diagonal ? '1' : '0'}
-            y2="1"
-          >
-            <Stop offset="0" stopColor={from} stopOpacity="1" />
-            <Stop offset="1" stopColor={to} stopOpacity="1" />
-          </LinearGradient>
-        </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${gradientId})`} />
-      </Svg>
+    <View
+      onLayout={handleLayout}
+      style={[
+        {
+          overflow: 'hidden',
+          borderRadius,
+          backgroundColor: from,
+        },
+        style,
+      ]}
+    >
+      {layout ? (
+        <Svg
+          width={layout.width}
+          height={layout.height}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        >
+          <Defs>
+            <LinearGradient
+              id={gradientId}
+              x1="0"
+              y1="0"
+              x2={diagonal ? '1' : '0'}
+              y2="1"
+            >
+              <Stop offset="0" stopColor={from} stopOpacity="1" />
+              <Stop offset="1" stopColor={to} stopOpacity="1" />
+            </LinearGradient>
+          </Defs>
+          <Rect
+            x="0"
+            y="0"
+            width={layout.width}
+            height={layout.height}
+            fill={`url(#${gradientId})`}
+          />
+        </Svg>
+      ) : null}
       {children}
     </View>
   );

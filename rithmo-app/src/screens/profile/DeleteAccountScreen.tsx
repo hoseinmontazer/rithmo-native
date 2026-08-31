@@ -69,7 +69,7 @@ export default function DeleteAccountScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.warningBox, { backgroundColor: colors.error + '18', borderRadius: 16, padding: spacing[5], marginBottom: spacing[6] }]}>
-          <Text style={{ fontSize: 48, textAlign: 'center', marginBottom: spacing[3] }}>⚠️</Text>
+          <Text style={{ fontSize: typography.giant, textAlign: 'center', marginBottom: spacing[3] }}>⚠️</Text>
           <Text style={[styles.warningTitle, { color: colors.error, fontSize: typography.lg, fontWeight: '700', textAlign: 'center', marginBottom: spacing[2] }]}>
             عملیات دائمی
           </Text>

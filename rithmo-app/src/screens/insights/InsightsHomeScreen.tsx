@@ -99,30 +99,33 @@ function StatTile({
   sub?: string;
   accent: string;
 }) {
-  const { colors, typography, borderRadius, spacing } = useTheme();
+  const { colors, typography, borderRadius, spacing, shadow } = useTheme();
   return (
     <View
       style={[
         styles.statTile,
         {
-          borderRadius: borderRadius.md,
+          borderRadius: borderRadius.xl,
           borderColor: colors.border,
           backgroundColor: colors.surface,
-          padding: spacing[3],
+          padding: spacing[4],
+          ...(shadow.xs || {}),
         },
       ]}
     >
-      <View style={[styles.statTileAccentDot, { backgroundColor: accent }]} />
-      <Text style={[styles.statTileValue, { color: colors.textPrimary, fontSize: typography.xl }]}>
+      <View style={styles.statTileHeader}>
+        <View style={[styles.statTileAccentDot, { backgroundColor: accent }]} />
+        <Text style={[styles.statTileLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
+          {label}
+        </Text>
+      </View>
+      <Text style={[styles.statTileValue, { color: colors.textPrimary, fontSize: typography.xl, marginTop: spacing[1] }]}>
         {value}
         {sub ? (
           <Text style={[styles.statTileSub, { color: colors.textTertiary, fontSize: typography.xs }]}>
             {' '}{sub}
           </Text>
         ) : null}
-      </Text>
-      <Text style={[styles.statTileLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
-        {label}
       </Text>
     </View>
   );
@@ -536,6 +539,7 @@ const styles = StyleSheet.create({
 
   progressTrack: {
     overflow: 'hidden',
+    flexDirection: 'row',
   },
   progressFill: {
     height: '100%',
@@ -545,11 +549,15 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
   },
+  statTileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   statTileAccentDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginBottom: 6,
   },
   statTileValue: {
     fontWeight: '800',
@@ -557,7 +565,6 @@ const styles = StyleSheet.create({
   },
   statTileLabel: {
     fontWeight: '500',
-    marginTop: 2,
   },
   statTileSub: {
     fontWeight: '500',
@@ -595,7 +602,6 @@ const styles = StyleSheet.create({
   sectionHeading: {},
   sectionHeadingTitle: {
     fontWeight: '700',
-    letterSpacing: -0.2,
   },
   sectionHeadingSub: {
     marginTop: 2,
@@ -605,7 +611,6 @@ const styles = StyleSheet.create({
   heroSection: {},
   heroTitle: {
     fontWeight: '800',
-    letterSpacing: -0.5,
     marginBottom: 4,
   },
   heroSub: {

@@ -243,7 +243,7 @@ export function MainNavigator() {
           tabBarIcon: ({ focused, color }) => (
             <TabItem
               tab="profile"
-              label="من"
+              label="پروفایل"
               focused={focused}
               color={color}
             />

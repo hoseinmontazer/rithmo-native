@@ -3,20 +3,21 @@
  *
  * Sections, in descending weight:
  *
- *   HERO      ring card       — where am I (cycle day / gestational week)
- *   MOOD      quick-pick card — a one-tap real write, not a route
+ *   HERO      solid circle    — where am I (cycle day / gestational week)
  *   REFLECTION premium card   — today's AI reflection (renders nothing if unavailable)
  *   STORY     elevated card   — what was noticed, why, and what to do
  *   SECONDARY collapsed rows — optional, subordinate
  *   ACCRUAL   quiet card     — what is known, what is nearly known
  *
+ * The one-tap mood quick-pick that used to live here moved into QuickLogScreen
+ * itself, which already had its own (richer, illustrated) mood picker as the
+ * first step of the full log — keeping a second, plainer one on Home was a
+ * duplicate control for the same write. "ثبت کامل روز" is the one route into
+ * logging now, matching F-02's original lesson (don't give two routes to one
+ * screen) more completely than the quick-pick card did.
+ *
  * Retuned to the "Rhythmo App" design mockup (warm/green palette — see
- * theme/colors.ts) while preserving F-02's actual lesson, not just its
- * layout: the old quick-action row was removed because it and the card
- * below it BOTH navigated to QuickLog — two routes to one screen. The mood
- * row here is not that: picking a mood is a real, immediate write
- * (useCreateOrUpdateWellnessLog, see MoodQuickPick), never a navigation.
- * "ثبت کامل روز" is still the only route into the full logger.
+ * theme/colors.ts).
  *
  * Context (cycle day / phase / prediction) is no longer a separate flat
  * strip — it is now the hero ring card's content (see HeroRingCard), so
@@ -51,8 +52,6 @@ import type { GuidedAction, Insight } from '@types/intelligence.types';
 import { textRoles } from '@theme/typography';
 import { screen } from '@theme/spacing';
 import { toFa, faDate } from '@utils/persian';
-import { todayISO } from '@utils/dateUtils';
-import { useSelectedDateStore } from '@store/selectedDateStore';
 import {
   ErrorState,
   ContextSkeleton,
@@ -67,7 +66,7 @@ import { SecondaryActions } from './components/SecondaryActions';
 import { AccrualLedger } from './components/AccrualLedger';
 import { DailyReflectionCard } from './components/DailyReflectionCard';
 import { HeroRingCard } from './components/HeroRingCard';
-import { MoodQuickPick } from './components/MoodQuickPick';
+import { QuickCheckInWidget } from './components/QuickCheckInWidget';
 
 type Props = HomeScreenProps<'Home'>;
 
@@ -120,12 +119,6 @@ export default function HomeScreen() {
   const state = today?.state ?? null;
   const learningMode = today?.learning_mode ?? false;
 
-  // Shared with the day strip and the Cycle tab — one selection everywhere.
-  const selectedDate = useSelectedDateStore((s) => s.selectedDate);
-  const todayStr = todayISO();
-  const isFutureSelected = selectedDate > todayStr;
-  const isPastSelected = selectedDate < todayStr;
-
   const { primaryAction, secondaryActions } = useMemo(() => {
     const actions: GuidedAction[] = today?.actions ?? [];
     return {
@@ -159,6 +152,9 @@ export default function HomeScreen() {
   // ── Navigation ────────────────────────────────────────────────────────────
   const goToQuickLog = useCallback(() => {
     navigation.navigate('LogTab' as any, { screen: 'QuickLog' } as any);
+  }, [navigation]);
+  const goToQuickLogCategory = useCallback((category: string) => {
+    navigation.navigate('LogTab' as any, { screen: 'QuickLog', params: { initialCategory: category } } as any);
   }, [navigation]);
   const goToCycle = useCallback(() => navigation.navigate('CycleTab' as any), [navigation]);
   const goToInsights = useCallback(() => navigation.navigate('InsightsTab' as any), [navigation]);
@@ -273,29 +269,11 @@ export default function HomeScreen() {
               onPress={pregnancy?.has_active_pregnancy ? goToPregnancy : goToCycle}
               onStartTracking={goToLogPeriod}
             />
+            {(!pregnancy?.has_active_pregnancy || (cycle && cycle.is_known)) && (
+              <QuickCheckInWidget onPressItem={goToQuickLogCategory} />
+            )}
           </View>
         )}
-
-        {/* ── 2. Quick mood pick + full log ───────────────────────────── */}
-        {/* Selecting a day beyond today on the strip swaps the mood card
-            for a one-line notice — logging only ever applies to a real day
-            that happened, never a future one. Selecting a PAST day keeps
-            the card, retitled, so an earlier day can still be logged/edited. */}
-        <View style={{ marginTop: spacing[4] }}>
-          {isFutureSelected ? (
-            <View style={{ paddingHorizontal: spacing[1] }}>
-              <Text style={{ color: colors.textTertiary, fontSize: textRoles.bodyCompact.fontSize, lineHeight: textRoles.bodyCompact.lineHeight }}>
-                برای روزهای آینده ثبت انجام نمی‌شود.
-              </Text>
-            </View>
-          ) : (
-            <MoodQuickPick
-              onGoFullLog={goToQuickLog}
-              title={isPastSelected ? 'آن روز چطور بود؟' : 'امروز چطوری؟'}
-              writeTarget={isPastSelected ? 'other' : 'today'}
-            />
-          )}
-        </View>
 
         {/* Smallest possible Premium AI surface — renders nothing at all
             when not premium/available, so it never affects free users or
@@ -304,7 +282,7 @@ export default function HomeScreen() {
           <DailyReflectionCard />
         </View>
 
-        {/* ── 3. The story — insight + the action it produced ─────────── */}
+        {/* ── 2. The story — insight + the action it produced ─────────── */}
         {todayLoading ? (
           <View style={{ marginTop: spacing[4] }}>
             <StoryCardSkeleton />
@@ -348,7 +326,7 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
-        {/* ── 4. Secondary actions — subordinate rows ───────────────── */}
+        {/* ── 3. Secondary actions — subordinate rows ───────────────── */}
         {!todayLoading && secondaryActions.length > 0 ? (
           <Reveal delay={60}>
             <View style={{ marginTop: spacing[6] }}>
@@ -358,7 +336,7 @@ export default function HomeScreen() {
           </Reveal>
         ) : null}
 
-        {/* ── 5. Accrual — the reason to come back ──────────────────── */}
+        {/* ── 4. Accrual — the reason to come back ──────────────────── */}
         {/* Staggered at 120ms so the column arrives in reading order rather
             than snapping in as one block. `Reveal` fires once on mount and
             honours reduced motion, so this costs nothing on a device that

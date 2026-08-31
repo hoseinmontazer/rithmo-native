@@ -1,30 +1,14 @@
 /**
- * StoryCard — the one thing Home is about.
+ * StoryCard — the primary insight & guided action card on Home.
  *
- * This is the F-02 merge: what Rithmo noticed and what to do about it are
- * now a single card separated by a divider, not two cards separated by a
- * section heading.
- *
- *     insight  →  evidence  →  «چرا این را می‌بینم؟»
- *     ────────────────────────────────────────────
- *     action   →  why this action  →  feedback
- *
- * Why it matters more than it looks: as two cards of equal weight, the user
- * had to infer that the recommendation came from the observation. That
- * inference is the entire product claim — "this suggestion exists *because*
- * of something in your data" — and leaving it to be inferred is what made
- * the app read as interesting statistics next to generic advice. One card
- * with one divider states the connection instead of implying it.
- *
- * Everything rendered here comes from the server. There are no defaults and
- * no filler: a missing insight, a missing action, or missing evidence each
- * render as absence rather than as invented text.
+ * Merges what Rithmo noticed with what to do about it in a single cohesive,
+ * elegant card with clear Persian RTL typography, evidence exploration, and
+ * responsive action controls.
  */
-
 import React, { memo, useCallback, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { AppIcon } from '@components/ui';
+import { AppIcon, Card, PressScale, Divider } from '@components/ui';
 import icons, { type AppIconName } from '@assets/icons';
 import { useTheme } from '@hooks/useTheme';
 import { toFa } from '@utils/persian';
@@ -32,38 +16,19 @@ import { track } from '@analytics';
 import { useSubmitActionFeedback, useSetInsightAccuracy } from '@hooks/queries/useIntelligence';
 import type { GeneralPhaseContext, GuidedAction, Helpfulness, Insight, NoticingPayload } from '@types/intelligence.types';
 
-/**
- * The guided action's category, as a full-colour icon.
- *
- * These were monoline glyphs tinted `colors.primary`, so the one icon on the
- * Home screen was the same green as the header, the button and the links —
- * nothing on the screen carried a second colour. The PNG set in
- * `assets/icons` is flat-colour artwork, which is what gives this card a
- * focal point.
- *
- * `rest` and `basics` have no matching artwork in the set yet and fall back
- * to the nearest concept; see the note in the project TODO.
- */
 const CATEGORY_ICON: Record<string, AppIconName> = {
-  calm:       'mentalHealth',      // mind / settling
-  movement:   'betterHealth',      // heart with muscles
-  comfort:    'healthcare',        // heart held in a hand
-  rest:       'wellness',          // NO sleep icon in the set — placeholder
-  basics:     'healthcare',        // NO water/hydration icon — placeholder
-  connection: 'collaborate',       // two hands, puzzle pieces
-  reflection: 'edit',              // pencil — writing something down
+  calm:       'mentalHealth',
+  movement:   'betterHealth',
+  comfort:    'healthcare',
+  rest:       'wellness',
+  basics:     'healthcare',
+  connection: 'collaborate',
+  reflection: 'edit',
   general:    'wellness',
 };
 
-/**
- * Evidence rows, built only from fields the payload actually contains.
- *
- * Each row is a number the user could check against her own logs — sample
- * size, window, her usual value. This is the difference between "we noticed
- * something" and a claim she can audit.
- */
 function EvidenceRows({ insight }: { insight: Insight }) {
-  const { colors, typography, spacing } = useTheme();
+  const { colors, typography, spacing, borderRadius } = useTheme();
   const e = insight.evidence as Record<string, any>;
 
   const rows: Array<[string, string]> = [];
@@ -109,15 +74,13 @@ function EvidenceRows({ insight }: { insight: Insight }) {
   if (rows.length === 0) { return null; }
 
   return (
-    <View style={{ gap: spacing[2], marginTop: spacing[3] }}>
-      {rows.map(([label, value]) => (
-        <View key={label} style={styles.evidenceRow}>
+    <View style={[styles.evidenceWrap, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.lg, padding: spacing[3], marginTop: spacing[3] }]}>
+      {rows.map(([label, value], index) => (
+        <View key={label} style={[styles.evidenceRow, index > 0 && { marginTop: spacing[2] }]}>
           <Text style={{ color: colors.textTertiary, fontSize: typography.caption }}>
             {label}
           </Text>
-          <Text
-            style={{ color: colors.textSecondary, fontSize: typography.caption, fontWeight: '700' }}
-          >
+          <Text style={{ color: colors.textPrimary, fontSize: typography.caption, fontWeight: '700' }}>
             {value}
           </Text>
         </View>
@@ -130,25 +93,9 @@ interface Props {
   insight: Insight | null;
   action: GuidedAction | null;
   learningMode: boolean;
-  /** General (never personal) knowledge about today's cycle phase — shown
-   * only while there isn't yet enough personal evidence to say something
-   * specific about this user. See ai_gateway/context.py's own separation
-   * of general vs personal for why these must never be the same field. */
   generalContext?: GeneralPhaseContext | null;
-  /**
-   * The evolving, honest sentence to show instead of a real insight, for
-   * the period before one exists — see `intelligence/domain/noticing.py`.
-   * The server sends this only when `insight` is absent or is the generic
-   * `coverage` insight; when a real insight exists, this is always null.
-   * The client never chooses between them — it only renders what it was
-   * given.
-   */
   noticing?: NoticingPayload | null;
-  /** Only for data-collection actions that have somewhere to go. */
   onOpenAction?: (action: GuidedAction) => void;
-  /** «چرا Rhythmo این را می‌گوید؟» — opens the full explanation. Omitted
-   * entirely when absent, so this card stays usable anywhere it's reused
-   * without a detail route available. */
   onOpenDetail?: (insight: Insight) => void;
 }
 
@@ -161,7 +108,7 @@ export const StoryCard = memo(function StoryCard({
   onOpenAction,
   onOpenDetail,
 }: Props) {
-  const { colors, typography, spacing, borderRadius } = useTheme();
+  const { colors, typography, spacing, borderRadius, shadow } = useTheme();
   const [showEvidence, setShowEvidence] = useState(false);
   const { mutate: submitFeedback, isPending } = useSubmitActionFeedback();
   const { mutate: setAccuracy, isPending: isAccuracyPending } = useSetInsightAccuracy();
@@ -226,283 +173,218 @@ export const StoryCard = memo(function StoryCard({
     }
   }, [action, onOpenAction, complete]);
 
-  // Nothing at all — not an error, just a day with no supportable claim.
   if (!insight && !action && !noticing) {
     return null;
   }
 
   return (
-    <View
+    <Card
+      rounded="3xl"
       style={[
         styles.card,
         {
           backgroundColor: colors.surface,
-          borderColor: colors.border,
-          // 16, and no shadow. This card is the screen's headline but it does
-          // not float: the redesign carries surfaces on a hairline border, and
-          // reserves elevation for sheets and toasts. A shadow here also made
-          // it read as a different material from every other card on Home.
-          borderRadius: borderRadius.lg,
-          padding: spacing[4],
+          borderColor: colors.primaryLight,
+          borderWidth: 1,
+          padding: spacing[5],
+          ...(shadow.sm || {}),
         },
       ]}
     >
-      {/* Coloured top edge — see the note in AccrualLedger for why this is a
-          bled child rather than `borderTopColor`. Brand green, not the
-          generic `accent` (violet) token: violet has no meaning anywhere
-          else in the app's redesigned palette (AccrualLedger's amber
-          specifically signals "evidence still being gathered"; this card
-          has no such distinct semantic, so it takes the same primary the
-          rest of Home's headline elements use). */}
-      <View
-        style={{
-          height: 3,
-          backgroundColor: colors.primary,
-          marginTop: -spacing[4],
-          marginHorizontal: -spacing[4],
-          marginBottom: spacing[4],
-        }}
-      />
-      {/* ── The observation — a real insight, or the evolving Noticing
-          sentence when there isn't one yet. The server decides which of
-          the two exists for today (see domain/noticing.py); this card
-          only ever renders whichever one it was given, never both. */}
+      {/* ── Header Badge Row ────────────────────────────────────────── */}
+      <View style={styles.badgeRow}>
+        <View
+          style={[
+            styles.topicBadge,
+            {
+              backgroundColor: colors.primaryLighter,
+              borderColor: colors.primaryLight,
+              borderRadius: borderRadius.pill,
+            },
+          ]}
+        >
+          <Icon name="lightbulb-outline" size={13} color={colors.primaryDark} />
+          <Text style={{ color: colors.primaryDark, fontSize: typography.micro, fontWeight: '700' }}>
+            {action ? 'پیشنهاد هوشمند' : 'بینش و تحلیل'}
+          </Text>
+        </View>
+
+        {insight && (
+          <PressScale
+            onPress={toggleEvidence}
+            style={[
+              styles.whyBtn,
+              {
+                backgroundColor: colors.surfaceSecondary,
+                borderColor: colors.border,
+                borderRadius: borderRadius.pill,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={showEvidence ? 'بستن توضیح' : 'چرا این را می‌بینم؟'}
+          >
+            <Icon
+              name={showEvidence ? 'chevron-up' : 'information-outline'}
+              size={13}
+              color={colors.textSecondary}
+            />
+            <Text style={{ color: colors.textSecondary, fontSize: typography.micro, fontWeight: '600' }}>
+              {showEvidence ? 'بستن' : 'چرا این را می‌بینم؟'}
+            </Text>
+          </PressScale>
+        )}
+      </View>
+
+      {/* ── Observation: noticing or insight ────────────────────────── */}
       {noticing ? (
-        <View accessible accessibilityLabel={noticing.headline_fa}>
+        <View style={{ marginTop: spacing[3] }}>
           <Text
-            style={{
-              color: colors.textPrimary,
-              fontSize: typography.title,
-              fontWeight: '800',
-              lineHeight: 26,
-            }}
+            style={[
+              styles.headlineText,
+              {
+                color: colors.textPrimary,
+                fontSize: typography.large,
+                fontWeight: '800',
+                lineHeight: 28,
+              },
+            ]}
           >
             {noticing.headline_fa}
           </Text>
         </View>
       ) : insight ? (
-        <TouchableOpacity
-          activeOpacity={onOpenDetail ? 0.7 : 1}
-          disabled={!onOpenDetail}
+        <PressScale
           onPress={() => onOpenDetail?.(insight)}
-          accessible
-          accessibilityRole={onOpenDetail ? 'button' : undefined}
-          accessibilityLabel={
-            onOpenDetail
-              ? `${insight.title_fa}. ${insight.body_fa}. برای توضیح کامل ضربه بزن.`
-              : `${insight.title_fa}. ${insight.body_fa}`
-          }
+          disabled={!onOpenDetail}
+          style={{ marginTop: spacing[3] }}
         >
           <Text
-            style={{
-              color: colors.textPrimary,
-              fontSize: typography.title,
-              fontWeight: '800',
-              lineHeight: 26,
-            }}
+            style={[
+              styles.headlineText,
+              {
+                color: colors.textPrimary,
+                fontSize: typography.large,
+                fontWeight: '800',
+                lineHeight: 28,
+              },
+            ]}
           >
             {insight.title_fa}
           </Text>
-          <Text
-            style={{
-              color: colors.textSecondary,
-              fontSize: typography.bodySmall,
-              lineHeight: 21,
-              marginTop: spacing[2],
-            }}
-          >
-            {insight.body_fa}
-          </Text>
-        </TouchableOpacity>
+          {insight.body_fa ? (
+            <Text
+              style={{
+                color: colors.textSecondary,
+                fontSize: typography.bodySmall,
+                lineHeight: 22,
+                marginTop: spacing[2],
+              }}
+            >
+              {insight.body_fa}
+            </Text>
+          ) : null}
+        </PressScale>
       ) : null}
 
-      {/* ── About this phase — general knowledge, not a personal claim ─
-          Shown only while learning-mode has nothing personal to say yet,
-          AND Noticing has nothing to say either (Noticing is the more
-          specific, personal alternative — general phase context steps
-          aside for it exactly as it already steps aside for a real
-          insight). */}
+      {/* ── General context fallback ─────────────────────────────────── */}
       {!noticing && learningMode && generalContext ? (
         <View
           style={[
             styles.generalContextBox,
-            { backgroundColor: colors.background, borderRadius: borderRadius.md, padding: spacing[3], marginTop: spacing[3] },
+            { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.lg, padding: spacing[3], marginTop: spacing[3] },
           ]}
         >
           <Text style={{ color: colors.textPrimary, fontSize: typography.caption, fontWeight: '700' }}>
-            درباره‌ی این مرحله
+            درباره‌ی این مرحله از چرخه
           </Text>
           {generalContext.general_context_fa.map((line, i) => (
             <Text
               key={i}
-              style={{ color: colors.textSecondary, fontSize: typography.caption, lineHeight: 18, marginTop: spacing[1] }}
+              style={{ color: colors.textSecondary, fontSize: typography.caption, lineHeight: 20, marginTop: spacing[1] }}
             >
-              {`· ${line}`}
+              {`• ${line}`}
             </Text>
           ))}
         </View>
       ) : null}
 
-      {/* ── Trust affordance ────────────────────────────────────────── */}
-      {insight && insight.kind !== 'coverage' ? (
+      {/* ── Evidence expansion ───────────────────────────────────────── */}
+      {showEvidence && insight ? (
+        <View style={{ marginTop: spacing[3] }}>
+          <EvidenceRows insight={insight} />
+          <Text
+            style={{
+              color: colors.textTertiary,
+              fontSize: typography.micro,
+              lineHeight: 18,
+              marginTop: spacing[2],
+            }}
+          >
+            این یک الگوست، نه تشخیص پزشکی.
+          </Text>
+
+          {/* Accuracy Question */}
+          {insight.accurate == null ? (
+            <View style={[styles.accuracyRow, { marginTop: spacing[3] }]}>
+              <Text style={{ color: colors.textSecondary, fontSize: typography.caption, fontWeight: '600' }}>
+                این الگو به تجربه‌ات می‌خوره؟
+              </Text>
+              <View style={styles.accuracyBtnRow}>
+                <PressScale
+                  onPress={() => setAccuracy({ key: insight.key, accurate: true })}
+                  disabled={isAccuracyPending}
+                  style={[
+                    styles.accuracyBtn,
+                    { backgroundColor: colors.primaryLighter, borderColor: colors.primaryLight, borderRadius: borderRadius.pill },
+                  ]}
+                  accessibilityRole="button"
+                >
+                  <Text style={{ color: colors.primaryDark, fontSize: typography.caption, fontWeight: '700' }}>
+                    آره
+                  </Text>
+                </PressScale>
+                <PressScale
+                  onPress={() => setAccuracy({ key: insight.key, accurate: false })}
+                  disabled={isAccuracyPending}
+                  style={[
+                    styles.accuracyBtn,
+                    { backgroundColor: colors.surfaceSecondary, borderColor: colors.border, borderRadius: borderRadius.pill },
+                  ]}
+                  accessibilityRole="button"
+                >
+                  <Text style={{ color: colors.textSecondary, fontSize: typography.caption, fontWeight: '700' }}>
+                    نه
+                  </Text>
+                </PressScale>
+              </View>
+            </View>
+          ) : (
+            <Text style={{ color: colors.textTertiary, fontSize: typography.micro, marginTop: spacing[2] }}>
+              {insight.accurate ? 'ممنون — این به بهتر شدن تحلیل‌ها کمک می‌کند.' : 'متوجه شدیم، ممنون از بازخوردت.'}
+            </Text>
+          )}
+        </View>
+      ) : null}
+
+      {/* ── Action Section ──────────────────────────────────────────── */}
+      {action && (
         <>
-          <View style={[styles.metaRow, { marginTop: spacing[3] }]}>
-            <View style={styles.chipGroup}>
-              {insight.epistemic_kind ? (
-                <View
-                  style={[
-                    styles.epistemicChip,
-                    { borderColor: colors.borderSubtle, borderRadius: borderRadius.pill },
-                  ]}
-                >
-                  <Text
-                    style={{ color: colors.textTertiary, fontSize: typography.overline, fontWeight: '600' }}
-                  >
-                    {insight.epistemic_kind_label_fa}
-                  </Text>
-                </View>
-              ) : null}
-              {!learningMode && insight.confidence_label_fa ? (
-                <View
-                  style={[
-                    styles.chip,
-                    { backgroundColor: colors.primaryLighter, borderRadius: borderRadius.pill },
-                  ]}
-                >
-                  <Text
-                    style={{ color: colors.primary, fontSize: typography.overline, fontWeight: '700' }}
-                  >
-                    {insight.confidence_label_fa}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
+          {(insight || noticing) && <Divider style={{ marginVertical: spacing[4] }} />}
 
-            <TouchableOpacity
-              onPress={toggleEvidence}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              accessibilityRole="button"
-              accessibilityState={{ expanded: showEvidence }}
-              accessibilityLabel={showEvidence ? 'بستن توضیح' : 'چرا این را می‌بینم؟'}
-              style={styles.whyBtn}
-            >
-              <Icon
-                name={showEvidence ? 'chevron-up' : 'information-outline'}
-                size={15}
-                color={colors.primary}
-              />
-              <Text
-                style={{ color: colors.primary, fontSize: typography.caption, fontWeight: '700' }}
-              >
-                {showEvidence ? 'بستن' : 'چرا این را می‌بینم؟'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {showEvidence ? (
-            <View
-              style={[
-                styles.evidenceBox,
-                { backgroundColor: colors.background, borderRadius: borderRadius.md, padding: spacing[3] },
-              ]}
-            >
-              <Text
-                style={{ color: colors.textSecondary, fontSize: typography.caption, lineHeight: 18 }}
-              >
-                این نتیجه فقط از داده‌های ثبت‌شده‌ی خودت محاسبه شده است:
-              </Text>
-              <EvidenceRows insight={insight} />
-              {/* Boundary statement — kept short so it informs without
-                  turning a wellness app into a medical disclaimer. */}
-              <Text
-                style={{
-                  color: colors.textTertiary,
-                  fontSize: typography.caption,
-                  lineHeight: 18,
-                  marginTop: spacing[3],
-                }}
-              >
-                این یک الگوست، نه تشخیص پزشکی.
-              </Text>
-
-              {/* One real question, one real answer — not a running poll.
-                  `accurate` starts null (never asked); once the user
-                  answers, the server has a verdict and this stops asking. */}
-              {insight.accurate == null ? (
-                <View style={[styles.accuracyRow, { marginTop: spacing[3] }]}>
-                  <Text
-                    style={{ color: colors.textSecondary, fontSize: typography.caption, fontWeight: '600' }}
-                  >
-                    این الگو به تجربه‌ات می‌خوره؟
-                  </Text>
-                  <View style={styles.accuracyBtnRow}>
-                    <TouchableOpacity
-                      onPress={() => setAccuracy({ key: insight.key, accurate: true })}
-                      disabled={isAccuracyPending}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      accessibilityRole="button"
-                      accessibilityLabel="آره، درست است"
-                      style={[
-                        styles.accuracyBtn,
-                        { backgroundColor: colors.primaryLighter, borderRadius: borderRadius.pill },
-                      ]}
-                    >
-                      <Text style={{ color: colors.primaryDark, fontSize: typography.caption, fontWeight: '700' }}>
-                        آره
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => setAccuracy({ key: insight.key, accurate: false })}
-                      disabled={isAccuracyPending}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      accessibilityRole="button"
-                      accessibilityLabel="نه، درست نیست"
-                      style={[
-                        styles.accuracyBtn,
-                        { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.pill },
-                      ]}
-                    >
-                      <Text style={{ color: colors.textSecondary, fontSize: typography.caption, fontWeight: '700' }}>
-                        نه
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : (
-                <Text
-                  style={{ color: colors.textTertiary, fontSize: typography.caption, marginTop: spacing[3] }}
-                >
-                  {insight.accurate ? 'ممنون — این به بهتر شدن پیشنهادها کمک می‌کند.' : 'متوجه شدیم، ممنون از بازخوردت.'}
-                </Text>
-              )}
-            </View>
-          ) : null}
-        </>
-      ) : null}
-
-      {/* ── The connection ──────────────────────────────────────────── */}
-      {insight && action ? (
-        <View
-          style={[
-            styles.divider,
-            { backgroundColor: colors.borderSubtle, marginVertical: spacing[4] },
-          ]}
-        />
-      ) : null}
-
-      {/* ── The action ──────────────────────────────────────────────── */}
-      {action ? (
-        <View>
           <View style={styles.actionHead}>
             <View
               style={[
-                styles.actionIcon,
-                { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.lg },
+                styles.actionIconWrap,
+                {
+                  backgroundColor: colors.surfaceSecondary,
+                  borderColor: colors.border,
+                  borderRadius: borderRadius.xl,
+                },
               ]}
             >
               <AppIcon
                 source={icons[CATEGORY_ICON[action.category] ?? CATEGORY_ICON.general]}
-                size={24}
+                size={28}
               />
             </View>
             <View style={{ flex: 1 }}>
@@ -521,7 +403,7 @@ export const StoryCard = memo(function StoryCard({
                   style={{
                     color: colors.textSecondary,
                     fontSize: typography.bodySmall,
-                    lineHeight: 19,
+                    lineHeight: 20,
                     marginTop: 3,
                   }}
                 >
@@ -531,36 +413,14 @@ export const StoryCard = memo(function StoryCard({
             </View>
           </View>
 
-          {/* The action's own justification. Separate from the insight's
-              evidence because it answers a different question: not "why do
-              you believe that" but "why are you suggesting THIS". */}
-          {action.reason_fa && !insight ? (
-            <Text
-              style={{
-                color: colors.textTertiary,
-                fontSize: typography.caption,
-                lineHeight: 18,
-                marginTop: spacing[3],
-              }}
-            >
-              {action.reason_fa}
-            </Text>
-          ) : null}
-
           {isPending ? (
             <View style={{ marginTop: spacing[4], alignItems: 'center' }}>
               <ActivityIndicator size="small" color={colors.primary} />
             </View>
           ) : isDone ? (
-            feedback?.helpfulness === null || feedback?.helpfulness === undefined ? (
+            feedback?.helpfulness == null ? (
               <View style={{ marginTop: spacing[4] }}>
-                <Text
-                  style={{
-                    color: colors.textTertiary,
-                    fontSize: typography.caption,
-                    marginBottom: spacing[2],
-                  }}
-                >
+                <Text style={{ color: colors.textTertiary, fontSize: typography.caption, marginBottom: spacing[2] }}>
                   کمکی کرد؟ (اختیاری)
                 </Text>
                 <View style={styles.rateRow}>
@@ -570,74 +430,56 @@ export const StoryCard = memo(function StoryCard({
                 </View>
               </View>
             ) : (
-              <Text
-                style={{
-                  color: colors.success,
-                  fontSize: typography.caption,
-                  fontWeight: '700',
-                  marginTop: spacing[4],
-                }}
-              >
-                ثبت شد — همین به شناخت بهتر کمک می‌کند.
+              <Text style={{ color: colors.success, fontSize: typography.caption, fontWeight: '700', marginTop: spacing[3] }}>
+                ثبت شد — ممنون از همراهی شما.
               </Text>
             )
           ) : isDismissed ? (
-            <Text
-              style={{
-                color: colors.textTertiary,
-                fontSize: typography.caption,
-                marginTop: spacing[4],
-              }}
-            >
+            <Text style={{ color: colors.textTertiary, fontSize: typography.caption, marginTop: spacing[3] }}>
               دیگر این پیشنهاد را به‌زودی نمی‌بینی.
             </Text>
           ) : (
-            <View style={[styles.actionRow, { marginTop: spacing[4] }]}>
-              <TouchableOpacity
+            <View style={[styles.actionBtnRow, { marginTop: spacing[4] }]}>
+              <PressScale
                 onPress={start}
                 style={[
-                  styles.primaryBtn,
-                  { backgroundColor: colors.primary, borderRadius: borderRadius.lg },
+                  styles.primaryActionBtn,
+                  {
+                    backgroundColor: colors.primary,
+                    borderRadius: borderRadius.lg,
+                  },
                 ]}
                 accessibilityRole="button"
                 accessibilityLabel={onOpenAction ? `شروع: ${action.title_fa}` : `انجام دادم: ${action.title_fa}`}
               >
-                <Text
-                  /* colors.textOnPrimary, not a literal white: the dark theme's
-                     primary is a light mint (#6FD3A6), where white text measures
-                     1.82:1. The token is #0B1F16 there and measures 9.45:1. In
-                     light mode the token IS white, which is why the literal
-                     looked correct and the failure only appeared in dark mode. */
-                  style={{ color: colors.textOnPrimary, fontSize: typography.bodySmall, fontWeight: '700' }}
-                >
+                <Icon name={onOpenAction ? 'arrow-left' : 'check'} size={18} color={colors.textOnPrimary} />
+                <Text style={{ color: colors.textOnPrimary, fontSize: typography.bodySmall, fontWeight: '700' }}>
                   {onOpenAction ? 'شروع' : 'انجام دادم'}
                 </Text>
-              </TouchableOpacity>
+              </PressScale>
 
-              <TouchableOpacity
+              <PressScale
                 onPress={dismiss}
                 style={[
-                  styles.ghostBtn,
-                  { borderColor: colors.border, borderRadius: borderRadius.lg },
+                  styles.ghostActionBtn,
+                  {
+                    backgroundColor: colors.surfaceSecondary,
+                    borderColor: colors.border,
+                    borderRadius: borderRadius.lg,
+                  },
                 ]}
                 accessibilityRole="button"
                 accessibilityLabel="این پیشنهاد مناسب من نیست"
               >
-                <Text
-                  style={{
-                    color: colors.textSecondary,
-                    fontSize: typography.bodySmall,
-                    fontWeight: '600',
-                  }}
-                >
+                <Text style={{ color: colors.textSecondary, fontSize: typography.caption, fontWeight: '600' }}>
                   مناسب من نیست
                 </Text>
-              </TouchableOpacity>
+              </PressScale>
             </View>
           )}
-        </View>
-      ) : null}
-    </View>
+        </>
+      )}
+    </Card>
   );
 });
 
@@ -652,51 +494,88 @@ function RateButton({
 }) {
   const { colors, typography, borderRadius } = useTheme();
   return (
-    <TouchableOpacity
+    <PressScale
       onPress={onPress}
-      style={[styles.rateBtn, { borderColor: colors.border, borderRadius: borderRadius.lg }]}
+      style={[
+        styles.rateBtn,
+        {
+          backgroundColor: colors.surfaceSecondary,
+          borderColor: colors.border,
+          borderRadius: borderRadius.md,
+        },
+      ]}
       accessibilityRole="button"
       accessibilityLabel={label}
     >
       <Icon name={icon} size={15} color={colors.textSecondary} />
-      <Text style={{ color: colors.textSecondary, fontSize: typography.caption }}>{label}</Text>
-    </TouchableOpacity>
+      <Text style={{ color: colors.textSecondary, fontSize: typography.micro, fontWeight: '600' }}>
+        {label}
+      </Text>
+    </PressScale>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, overflow: 'hidden' },
-  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  chipGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  chip: { paddingHorizontal: 10, paddingVertical: 4 },
-  epistemicChip: { paddingHorizontal: 10, paddingVertical: 4, borderWidth: StyleSheet.hairlineWidth },
-  whyBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  evidenceBox: { marginTop: 10 },
-  generalContextBox: {},
-  accuracyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  accuracyBtnRow: { flexDirection: 'row', gap: 8 },
-  accuracyBtn: { paddingHorizontal: 14, paddingVertical: 6 },
-  evidenceRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  divider: { height: StyleSheet.hairlineWidth },
-  actionHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  actionIcon: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  actionRow: { flexDirection: 'row', gap: 8 },
-  primaryBtn: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  ghostBtn: {
+  card: { overflow: 'hidden' },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  topicBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
     borderWidth: 1,
-    minHeight: 48,
-    paddingHorizontal: 14,
+  },
+  whyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderWidth: 1,
+  },
+  headlineText: {},
+  generalContextBox: {},
+  evidenceWrap: {},
+  evidenceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  accuracyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  accuracyBtnRow: { flexDirection: 'row', gap: 6 },
+  accuracyBtn: { paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1 },
+  actionHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  actionIconWrap: {
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    flexShrink: 0,
+  },
+  actionBtnRow: { flexDirection: 'row', gap: 8 },
+  primaryActionBtn: {
+    flex: 1,
+    minHeight: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+  },
+  ghostActionBtn: {
+    minHeight: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderWidth: 1,
   },
   rateRow: { flexDirection: 'row', gap: 6 },
   rateBtn: {
     flex: 1,
-    borderWidth: 1,
-    minHeight: 44,
-    paddingHorizontal: 4,
+    minHeight: 38,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
+    gap: 4,
+    borderWidth: 1,
   },
 });
+

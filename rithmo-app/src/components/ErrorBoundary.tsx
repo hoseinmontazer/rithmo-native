@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { typography } from '@theme/typography';
 
 interface Props {
   children: ReactNode;
@@ -65,13 +66,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   title: {
-    fontSize: 24,
+    fontSize: typography.xlarge,
     fontWeight: 'bold',
     marginBottom: 12,
     color: '#000',
   },
   message: {
-    fontSize: 16,
+    fontSize: typography.base,
     textAlign: 'center',
     marginBottom: 24,
     color: '#666',
@@ -84,7 +85,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: typography.base,
     fontWeight: '600',
   },
 });

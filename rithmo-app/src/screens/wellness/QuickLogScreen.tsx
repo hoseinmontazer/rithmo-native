@@ -582,41 +582,46 @@ export default function QuickLogScreen() {
           </View>
 
           {/* ── Mood: illustrated scale ──────────────────────────────── */}
-          <Card elevated={false} style={{ padding: spacing[4], marginBottom: spacing[6] }}>
+          <Card elevated={false} style={{ padding: spacing[4], paddingTop: spacing[4] + 8, marginBottom: spacing[6] }}>
             <Text style={[styles.pickerLabel, { color: colors.textPrimary, fontSize: textRoles.cardTitle.fontSize, fontWeight: textRoles.cardTitle.fontWeight, lineHeight: textRoles.cardTitle.lineHeight, marginBottom: spacing[3] }]}>
               خلق
             </Text>
-            <View style={[styles.moodRow, { gap: spacing[2] }]}>
+            {/* Circular badges, the selected one enlarged and lifted above
+                the row — the artwork already carries its own colour per
+                face, so selection stays on background/border/scale rather
+                than adding a second, competing colour system on top of it. */}
+            <View style={[styles.moodRow, { gap: spacing[2], alignItems: 'flex-end' }]}>
               {MOODS.map((m) => {
                 const isSelected = m.level === mood;
+                const circleSize = isSelected ? 68 : 56;
                 return (
                   <TouchableOpacity
                     key={m.level}
                     onPress={() => setMood(m.level)}
                     activeOpacity={0.75}
-                    style={[
-                      styles.moodBtn,
-                      {
-                        borderRadius: borderRadius.lg,
-                        backgroundColor: isSelected ? colors.primaryLighter : colors.surfaceSecondary,
-                        borderColor: isSelected ? colors.primary : colors.borderSubtle,
-                        borderWidth: isSelected ? 1.5 : 1,
-                        transform: [{ scale: isSelected ? 1.04 : 1 }],
-                      },
-                    ]}
+                    style={styles.moodItem}
                     accessibilityLabel={`خلق: ${m.label}`}
                     accessibilityState={{ selected: isSelected }}
                   >
-                    {/* Flat-colour faces, not emoji and not a hairline glyph.
-                        Mood is the most affect-laden control in the product,
-                        so each step gets its own expression rather than five
-                        tints of the brand. The artwork keeps its own colours,
-                        so selection is carried entirely by the card — border,
-                        fill, label weight and scale. */}
-                    <AppIcon
-                      source={icons[MOOD_ICON[m.level]]}
-                      size={isSelected ? 36 : 30}
-                    />
+                    <View
+                      style={[
+                        styles.moodCircle,
+                        {
+                          width: circleSize,
+                          height: circleSize,
+                          borderRadius: circleSize / 2,
+                          backgroundColor: isSelected ? colors.primaryLighter : colors.surfaceSecondary,
+                          borderColor: isSelected ? colors.primary : 'transparent',
+                          borderWidth: isSelected ? 2 : 0,
+                          transform: [{ translateY: isSelected ? -8 : 0 }],
+                        },
+                      ]}
+                    >
+                      <AppIcon
+                        source={icons[MOOD_ICON[m.level]]}
+                        size={isSelected ? 38 : 30}
+                      />
+                    </View>
                     <Text
                       style={[
                         styles.moodLabel,
@@ -624,6 +629,7 @@ export default function QuickLogScreen() {
                           color: isSelected ? colors.primary : colors.textTertiary,
                           fontSize: typography.overline,
                           fontWeight: isSelected ? '700' : '500',
+                          marginTop: 6,
                         },
                       ]}
                     >
@@ -678,7 +684,7 @@ export default function QuickLogScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="کاهش ساعت خواب"
                 >
-                  <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '500' }}>−</Text>
+                  <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '500' }}>−</Text>
                 </TouchableOpacity>
                 <Text style={{ color: colors.textPrimary, fontSize: typography.lg, fontWeight: '700', minWidth: 64, textAlign: 'center' }}>
                   {toFa(sleep)} ساعت
@@ -693,7 +699,7 @@ export default function QuickLogScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="افزایش ساعت خواب"
                 >
-                  <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '500' }}>+</Text>
+                  <Text style={{ color: colors.primary, fontSize: typography.base, fontWeight: '500' }}>+</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -816,7 +822,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: '800',
-    letterSpacing: -0.5,
   },
   subTitle: {
     marginTop: 4,
@@ -861,13 +866,15 @@ const styles = StyleSheet.create({
 
   moodRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
   },
-  moodBtn: {
+  moodItem: {
     flex: 1,
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 10,
-    borderWidth: 1,
+  },
+  moodCircle: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   moodLabel: {
     textAlign: 'center',

@@ -217,7 +217,7 @@ function AddMedicationModal({ visible, onClose, onSuccess }: AddModalProps) {
                     />
                     {searching && <ActivityIndicator size="small" color={colors.primary} />}
                     {!!query && !searching && (
-                      <TouchableOpacity onPress={() => setQuery('')}>
+                      <TouchableOpacity onPress={() => setQuery('')} accessibilityRole="button" accessibilityLabel="پاک کردن جستجو">
                         <Icon name="close-circle" size={18} color={colors.textTertiary} />
                       </TouchableOpacity>
                     )}
@@ -822,7 +822,6 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     fontWeight: '800',
-    letterSpacing: -0.5,
   },
   subtitle: {
     fontWeight: '500',

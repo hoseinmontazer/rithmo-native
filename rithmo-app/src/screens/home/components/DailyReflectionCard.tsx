@@ -29,53 +29,102 @@ export const DailyReflectionCard = memo(function DailyReflectionCard() {
   }
 
   return (
-    <Card style={[styles.card, { padding: spacing[4], marginBottom: spacing[4] }]}>
+    <Card
+      rounded="2xl"
+      style={[
+        styles.card,
+        {
+          borderColor: colors.infoBorder,
+          backgroundColor: colors.surface,
+          padding: spacing[5],
+        },
+      ]}
+    >
       <View style={styles.header}>
         <View
           style={[
             styles.badge,
-            { backgroundColor: colors.premiumBg, borderRadius: borderRadius.pill },
+            {
+              backgroundColor: colors.infoBg,
+              borderColor: colors.infoBorder,
+              borderWidth: 1,
+              borderRadius: borderRadius.pill,
+            },
           ]}
         >
-          <Icon name="creation" size={12} color={colors.premium} />
-          <Text style={{ color: colors.premium, fontSize: typography.caption, fontWeight: '700' }}>
+          <Icon name="creation" size={14} color={colors.info} />
+          <Text style={{ color: colors.info, fontSize: typography.caption, fontWeight: '700' }}>
             بازتاب هوشمند
           </Text>
         </View>
       </View>
 
       <Text
-        style={{ color: colors.textPrimary, fontSize: typography.bodySmall, lineHeight: 22, marginTop: spacing[2] }}
+        style={{
+          color: colors.textPrimary,
+          fontSize: typography.bodySmall,
+          lineHeight: 22,
+          fontWeight: '600',
+          marginTop: spacing[3],
+        }}
       >
         {reflection.summary}
       </Text>
 
-      {reflection.observations.map((obs, i) => (
-        <Text
-          key={i}
-          style={{ color: colors.textSecondary, fontSize: typography.caption, lineHeight: 20, marginTop: spacing[1] }}
-        >
-          {`· ${obs}`}
-        </Text>
-      ))}
+      {reflection.observations.length > 0 && (
+        <View style={[styles.observationsBox, { marginTop: spacing[2] }]}>
+          {reflection.observations.map((obs, i) => (
+            <View key={i} style={styles.bulletRow}>
+              <View style={[styles.bulletDot, { backgroundColor: colors.info }]} />
+              <Text
+                style={{
+                  flex: 1,
+                  color: colors.textSecondary,
+                  fontSize: typography.caption,
+                  lineHeight: 20,
+                }}
+              >
+                {obs}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       {reflection.suggestion ? (
-        <Text
-          style={{
-            color: colors.textPrimary,
-            fontSize: typography.bodySmall,
-            fontWeight: '600',
-            marginTop: spacing[3],
-          }}
+        <View
+          style={[
+            styles.suggestionBox,
+            {
+              backgroundColor: colors.surfaceSecondary,
+              borderRadius: borderRadius.md,
+              padding: spacing[3],
+              marginTop: spacing[3],
+            },
+          ]}
         >
-          {reflection.suggestion}
-        </Text>
+          <Text
+            style={{
+              color: colors.textPrimary,
+              fontSize: typography.bodySmall,
+              fontWeight: '600',
+              lineHeight: 20,
+            }}
+          >
+            {reflection.suggestion}
+          </Text>
+        </View>
       ) : null}
 
       {reflection.limitations.map((lim, i) => (
         <Text
           key={i}
-          style={{ color: colors.textTertiary, fontSize: typography.caption, lineHeight: 18, marginTop: spacing[2] }}
+          style={{
+            color: colors.textTertiary,
+            fontSize: typography.micro,
+            lineHeight: 16,
+            marginTop: spacing[2],
+          }}
         >
           {lim}
         </Text>
@@ -85,7 +134,11 @@ export const DailyReflectionCard = memo(function DailyReflectionCard() {
 });
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 0 },
-  header: { flexDirection: 'row' },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4 },
+  card: { overflow: 'hidden' },
+  header: { flexDirection: 'row', alignItems: 'center' },
+  badge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4 },
+  observationsBox: { gap: 6 },
+  bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  bulletDot: { width: 5, height: 5, borderRadius: 2.5, marginTop: 7 },
+  suggestionBox: {},
 });

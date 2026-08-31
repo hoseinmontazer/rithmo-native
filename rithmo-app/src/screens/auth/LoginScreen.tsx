@@ -268,9 +268,8 @@ export default function LoginScreen() {
                   styles.appName,
                   {
                     color: colors.primary,
-                    fontSize: 30,
+                    fontSize: typography.display,
                     fontWeight: '700',
-                    letterSpacing: -0.5,
                   },
                 ]}
               >
@@ -323,7 +322,7 @@ export default function LoginScreen() {
             styles.formTitle,
             {
               color: colors.textPrimary,
-              fontSize: 22,
+              fontSize: typography.xlarge,
               fontWeight: '700',
             },
           ]}

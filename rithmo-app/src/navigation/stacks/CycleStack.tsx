@@ -4,10 +4,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { CycleStackParamList } from '@navigation/types';
 import { useTheme } from '@hooks/useTheme';
 
-const CycleTrackerScreen  = React.lazy(() => import('@screens/cycle/CycleTrackerScreen'));
-const EditPeriodScreen    = React.lazy(() => import('@screens/cycle/EditPeriodScreen'));
-const LogPeriodScreen     = React.lazy(() => import('@screens/cycle/LogPeriodScreen'));
-const CycleAnalysisScreen = React.lazy(() => import('@screens/cycle/CycleAnalysisScreen'));
+import CycleTrackerScreen from '@screens/cycle/CycleTrackerScreen';
+import EditPeriodScreen from '@screens/cycle/EditPeriodScreen';
+import LogPeriodScreen from '@screens/cycle/LogPeriodScreen';
+import CycleAnalysisScreen from '@screens/cycle/CycleAnalysisScreen';
 
 const Stack = createNativeStackNavigator<CycleStackParamList>();
 

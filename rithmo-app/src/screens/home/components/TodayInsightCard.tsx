@@ -224,7 +224,7 @@ export const TodayInsightCard = memo(function TodayInsightCard({
   return (
     <View style={cardStyle}>
       {kicker ? (
-        <Text style={{ color: colors.primary, fontSize: typography.overline, fontWeight: '600', marginBottom: 6 }}>
+        <Text style={{ color: colors.primary, fontSize: typography.micro, fontWeight: '600', marginBottom: 6 }}>
           {kicker}
         </Text>
       ) : null}

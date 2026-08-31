@@ -128,7 +128,7 @@ export default function SettingsScreen() {
                 },
               ]}
             >
-              <Text style={{ fontSize: 20 }}>{opt.emoji}</Text>
+              <Text style={{ fontSize: typography.large }}>{opt.emoji}</Text>
               <Text style={{
                 color: mode === opt.value ? colors.primary : colors.textSecondary,
                 fontSize: typography.xs,

@@ -543,7 +543,6 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     fontWeight: '800',
-    letterSpacing: -0.5,
   },
   subtitle: {
     fontWeight: '500',

@@ -50,11 +50,10 @@ export const Reveal = memo(function Reveal({
       })
       .catch(() => { /* keep the animation — never hide the content */ });
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [opacity, translateY]);
 
   useEffect(() => {
-    Animated.stagger(0, [
+    const anim = Animated.stagger(0, [
       Animated.timing(opacity, {
         toValue: 1,
         duration: 380,
@@ -69,9 +68,12 @@ export const Reveal = memo(function Reveal({
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }),
-    ]).start();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    ]);
+    anim.start();
+    return () => {
+      anim.stop();
+    };
+  }, [delay, opacity, translateY]);
 
   return (
     <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>

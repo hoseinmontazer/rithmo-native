@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   hero:       { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   ring:       { position: 'absolute', borderWidth: 1, borderRadius: 999 },
   brandBlock: { alignItems: 'center', zIndex: 1 },
-  appName:    { fontWeight: '700', letterSpacing: -0.5 },
+  appName:    { fontWeight: '700' },
   formCard:   { flex: 1 },
   formScroll: { flexGrow: 1 },
   sexRow:     { flexDirection: 'row' },

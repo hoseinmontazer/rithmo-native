@@ -4,9 +4,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { InsightsStackParamList } from '@navigation/types';
 import { useTheme } from '@hooks/useTheme';
 
-const InsightsHomeScreen = React.lazy(() => import('@screens/insights/InsightsHomeScreen'));
-const DeepInsightsScreen = React.lazy(() => import('@screens/insights/DeepInsightsScreen'));
-const LearningTimelineScreen = React.lazy(() => import('@screens/insights/LearningTimelineScreen'));
+import InsightsHomeScreen from '@screens/insights/InsightsHomeScreen';
+import DeepInsightsScreen from '@screens/insights/DeepInsightsScreen';
+import LearningTimelineScreen from '@screens/insights/LearningTimelineScreen';
 
 const Stack = createNativeStackNavigator<InsightsStackParamList>();
 

@@ -33,37 +33,36 @@
  */
 
 /** Family name used for prose. Matches the asset file names, minus the weight. */
-export const FONT_FAMILY = 'Vazirmatn';
+export const FONT_FAMILY = 'Shabnam';
 
 /**
  * Every weight the app can actually render, mapped to the face that carries it.
  * Keys are the `fontWeight` values React Native accepts.
  */
 export const WEIGHT_TO_FAMILY: Record<string, string> = {
-  '100': 'Vazirmatn-Regular',
-  '200': 'Vazirmatn-Regular',
-  '300': 'Vazirmatn-Regular',
-  '400': 'Vazirmatn-Regular',
-  normal: 'Vazirmatn-Regular',
-  '500': 'Vazirmatn-Medium',
-  '600': 'Vazirmatn-SemiBold',
-  '700': 'Vazirmatn-Bold',
-  bold: 'Vazirmatn-Bold',
-  '800': 'Vazirmatn-ExtraBold',
-  // No separate Black face: see the note above.
-  '900': 'Vazirmatn-ExtraBold',
+  '100': 'Shabnam-Thin',
+  '200': 'Shabnam-Light',
+  '300': 'Shabnam-Light',
+  '400': 'Shabnam-Regular',
+  normal: 'Shabnam-Regular',
+  '500': 'Shabnam-Medium',
+  '600': 'Shabnam-Medium',
+  '700': 'Shabnam-Bold',
+  bold: 'Shabnam-Bold',
+  '800': 'Shabnam-Bold',
+  '900': 'Shabnam-Bold',
 };
 
-/** The five faces bundled in `android/app/src/main/assets/fonts/`. */
+/** The faces bundled in `android/app/src/main/assets/fonts/`. */
 export const BUNDLED_FACES = [
-  'Vazirmatn-Regular',
-  'Vazirmatn-Medium',
-  'Vazirmatn-SemiBold',
-  'Vazirmatn-Bold',
-  'Vazirmatn-ExtraBold',
+  'Shabnam-Regular',
+  'Shabnam-Medium',
+  'Shabnam-Bold',
+  'Shabnam-Light',
+  'Shabnam-Thin',
 ] as const;
 
-export const DEFAULT_FACE = 'Vazirmatn-Regular';
+export const DEFAULT_FACE = 'Shabnam-Regular';
 
 /**
  * The face that renders `weight`. Unknown or absent weights fall back to

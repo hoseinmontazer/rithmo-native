@@ -479,7 +479,6 @@ const styles = StyleSheet.create({
   },
   stepQ: {
     fontWeight: '900',
-    letterSpacing: -0.5,
     lineHeight: 36,
     marginBottom: 8,
   },

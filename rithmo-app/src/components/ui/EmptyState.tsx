@@ -28,7 +28,7 @@ export const EmptyState = memo(function EmptyState({
           {icon.length > 2 ? (
             <Icon name={icon} size={28} color={colors.textSecondary} fallback="●" />
           ) : (
-            <Text style={{ fontSize: 28 }}>{icon}</Text>
+            <Text style={{ fontSize: typography.heading }}>{icon}</Text>
           )}
         </View>
       ) : null}

@@ -25,6 +25,7 @@
     "@tanstack/react-query": "5.56.2",
     "@tanstack/react-query-devtools": "5.56.2",
     "axios": "1.7.7",
+    "lucide-react-native": "^1.37.0",
     "react": "18.3.1",
     "react-native": "0.75.4",
     "react-native-keychain": "8.2.0",

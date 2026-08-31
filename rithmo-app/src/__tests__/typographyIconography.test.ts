@@ -72,9 +72,9 @@ describe('the Persian font actually ships', () => {
     // OFL 1.1 permits embedding, and requires the licence to travel with the
     // font. Shipping the files without it would be the one licensing mistake
     // that is entirely ours to avoid.
-    const licence = path.join(APP_ROOT, 'src', 'assets', 'fonts', 'Vazirmatn-OFL.txt');
+    const licence = path.join(APP_ROOT, 'src', 'assets', 'fonts', 'Shabnam-OFL.txt');
     expect(fs.existsSync(licence)).toBe(true);
-    expect(fs.readFileSync(licence, 'utf8')).toMatch(/SIL Open Font License/i);
+    expect(fs.readFileSync(licence, 'utf8')).toMatch(/Open Font License/i);
   });
 
   it('covers every weight the app actually declares', () => {
@@ -87,7 +87,7 @@ describe('the Persian font actually ships', () => {
   it('falls back to regular rather than to nothing', () => {
     expect(fontFamilyForWeight(undefined)).toBe(DEFAULT_FACE);
     expect(fontFamilyForWeight('not-a-weight')).toBe(DEFAULT_FACE);
-    expect(fontFamilyForWeight('600')).toBe('Vazirmatn-SemiBold');
+    expect(fontFamilyForWeight('600')).toBe('Shabnam-Medium');
   });
 });
 
@@ -107,10 +107,10 @@ describe('the global font patch leaves icon fonts alone', () => {
   it('picks the face that matches the caller\'s weight', () => {
     // Android will not synthesise these; asking for the file is the only way
     // a 500 and a 700 look different.
-    expect(resolveFontFamily({ fontWeight: '500' })).toBe('Vazirmatn-Medium');
-    expect(resolveFontFamily({ fontWeight: '600' })).toBe('Vazirmatn-SemiBold');
-    expect(resolveFontFamily({ fontWeight: '700' })).toBe('Vazirmatn-Bold');
-    expect(resolveFontFamily({ fontWeight: '800' })).toBe('Vazirmatn-ExtraBold');
+    expect(resolveFontFamily({ fontWeight: '500' })).toBe('Shabnam-Medium');
+    expect(resolveFontFamily({ fontWeight: '600' })).toBe('Shabnam-Medium');
+    expect(resolveFontFamily({ fontWeight: '700' })).toBe('Shabnam-Bold');
+    expect(resolveFontFamily({ fontWeight: '800' })).toBe('Shabnam-Bold');
   });
 });
 

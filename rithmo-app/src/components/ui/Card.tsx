@@ -35,13 +35,15 @@ export const Card = memo(function Card({
     '2xl': borderRadius['2xl'],
   };
 
+  const radius = radiusMap[rounded] ?? borderRadius.lg;
+
   if (gradientBorder) {
     return (
       <View
         style={[
           styles.gradientWrapper,
           {
-            borderRadius: radiusMap[rounded],
+            borderRadius: radius,
             padding: 1.5,
             backgroundColor: colors.accent,
             ...(elevated ? shadow.sm : shadow.none),
@@ -54,7 +56,7 @@ export const Card = memo(function Card({
             styles.gradientInner,
             {
               backgroundColor: colors.surface,
-              borderRadius: radiusMap[rounded] - 1.5,
+              borderRadius: radius - 1.5,
               padding: noPadding ? 0 : spacing[4],
             },
           ]}
@@ -65,38 +67,52 @@ export const Card = memo(function Card({
     );
   }
 
+  if (accentColor) {
+    return (
+      <View
+        style={[
+          styles.accentOuter,
+          {
+            backgroundColor: colors.surface,
+            borderRadius: radius,
+            borderWidth: 1,
+            borderColor: colors.border,
+            overflow: 'hidden',
+            ...(elevated ? shadow.sm : shadow.none),
+          },
+          style,
+        ]}
+      >
+        <View style={[styles.accent, { backgroundColor: accentColor }]} />
+        <View style={{ flex: 1, padding: noPadding ? 0 : spacing[4] }}>
+          {children}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View
       style={[
-        styles.outer,
         {
           backgroundColor: colors.surface,
-          borderRadius: radiusMap[rounded],
+          borderRadius: radius,
           borderWidth: 1,
           borderColor: colors.border,
+          padding: noPadding ? 0 : spacing[4],
           overflow: 'hidden',
           ...(elevated ? shadow.sm : shadow.none),
         },
         style,
       ]}
     >
-      {accentColor && (
-        <View style={[styles.accent, { backgroundColor: accentColor }]} />
-      )}
-      <View
-        style={[
-          { flex: 1, padding: noPadding ? 0 : spacing[4] },
-          accentColor ? { marginLeft: 0 } : undefined,
-        ]}
-      >
-        {children}
-      </View>
+      {children}
     </View>
   );
 });
 
 const styles = StyleSheet.create({
-  outer: { flexDirection: 'row' },
+  accentOuter: { flexDirection: 'row' },
   accent: { width: 4 },
   gradientWrapper: { overflow: 'hidden' },
   gradientInner: { flex: 1 },

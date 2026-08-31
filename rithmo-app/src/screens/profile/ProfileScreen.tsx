@@ -1,10 +1,11 @@
 /**
- * ProfileScreen — حساب و تنظیمات
+ * ProfileScreen — حساب و تنظیمات (Redesigned)
  *
- * Persian-first profile (mission: no English headers, Persian numerals,
- * consistent terminology). The premium row is a clear "premium moment"
- * with gold styling; honest copy — premium unlocks deterministic personal
- * analytics, not "AI".
+ * Persian-first, luxurious, and cohesive profile experience:
+ *  1. Modern user hero with refined avatar, verified handle, and edit shortcut.
+ *  2. 3 airy stat tiles (طول چرخه, طول دوره, شرکاء) with soft icons and clean typography.
+ *  3. Luxury Premium Banner with crown badge and active status details.
+ *  4. Clean grouped cards for pregnancy, partner connection, health tools, and account actions.
  */
 import React, { useCallback } from 'react';
 import {
@@ -24,9 +25,7 @@ import { useProfile } from '@hooks/queries/useProfile';
 import { useSubscription } from '@hooks/queries/useSubscription';
 import { usePregnancyStatus } from '@hooks/queries/usePregnancy';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { LoadingState, ErrorState, Divider, GradientSurface, PressScale } from '@components/ui';
-import { useThemeStore } from '@store/themeStore';
-import { getBrandGradient } from '@theme/brand';
+import { Card, LoadingState, ErrorState, Divider, PressScale } from '@components/ui';
 import { PROFILE_ICONS, ICON_SIZE, ACTION_ICONS } from '@design-system/iconography';
 import { toFa, faDateShort } from '@utils/persian';
 import type { ProfileScreenProps } from '@navigation/types';
@@ -36,36 +35,27 @@ type Props = ProfileScreenProps<'Profile'>;
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function initials(first?: string, last?: string, username?: string) {
-  if (first && last) {return `${first[0]}${last[0]}`.toUpperCase();}
-  if (first)         {return first[0].toUpperCase();}
-  if (username)      {return username[0].toUpperCase();}
-  return '?';
+  if (first && last) { return `${first[0]}${last[0]}`.toUpperCase(); }
+  if (first)         { return first[0].toUpperCase(); }
+  if (username)      { return username[0].toUpperCase(); }
+  return '؟';
 }
 
-/**
- * The gender badge as an icon plus a word, instead of an emoji plus a word.
- *
- * It read `🌸 زن` / `🌿 مرد` / `🌈 دیگر` until F-07. Three different emoji
- * metaphors (a flower, a herb, a rainbow) for one attribute is not a visual
- * language, and none of them took the badge's own colour. The Persian word
- * carries the meaning either way; the icon is now the app's own.
- */
 function sexMeta(sex?: string): { icon: string | null; label: string } {
-  if (sex === 'female') {return { icon: 'gender-female', label: 'زن' };}
-  if (sex === 'male')   {return { icon: 'gender-male',   label: 'مرد' };}
-  if (sex === 'other')  {return { icon: 'account-outline', label: 'دیگر' };}
+  if (sex === 'female') { return { icon: 'gender-female', label: 'زن' }; }
+  if (sex === 'male')   { return { icon: 'gender-male',   label: 'مرد' }; }
+  if (sex === 'other')  { return { icon: 'account-outline', label: 'دیگر' }; }
   return { icon: null, label: '—' };
 }
 
 function planLabel(plan?: string | null): string {
-  if (plan === 'monthly') {return 'ماهانه';}
-  if (plan === 'annual' || plan === 'yearly') {return 'سالانه';}
+  if (plan === 'monthly') { return 'ماهانه'; }
+  if (plan === 'annual' || plan === 'yearly') { return 'سالانه'; }
   return plan || 'فعال';
 }
 
 // ── sub-components ────────────────────────────────────────────────────────────
 
-/** Menu row with PNG icon — no border on the icon container */
 function MenuRow({
   icon,
   label,
@@ -75,7 +65,6 @@ function MenuRow({
   danger,
   last,
 }: {
-  /** MaterialCommunityIcons name — see design-system/iconography. */
   icon: string;
   label: string;
   sub?: string;
@@ -92,23 +81,23 @@ function MenuRow({
       <TouchableOpacity
         onPress={onPress}
         activeOpacity={0.72}
-        style={[styles.menuRow, { paddingVertical: spacing[4] }]}
+        style={[styles.menuRow, { paddingVertical: spacing[3] + 2 }]}
         accessibilityRole="button"
         accessibilityLabel={label}
       >
-        {/* Icon container — no border */}
+        {/* Icon tile */}
         <View
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: borderRadius.md,
-            backgroundColor: accentColor + '18',
+            width: 42,
+            height: 42,
+            borderRadius: borderRadius.lg,
+            backgroundColor: accentColor + '15',
             alignItems: 'center',
             justifyContent: 'center',
-            marginRight: spacing[3],
+            marginEnd: spacing[3],
           }}
         >
-          <Icon name={icon} size={ICON_SIZE.lg} color={accentColor} />
+          <Icon name={icon} size={20} color={accentColor} />
         </View>
 
         <View style={{ flex: 1 }}>
@@ -116,102 +105,65 @@ function MenuRow({
             {label}
           </Text>
           {sub && (
-            <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2, lineHeight: 16 }}>
+            <Text style={{ color: colors.textTertiary, fontSize: typography.xs, marginTop: 2, lineHeight: 17 }}>
               {sub}
             </Text>
           )}
         </View>
 
-        {/*
-          Was the literal character ›. Two problems on an RTL screen: it is a
-          bidi-mirrored glyph, so its box and direction depend on the surrounding
-          paragraph rather than on the layout, which let it collide with the
-          right-aligned label; and it pointed the wrong way for RTL forward
-          navigation. A vector chevron has a fixed box and one direction.
-        */}
-        <Icon name="chevron-left" size={ICON_SIZE.md} color={colors.textTertiary} />
+        <Icon name="chevron-left" size={18} color={colors.textTertiary} />
       </TouchableOpacity>
       {!last && <Divider />}
     </>
   );
 }
 
-/** Stat pill with PNG icon — no border on icon */
-function StatPill({
+function StatCard({
   icon,
   label,
   value,
-  accent,
+  accentColor,
 }: {
-  /** MaterialCommunityIcons name — see design-system/iconography. */
   icon: string;
   label: string;
   value: string;
-  accent: string;
+  accentColor: string;
 }) {
-  const { colors, spacing, typography, borderRadius } = useTheme();
+  const { colors, spacing, typography, borderRadius, shadow } = useTheme();
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: accent + '12',
-        borderRadius: borderRadius.lg,
-        paddingVertical: spacing[3],
-        paddingHorizontal: spacing[2],
-        alignItems: 'center',
-        gap: 2,
-      }}
+    <Card
+      rounded="xl"
+      style={[
+        styles.statCard,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+          padding: spacing[3],
+          ...(shadow.xs || {}),
+        },
+      ]}
     >
-      <Icon name={icon} size={ICON_SIZE.tab} color={accent} />
-      <Text style={{ color: accent, fontSize: typography.lg, fontWeight: '800' }}>
+      <View style={[styles.statIconWrap, { backgroundColor: accentColor + '14', borderRadius: borderRadius.md }]}>
+        <Icon name={icon} size={18} color={accentColor} />
+      </View>
+      <Text style={[styles.statValue, { color: colors.textPrimary, fontSize: typography.large, fontWeight: '800' }]}>
         {value}
       </Text>
-      <Text style={{ color: colors.textSecondary, fontSize: typography.xs }}>
+      <Text style={[styles.statLabel, { color: colors.textTertiary, fontSize: typography.micro, marginTop: 2 }]}>
         {label}
       </Text>
-    </View>
+    </Card>
   );
 }
 
-/** Section header */
-function SectionHeader({ label }: { label: string }) {
+function SectionHeader({ label, icon }: { label: string; icon: string }) {
   const { colors, spacing, typography } = useTheme();
   return (
-    <Text
-      style={{
-        color: colors.textSecondary,
-        fontSize: typography.xs,
-        fontWeight: '700',
-        letterSpacing: 0.8,
-        marginBottom: spacing[2],
-        marginTop: spacing[5],
-        paddingHorizontal: spacing[5],
-      }}
-    >
-      {label}
-    </Text>
-  );
-}
-
-/** Card container */
-function MenuCard({ children }: { children: React.ReactNode }) {
-  const { colors, spacing, borderRadius } = useTheme();
-  return (
-    <View
-      style={{
-        marginHorizontal: spacing[5],
-        backgroundColor: colors.surface,
-        borderRadius: borderRadius.xl,
-        overflow: 'hidden',
-        paddingHorizontal: spacing[4],
-        shadowColor: colors.shadowColor,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-        elevation: 3,
-      }}
-    >
-      {children}
+    <View style={[styles.sectionHeaderRow, { marginTop: spacing[5], marginBottom: spacing[2] }]}>
+      <Icon name={icon} size={16} color={colors.primary} />
+      <Text style={{ color: colors.textSecondary, fontSize: typography.caption, fontWeight: '700' }}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -220,15 +172,11 @@ function MenuCard({ children }: { children: React.ReactNode }) {
 
 export default function ProfileScreen() {
   const navigation = useNavigation<Props['navigation']>();
-  const { colors, spacing, typography, borderRadius } = useTheme();
+  const { colors, spacing, typography, borderRadius, shadow } = useTheme();
   const { user, logout } = useAuth();
   const { data: profile, isLoading, isError, error, refetch } = useProfile();
   const { data: premium } = useSubscription();
   const { data: pregnancy } = usePregnancyStatus();
-  const isDark = useThemeStore((s) => s.isDark);
-  const { premiumGreenFrom, premiumGreenTo } = getBrandGradient(isDark);
-  // Hoisted above the early returns below — hooks must run in the same
-  // order on every render.
   const { isPartner } = useRole();
 
   const handleLogout = useCallback(() => {
@@ -238,210 +186,249 @@ export default function ProfileScreen() {
     ]);
   }, [logout]);
 
-  if (isLoading) {return <LoadingState fullScreen />;}
-  if (isError)   {return <ErrorState fullScreen error={error} onRetry={refetch} />;}
+  if (isLoading) { return <LoadingState fullScreen />; }
+  if (isError)   { return <ErrorState fullScreen error={error} onRetry={refetch} />; }
 
-  const hasPartner  = (profile?.partners?.length ?? 0) > 0;
-  /*
-   * Owner-only surfaces are gated on ROLE, not on sex.
-   *
-   * These blocks used to test `sex === 'male'`, which conflated two
-   * different things. A partner is any gender — the product says so
-   * explicitly — so a female partner was shown the cycle-length and
-   * period-length stat pills and the «ثبت و تاریخچه» rows, none of which
-   * describe her. Worse, those rows navigate into `LogTab`, a tab that
-   * MainNavigator does not register for partners at all, so the only thing
-   * they could do was fail.
-   *
-   * `sex === 'male'` is kept as an additional guard purely so a male owner
-   * (an account that predates the role field) is not shown cycle stats it
-   * has no data for.
-   */
-  const isMale      = profile?.sex === 'male';
+  const hasPartner = (profile?.partners?.length ?? 0) > 0;
+  const isMale = profile?.sex === 'male';
   const isCycleOwner = !isPartner && !isMale;
   const displayName = profile?.first_name && profile?.last_name
     ? `${profile.first_name} ${profile.last_name}`
-    : profile?.first_name || user?.username || 'کاربر';
+    : profile?.first_name || user?.username || 'کاربر ریتمو';
+  const email = profile?.email ?? user?.email;
+  const username = profile?.username ?? user?.username;
 
-  const cycleValue  = profile?.preferred_cycle_length ?? profile?.cycle_length ?? 28;
+  const cycleValue = profile?.preferred_cycle_length ?? profile?.cycle_length ?? 28;
   const periodValue = profile?.preferred_period_duration ?? profile?.period_duration ?? 5;
+  const sex = sexMeta(profile?.sex);
 
   return (
     <ScrollView
       style={[styles.flex, { backgroundColor: colors.background }]}
       contentContainerStyle={{
-          paddingHorizontal: screen.gutter,
-          paddingTop: screen.top,
-          paddingBottom: screen.bottomTab,
-        }}
+        paddingTop: screen.top + spacing[6],
+        paddingHorizontal: screen.gutter,
+        paddingBottom: screen.bottomTab,
+      }}
       showsVerticalScrollIndicator={false}
     >
-      {/* ── Hero ───────────────────────────────────────────────────────── */}
-      <View
-        style={{
-          backgroundColor: colors.surface,
-          borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: colors.border,
-          paddingHorizontal: spacing[5],
-          paddingTop: spacing[6],
-          paddingBottom: spacing[6],
-          alignItems: 'center',
-        }}
+      {/* ── 1. User Profile Hero Card ─────────────────────────────────── */}
+      <Card
+        rounded="2xl"
+        style={[
+          styles.heroCard,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            padding: spacing[5],
+            ...(shadow.xs || {}),
+          },
+        ]}
       >
-        {/* Avatar */}
-        <View
-          style={{
-            width: 96,
-            height: 96,
-            borderRadius: borderRadius.pill,
-            backgroundColor: colors.primaryDark,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: spacing[3],
-            shadowColor: colors.primaryDark,
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.28,
-            shadowRadius: 16,
-            elevation: 8,
-          }}
-        >
-          <Text style={{ color: colors.textOnPrimary, fontSize: typography['2xl'], fontWeight: '900' }}>
-            {initials(profile?.first_name, profile?.last_name, user?.username)}
-          </Text>
+        <View style={styles.heroRow}>
+          {/* Avatar Ring */}
+          <View
+            style={[
+              styles.avatarRing,
+              {
+                backgroundColor: colors.primaryLighter,
+                borderColor: colors.primary,
+                borderRadius: borderRadius.pill,
+              },
+            ]}
+          >
+            <Text style={[styles.avatarText, { color: colors.primaryDark, fontSize: typography['2xl'], fontWeight: '800' }]}>
+              {initials(profile?.first_name, profile?.last_name, user?.username)}
+            </Text>
+          </View>
+
+          {/* Identity details */}
+          <View style={styles.heroDetails}>
+            <Text numberOfLines={1} style={[styles.userName, { color: colors.textPrimary, fontSize: typography.heading, fontWeight: '800' }]}>
+              {displayName}
+            </Text>
+            {email ? (
+              <Text numberOfLines={1} style={[styles.userEmail, { color: colors.textTertiary, fontSize: typography.xs, marginTop: 2 }]}>
+                {email}
+              </Text>
+            ) : null}
+
+            {/* Tags row */}
+            <View style={[styles.tagsRow, { marginTop: spacing[2] }]}>
+              {sex.icon ? (
+                <View
+                  style={[
+                    styles.tagBadge,
+                    {
+                      backgroundColor: colors.surfaceSecondary,
+                      borderColor: colors.border,
+                      borderRadius: borderRadius.pill,
+                    },
+                  ]}
+                >
+                  <Icon name={sex.icon} size={13} color={colors.textSecondary} />
+                  <Text style={{ color: colors.textSecondary, fontSize: typography.micro, fontWeight: '700' }}>
+                    {sex.label}
+                  </Text>
+                </View>
+              ) : null}
+
+              {username ? (
+                <View
+                  style={[
+                    styles.tagBadge,
+                    {
+                      backgroundColor: colors.surfaceSecondary,
+                      borderColor: colors.border,
+                      borderRadius: borderRadius.pill,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: colors.textSecondary, fontSize: typography.micro, fontWeight: '700' }}>
+                    @{username}
+                  </Text>
+                </View>
+              ) : null}
+
+              {pregnancy?.has_active_pregnancy ? (
+                <View
+                  style={[
+                    styles.tagBadge,
+                    {
+                      backgroundColor: colors.primaryLighter,
+                      borderColor: colors.primaryLight,
+                      borderRadius: borderRadius.pill,
+                    },
+                  ]}
+                >
+                  <Icon name="human-pregnant" size={13} color={colors.primaryDark} />
+                  <Text style={{ color: colors.primaryDark, fontSize: typography.micro, fontWeight: '700' }}>
+                    هفتهٔ {toFa(pregnancy.gestational_week ?? 0)}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+
+          {/* Quick Edit Profile Button */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('EditProfile')}
+            activeOpacity={0.72}
+            style={[
+              styles.editBtn,
+              {
+                backgroundColor: colors.surfaceSecondary,
+                borderColor: colors.border,
+                borderRadius: borderRadius.pill,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="ویرایش پروفایل"
+          >
+            <Icon name={PROFILE_ICONS.editProfile} size={18} color={colors.textPrimary} />
+          </TouchableOpacity>
         </View>
+      </Card>
 
-        <Text style={{ color: colors.textPrimary, fontSize: typography['2xl'], fontWeight: '800', letterSpacing: -0.5, marginBottom: 3 }}>
-          {displayName}
-        </Text>
-        <Text style={{ color: colors.textSecondary, fontSize: typography.sm }}>
-          {profile?.email ?? user?.email}
-        </Text>
-        <Text style={{ color: colors.textTertiary, fontSize: typography.xs, marginTop: 2 }}>
-          @{profile?.username ?? user?.username}
-        </Text>
-
-        {/* Sex badge */}
-        <View
-          style={{
-            marginTop: spacing[3],
-            backgroundColor: colors.primaryLighter,
-            borderRadius: borderRadius.xl,
-            paddingHorizontal: spacing[4],
-            paddingVertical: spacing[1],
-            // Row + gap rather than a directional margin: the layout is RTL,
-            // and `gap` is side-agnostic where `marginLeft` would not be.
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 4,
-          }}
-        >
-          {sexMeta(profile?.sex).icon ? (
-            <Icon
-              name={sexMeta(profile?.sex).icon as string}
-              size={ICON_SIZE.xs}
-              color={colors.primary}
-            />
-          ) : null}
-          <Text style={{ color: colors.primary, fontSize: typography.xs, fontWeight: '700' }}>
-            {sexMeta(profile?.sex).label}
-          </Text>
-        </View>
-
-        {/* Stats row (fa numerals) */}
-        <View style={{ flexDirection: 'row', gap: spacing[3], marginTop: spacing[5], width: '100%' }}>
-          {isCycleOwner && (
-            <StatPill
-              key="cycle"
-              icon={PROFILE_ICONS.cycleLength}
-              label={profile?.preferred_cycle_length != null ? 'طول چرخه' : 'میانگین چرخه'}
-              value={`${toFa(cycleValue)} روز`}
-              accent={colors.menstrual}
-            />
-          )}
-          {isCycleOwner && (
-            <StatPill
-              key="period"
-              icon={PROFILE_ICONS.periodLength}
-              label={profile?.preferred_period_duration != null ? 'طول دوره' : 'میانگین دوره'}
-              value={`${toFa(periodValue)} روز`}
-              accent={colors.luteal}
-            />
-          )}
-          <StatPill
-            key="partners"
-            icon={PROFILE_ICONS.partners}
-            label="شرکاء"
-            value={toFa(profile?.partners?.length ?? 0)}
-            accent={colors.primary}
+      {/* ── 2. Stat Metric Cards (3 side-by-side) ────────────────────────── */}
+      <View style={[styles.statsRow, { marginTop: spacing[3] }]}>
+        {isCycleOwner && (
+          <StatCard
+            icon={PROFILE_ICONS.cycleLength}
+            label={profile?.preferred_cycle_length != null ? 'طول چرخه' : 'میانگین چرخه'}
+            value={`${toFa(cycleValue)} روز`}
+            accentColor={colors.primary}
           />
-        </View>
+        )}
+        {isCycleOwner && (
+          <StatCard
+            icon={PROFILE_ICONS.periodLength}
+            label={profile?.preferred_period_duration != null ? 'طول دوره' : 'میانگین دوره'}
+            value={`${toFa(periodValue)} روز`}
+            accentColor={colors.follicular}
+          />
+        )}
+        <StatCard
+          icon={PROFILE_ICONS.partners}
+          label="شرکاء"
+          value={`${toFa(profile?.partners?.length ?? 0)} نفر`}
+          accentColor={colors.luteal}
+        />
       </View>
 
-      {/* ── Premium (gold moment) — its own gradient card, not a menu row,
-          matching the "Rhythmo App" mockup's premium card treatment. Placed
-          right after the hero, same as the mockup, rather than buried in
-          the section stack. ─────────────────────────────────────────── */}
+      {/* ── 3. Luxury Premium Banner ──────────────────────────────────── */}
       <PressScale
         onPress={() => navigation.navigate('Upgrade', {})}
         accessibilityRole="button"
         accessibilityLabel={premium?.is_active ? 'مدیریت اشتراک پریمیوم' : 'ارتقاء به پریمیوم'}
-        style={{ marginHorizontal: spacing[5] }}
+        style={{ marginTop: spacing[4] }}
       >
-        <GradientSurface colors={[premiumGreenFrom, premiumGreenTo]} borderRadius={borderRadius['2xl']} style={{ padding: spacing[5] }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing[3] }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.textOnDark, fontSize: typography.base, fontWeight: '800' }}>
-                ریتمو پریمیوم
-              </Text>
-              <Text style={{ color: colors.textOnDark, opacity: 0.85, fontSize: typography.xs, marginTop: spacing[1], lineHeight: 18 }}>
+        <Card
+          rounded="2xl"
+          style={[
+            styles.premiumCard,
+            {
+              backgroundColor: colors.primaryDark,
+              borderColor: 'rgba(255,215,0,0.35)',
+              padding: spacing[4],
+              ...(shadow.sm || {}),
+            },
+          ]}
+        >
+          <View style={styles.premiumInner}>
+            <View style={[styles.crownWrap, { borderRadius: borderRadius.pill }]}>
+              <Icon name={PROFILE_ICONS.premium} size={22} color="#FFD700" />
+            </View>
+
+            <View style={styles.premiumTextCol}>
+              <View style={styles.premiumTitleRow}>
+                <Text style={{ color: '#FFFFFF', fontSize: typography.medium, fontWeight: '800' }}>
+                  ریتمو پریمیوم
+                </Text>
+                {premium?.is_active && (
+                  <View style={styles.activePill}>
+                    <Text style={{ color: '#FFD700', fontSize: typography.micro, fontWeight: '800' }}>
+                      فعال
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text style={{ color: 'rgba(255,255,255,0.82)', fontSize: typography.xs, marginTop: 3, lineHeight: 18 }}>
                 {premium?.is_active
                   ? (premium.current_period_end
-                      ? `طرح ${planLabel(premium.plan)} · فعال تا ${faDateShort(premium.current_period_end)}`
-                      : `طرح ${planLabel(premium.plan)} · فعال`)
-                  : isCycleOwner
-                    ? 'بازتاب روزانه، حالت بارداری و الگوهای بلندمدت.'
-                    : 'بازتاب روزانه و الگوهای بلندمدت.'}
+                      ? `طرح ${planLabel(premium.plan)} · معتبر تا ${faDateShort(premium.current_period_end)}`
+                      : `طرح ${planLabel(premium.plan)}`)
+                  : 'بازتاب روزانه، حالت بارداری و تحلیل‌های پیشرفته'}
               </Text>
             </View>
+
             <View
-              style={{
-                paddingHorizontal: spacing[4],
-                paddingVertical: spacing[2],
-                borderRadius: borderRadius.pill,
-                backgroundColor: 'rgba(255,255,255,0.18)',
-                minHeight: 40,
-                justifyContent: 'center',
-              }}
+              style={[
+                styles.manageBtn,
+                {
+                  backgroundColor: 'rgba(255,255,255,0.18)',
+                  borderColor: 'rgba(255,255,255,0.3)',
+                  borderRadius: borderRadius.pill,
+                },
+              ]}
             >
-              <Text style={{ color: colors.textOnDark, fontSize: typography.sm, fontWeight: '700' }}>
+              <Text style={{ color: '#FFFFFF', fontSize: typography.caption, fontWeight: '700' }}>
                 {premium?.is_active ? 'مدیریت' : 'فعال‌سازی'}
               </Text>
             </View>
           </View>
-        </GradientSurface>
+        </Card>
       </PressScale>
 
-      {/* ── Pregnancy (premium, cycle owner only) — a real toggle switch,
-          matching the mockup's treatment, but it opens the real Pregnancy
-          flow rather than firing an instant on/off: turning it on needs a
-          starting date to compute the week from, which a bare toggle has
-          no way to collect, and turning it off is a real deactivation the
-          setup/status screen already handles correctly. The switch shows
-          the true current state; it just doesn't pretend one tap is the
-          whole action.
-          Owner-only, same gate as the cycle/period stat pills above:
-          pregnancy is a state of the cycle being tracked, and a partner
-          account has no cycle of their own to be pregnant with — this
-          section was rendering unconditionally, showing a male partner's
-          own profile a "Pregnancy Mode" toggle for himself. ───────────── */}
+      {/* ── 4. Pregnancy Mode ─────────────────────────────────────────── */}
       {isCycleOwner && (
         <>
-          <SectionHeader label="بارداری" />
-          <MenuCard>
+          <SectionHeader label="بارداری" icon={PROFILE_ICONS.pregnancy} />
+          <Card rounded="2xl" style={{ backgroundColor: colors.surface, borderColor: colors.border, paddingHorizontal: spacing[4] }}>
             <TouchableOpacity
               onPress={() => navigation.navigate('Pregnancy')}
               activeOpacity={0.72}
-              style={[styles.menuRow, { paddingVertical: spacing[4] }]}
+              style={[styles.menuRow, { paddingVertical: spacing[3] + 2 }]}
               accessibilityRole="button"
               accessibilityLabel={pregnancy?.has_active_pregnancy
                 ? `حالت بارداری روشن است، هفتهٔ ${toFa(pregnancy.gestational_week ?? 0)}`
@@ -451,7 +438,7 @@ export default function ProfileScreen() {
                 <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '600' }}>
                   حالت بارداری
                 </Text>
-                <Text style={{ color: colors.textSecondary, fontSize: typography.xs, marginTop: 2, lineHeight: 16 }}>
+                <Text style={{ color: colors.textTertiary, fontSize: typography.xs, marginTop: 2, lineHeight: 17 }}>
                   {pregnancy?.has_active_pregnancy
                     ? `روشن — هفتهٔ ${toFa(pregnancy.gestational_week ?? 0)}`
                     : 'خاموش — پیش‌بینی چرخه فعال است'}
@@ -459,37 +446,34 @@ export default function ProfileScreen() {
               </View>
               <View
                 style={{
-                  width: 58,
-                  height: 32,
+                  width: 50,
+                  height: 28,
                   borderRadius: borderRadius.pill,
-                  backgroundColor: pregnancy?.has_active_pregnancy ? colors.primary : colors.border,
-                  padding: 3,
+                  backgroundColor: pregnancy?.has_active_pregnancy ? colors.primary : colors.surfaceSecondary,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                  padding: 2,
                   flexDirection: 'row',
                   justifyContent: pregnancy?.has_active_pregnancy ? 'flex-start' : 'flex-end',
                 }}
               >
                 <View
                   style={{
-                    width: 26,
-                    height: 26,
+                    width: 22,
+                    height: 22,
                     borderRadius: borderRadius.pill,
-                    backgroundColor: colors.surface,
-                    shadowColor: colors.shadowColor,
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.18,
-                    shadowRadius: 4,
-                    elevation: 2,
+                    backgroundColor: pregnancy?.has_active_pregnancy ? '#FFFFFF' : colors.textTertiary,
                   }}
                 />
               </View>
             </TouchableOpacity>
-          </MenuCard>
+          </Card>
         </>
       )}
 
-      {/* ── Partner ────────────────────────────────────────────────────── */}
-      <SectionHeader label="شریک" />
-      <MenuCard>
+      {/* ── 5. Partner Section ────────────────────────────────────────── */}
+      <SectionHeader label="شریک" icon={PROFILE_ICONS.partners} />
+      <Card rounded="2xl" style={{ backgroundColor: colors.surface, borderColor: colors.border, paddingHorizontal: spacing[4] }}>
         {hasPartner ? (
           <>
             {profile!.partners!.map((p, i) => (
@@ -497,42 +481,37 @@ export default function ProfileScreen() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: spacing[3] }}>
                   <View
                     style={{
-                      width: 44,
-                      height: 44,
+                      width: 42,
+                      height: 42,
                       borderRadius: borderRadius.pill,
                       backgroundColor: colors.follicular + '20',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      marginRight: spacing[3],
+                      marginEnd: spacing[3],
                     }}
                   >
-                    <Icon name={PROFILE_ICONS.partnerManage} size={ICON_SIZE.lg} color={colors.primary} />
+                    <Icon name={PROFILE_ICONS.partners} size={20} color={colors.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: colors.textPrimary, fontWeight: '700', fontSize: typography.base }}>
                       {p.username}
                     </Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: typography.xs }}>
+                    <Text style={{ color: colors.textTertiary, fontSize: typography.xs, marginTop: 2 }}>
                       {p.email}
                     </Text>
                   </View>
-                  <View style={{ backgroundColor: colors.success + '18', borderRadius: borderRadius.sm, paddingHorizontal: spacing[2], paddingVertical: 3 }}>
-                    <Text style={{ color: colors.success, fontSize: typography.overline, fontWeight: '800' }}>ارتباط فعال</Text>
+                  <View style={{ backgroundColor: colors.success + '18', borderRadius: borderRadius.pill, paddingHorizontal: 10, paddingVertical: 4 }}>
+                    <Text style={{ color: colors.success, fontSize: typography.micro, fontWeight: '800' }}>ارتباط فعال</Text>
                   </View>
                 </View>
                 {i < profile!.partners!.length - 1 && <Divider />}
               </React.Fragment>
             ))}
             <Divider />
-            {/* Chat was reachable only through Profile → مدیریت شریک → باز
-                کردن پیام‌ها, i.e. three levels deep behind a screen about
-                unlinking. The conversation screen and its send mutation were
-                fully built; they were simply almost impossible to find. This
-                is a second route to the SAME destination — no new screen. */}
             <MenuRow
               icon={ACTION_ICONS.messages}
               label="پیام‌ها"
-              sub="گفتگو با شریکت"
+              sub="گفتگو و تبادل نظر با شریک"
               accentColor={colors.follicular}
               onPress={() => navigation.navigate('PartnerMessages' as never)}
             />
@@ -556,97 +535,160 @@ export default function ProfileScreen() {
             last
           />
         )}
-      </MenuCard>
+      </Card>
 
-      {/* ── Settings — one dense list, not five separate section+card
-          blocks. Every real destination from the old Account / Logging &
-          history / Support / Session sections is still one tap away; they
-          just no longer each carry their own header and card, which was
-          the actual source of the "messy" read against the mockup's single
-          compact settings list. ─────────────────────────────────────── */}
-      <SectionHeader label="تنظیمات" />
-      <MenuCard>
+      {/* ── 6. برنامه و سلامت ───────────────────────────────────────── */}
+      <SectionHeader label="برنامه و سلامت" icon={PROFILE_ICONS.settings} />
+      <Card rounded="2xl" style={{ backgroundColor: colors.surface, borderColor: colors.border, paddingHorizontal: spacing[4] }}>
         {isCycleOwner && (
           <>
             <MenuRow
               icon={PROFILE_ICONS.history}
               label="تاریخچه سلامت"
-              sub="گزارش‌های روزانه‌ات، روز به روز"
+              sub="گزارش‌های روزانه و ثبت علائم"
               accentColor={colors.primary}
               onPress={() => navigation.navigate('LogTab' as never, { screen: 'WellnessDashboard' } as never)}
             />
             <MenuRow
               icon={PROFILE_ICONS.medications}
               label="داروها و مکمل‌ها"
-              sub="یادآور و سابقه‌ی مصرف"
+              sub="یادآور و سابقه مصرف"
               accentColor={colors.luteal}
               onPress={() => navigation.navigate('LogTab' as never, { screen: 'Medications' } as never)}
             />
           </>
         )}
         <MenuRow
-          icon={PROFILE_ICONS.editProfile}
-          label="ویرایش پروفایل"
-          sub="نام، جنسیت، تنظیمات چرخه"
-          accentColor={colors.primary}
-          onPress={() => navigation.navigate('EditProfile')}
-        />
-        <MenuRow
-          icon={PROFILE_ICONS.password}
-          label="تغییر رمز عبور"
-          sub="به‌روزرسانی رمز ورودت"
-          accentColor={colors.ovulationColor}
-          onPress={() => navigation.navigate('ChangePassword')}
-        />
-        <MenuRow
           icon={PROFILE_ICONS.settings}
           label="تنظیمات"
-          sub="اعلان‌ها، ظاهر برنامه و ترجیحات"
+          sub="اعلان‌ها، تم برنامه و ترجیحات"
           accentColor={colors.follicular}
           onPress={() => navigation.navigate('Settings')}
         />
         <MenuRow
           icon={PROFILE_ICONS.support}
           label="کمک و پشتیبانی"
-          sub="صورتحساب، حریم خصوصی و مسائل شریک — سریع جواب می‌دهیم"
+          sub="حریم خصوصی، راهنما و ارتباط با پشتیبانی"
           accentColor={colors.warning}
           onPress={() => navigation.navigate('Support')}
+          last
+        />
+      </Card>
+
+      {/* ── 7. حساب و امنیت ─────────────────────────────────────────── */}
+      <SectionHeader label="حساب" icon={PROFILE_ICONS.logout} />
+      <Card rounded="2xl" style={{ backgroundColor: colors.surface, borderColor: colors.border, paddingHorizontal: spacing[4] }}>
+        <MenuRow
+          icon={PROFILE_ICONS.password}
+          label="تغییر رمز عبور"
+          sub="به‌روزرسانی رمز عبور ورود"
+          accentColor={colors.primary}
+          onPress={() => navigation.navigate('ChangePassword')}
         />
         <MenuRow
           icon={PROFILE_ICONS.logout}
-          label="خروج"
-          sub="به‌زودی دوباره می‌بینمت"
+          label="خروج از حساب"
+          sub="خروج موقت از برنامه"
           accentColor={colors.warning}
           danger
           onPress={handleLogout}
         />
         <MenuRow
           icon={PROFILE_ICONS.deleteAccount}
-          label="حذف حساب"
-          sub="حذف دائمی تمام داده‌های تو"
+          label="حذف حساب کاربری"
+          sub="حذف دائمی تمام اطلاعات و داده‌ها"
           accentColor={colors.error}
           danger
           onPress={() => navigation.navigate('DeleteAccount')}
           last
         />
-      </MenuCard>
+      </Card>
 
-      <Text
-        style={{
-          color: colors.textTertiary,
-          fontSize: typography.xs,
-          textAlign: 'center',
-          marginTop: spacing[4],
-          marginHorizontal: spacing[6],
-        }}
-      >
-        داده‌های تو روی دستگاه خودت رمزگذاری می‌شوند.
-      </Text>
+      {/* Privacy note */}
+      <View style={[styles.privacyRow, { marginTop: spacing[5], marginBottom: spacing[2] }]}>
+        <Icon name="shield-lock-outline" size={14} color={colors.textTertiary} />
+        <Text style={{ color: colors.textTertiary, fontSize: typography.micro }}>
+          داده‌های سلامتی شما با رمزنگاری ایمن محافظت می‌شوند.
+        </Text>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex:    { flex: 1 },
+  flex: { flex: 1 },
+  heroCard: { overflow: 'hidden' },
+  heroRow: { flexDirection: 'row', alignItems: 'center' },
+  avatarRing: {
+    width: 68,
+    height: 68,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginEnd: 14,
+  },
+  avatarText: { lineHeight: 36 },
+  heroDetails: { flex: 1 },
+  userName: {},
+  userEmail: {},
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  tagBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+  },
+  editBtn: {
+    width: 40,
+    height: 40,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginStart: 8,
+  },
+  statsRow: { flexDirection: 'row', gap: 8 },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  statIconWrap: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  statValue: {},
+  statLabel: {},
+  premiumCard: { borderWidth: 1, overflow: 'hidden' },
+  premiumInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  crownWrap: {
+    width: 44,
+    height: 44,
+    backgroundColor: 'rgba(255,215,0,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumTextCol: { flex: 1 },
+  premiumTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  activePill: {
+    backgroundColor: 'rgba(255,215,0,0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  manageBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1,
+  },
+  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   menuRow: { flexDirection: 'row', alignItems: 'center' },
+  privacyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
 });
+

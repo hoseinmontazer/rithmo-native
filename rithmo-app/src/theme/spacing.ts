@@ -69,7 +69,7 @@ export const screen = {
   /** Distance from the safe-area top to the first element. */
   top:       16,
   /** Bottom inset for a screen inside the tab navigator. */
-  bottomTab: 80,
+  bottomTab: 96,
   /** Bottom inset for a pushed screen with no tab bar. */
   bottom:    48,
 } as const;

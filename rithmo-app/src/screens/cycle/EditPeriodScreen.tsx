@@ -106,7 +106,7 @@ function DatePickerSheet({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
-        <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={onClose} />
+        <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={onClose} accessibilityRole="button" accessibilityLabel="بستن" />
         <View style={[styles.modalSheet, { backgroundColor: colors.surface, borderRadius: borderRadius.xl }]}>
           {/* Handle */}
           <View style={styles.modalHandleWrapper}>
@@ -118,7 +118,7 @@ function DatePickerSheet({
             <Text style={[styles.modalTitle, { color: colors.textPrimary, fontSize: typography.base }]}>
               {title}
             </Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="بستن">
               <Icon name="close" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
@@ -401,6 +401,8 @@ export default function EditPeriodScreen() {
                     onPress={() => setEndDate(null)}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     style={{ marginRight: spacing[1] }}
+                    accessibilityRole="button"
+                    accessibilityLabel="پاک کردن تاریخ پایان"
                   >
                     <Icon name="close-circle-outline" size={18} color={colors.textTertiary} />
                   </TouchableOpacity>
@@ -600,7 +602,6 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   headerTitle: {
     fontWeight: '700',
-    letterSpacing: -0.3,
   },
   headerSubtitle: {
     lineHeight: 18,

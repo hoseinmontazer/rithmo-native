@@ -55,29 +55,36 @@ export function resolveFontFamily(style: unknown): string | null {
 
 function patch(Component: unknown): void {
   const target = Component as Patchable;
-  if (!target || typeof target.render !== 'function' || target.__rithmoFontPatched) {
+  if (!target) {
     return;
   }
-  const original = target.render;
 
-  target.render = function patchedRender(...args: unknown[]) {
-    const element = original.apply(this, args) as {
-      props?: { style?: unknown };
-    } | null;
-    if (!element || !element.props) {
-      return element;
-    }
-    const family = resolveFontFamily(element.props.style);
-    if (family === null) {
-      return element;
-    }
-    // Prepend, so anything the caller set still wins on every other property.
-    const React = require('react');
-    return React.cloneElement(element, {
-      style: [{ fontFamily: family }, element.props.style],
-    });
-  };
-  target.__rithmoFontPatched = true;
+  // 1. Default props fallback
+  const anyTarget = target as any;
+  if (anyTarget.defaultProps) {
+    anyTarget.defaultProps.style = [{ fontFamily: 'Shabnam' }, anyTarget.defaultProps.style];
+  } else {
+    anyTarget.defaultProps = { style: [{ fontFamily: 'Shabnam' }] };
+  }
+
+  // 2. Render patch before flattenStyle
+  if (typeof target.render === 'function' && !target.__rithmoFontPatched) {
+    const original = target.render;
+    target.render = function patchedRender(...args: unknown[]) {
+      const props = args[0] as { style?: unknown } | undefined;
+      if (props) {
+        const family = resolveFontFamily(props.style);
+        if (family) {
+          args[0] = {
+            ...props,
+            style: [{ fontFamily: family }, props.style],
+          };
+        }
+      }
+      return original.apply(this, args);
+    };
+    target.__rithmoFontPatched = true;
+  }
 }
 
 let applied = false;

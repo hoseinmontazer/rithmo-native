@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
+import { typography } from '@theme/typography';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@hooks/useTheme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -254,14 +255,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: '700',
-    letterSpacing: -0.2,
   },
   message: {
     marginTop: 2,
     lineHeight: 16,
   },
   dismiss: {
-    fontSize: 14,
+    fontSize: typography.small,
     fontWeight: '600',
     opacity: 0.5,
     paddingLeft: 4,

@@ -185,6 +185,8 @@ function CycleCalendar({
         <TouchableOpacity
           onPress={() => goToMonth('prev')}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityRole="button"
+          accessibilityLabel="ماه قبلی"
           style={[styles.monthNavBtn, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md }]}
         >
           <Icon name="chevron-right" size={20} color={colors.textPrimary} />
@@ -197,6 +199,8 @@ function CycleCalendar({
         <TouchableOpacity
           onPress={() => goToMonth('next')}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityRole="button"
+          accessibilityLabel="ماه بعدی"
           disabled={isFutureMonth}
           style={[
             styles.monthNavBtn,
@@ -608,6 +612,8 @@ export default function CycleTrackerScreen() {
                         onPress={() => navigation.navigate('EditPeriod', { periodId: selectedPeriod.id })}
                         activeOpacity={0.75}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityRole="button"
+                        accessibilityLabel="ویرایش دوره"
                         style={[styles.iconEditBtn, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md }]}
                       >
                         <Icon name="pencil-outline" size={18} color={colors.primary} />
@@ -750,6 +756,8 @@ export default function CycleTrackerScreen() {
                           onPress={() => navigation.navigate('EditPeriod', { periodId: period.id })}
                           activeOpacity={0.75}
                           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          accessibilityRole="button"
+                          accessibilityLabel="ویرایش دوره"
                           style={[styles.iconEditBtn, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md, marginTop: spacing[2] }]}
                         >
                           <Icon name="pencil-outline" size={17} color={colors.primary} />
@@ -806,7 +814,6 @@ const styles = StyleSheet.create({
   },
   monthTitle: {
     fontWeight: '700',
-    letterSpacing: -0.2,
   },
   weekHeaderRow: {
     flexDirection: 'row',

@@ -103,7 +103,7 @@ function LearningRow({
 }
 
 export const AccrualLedger = memo(function AccrualLedger({ state }: Props) {
-  const { colors, typography, spacing, borderRadius } = useTheme();
+  const { colors, typography, spacing, borderRadius, shadow } = useTheme();
 
   if (!state) { return null; }
 
@@ -125,22 +125,19 @@ export const AccrualLedger = memo(function AccrualLedger({ state }: Props) {
         styles.card,
         {
           backgroundColor: colors.surface,
-          borderColor: colors.borderSubtle,
-          borderRadius: borderRadius.lg,
-          padding: spacing[4],
+          borderColor: colors.border,
+          borderRadius: borderRadius['2xl'],
+          padding: spacing[5],
+          ...(shadow.xs || {}),
         },
       ]}
     >
-      {/* Coloured top edge. Bled to the card's padding edge with negative
-          margins rather than `borderTopColor`, because Android drops per-side
-          border colours as soon as `borderRadius` is set — that version
-          compiled, passed every gate, and rendered nothing at all. */}
       <View
         style={{
           height: 3,
           backgroundColor: colors.luteal,
-          marginTop: -spacing[4],
-          marginHorizontal: -spacing[4],
+          marginTop: -spacing[5],
+          marginHorizontal: -spacing[5],
           marginBottom: spacing[4],
         }}
       />

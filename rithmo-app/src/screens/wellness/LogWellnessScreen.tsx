@@ -353,7 +353,6 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     fontWeight: '800',
-    letterSpacing: -0.5,
   },
   subtitle: {
     fontWeight: '500',

@@ -235,7 +235,7 @@ export default function EditProfileScreen() {
                     backgroundColor: selected ? colors.primaryLight : colors.surface,
                   }}
                 >
-                  <Text style={{ fontSize: 20, marginBottom: 4 }}>{opt.emoji}</Text>
+                  <Text style={{ fontSize: typography.large, marginBottom: 4 }}>{opt.emoji}</Text>
                   <Text
                     style={{
                       color: selected ? colors.primary : colors.textSecondary,

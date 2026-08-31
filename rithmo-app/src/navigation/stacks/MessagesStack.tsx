@@ -4,8 +4,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { MessagesStackParamList } from '@navigation/types';
 import { useTheme } from '@hooks/useTheme';
 
-const MessagesListScreen  = React.lazy(() => import('@screens/messages/MessagesListScreen'));
-const ConversationScreen  = React.lazy(() => import('@screens/messages/ConversationScreen'));
+import MessagesListScreen from '@screens/messages/MessagesListScreen';
+import ConversationScreen from '@screens/messages/ConversationScreen';
 
 const Stack = createNativeStackNavigator<MessagesStackParamList>();
 

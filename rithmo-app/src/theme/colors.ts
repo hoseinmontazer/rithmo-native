@@ -80,12 +80,12 @@ const lightColors = {
   borderSubtle:    '#F1EEEA',
   background:      '#FAF7F3',
 
-  // ── Brand (muted pine-teal) ──────────────────────────────────────────────
-  primary:         '#2F5D50',
-  primaryDark:     '#234A40',
-  primaryLight:    '#D8E6DE',
-  primaryLighter:  '#E6EFEA',
-  primaryPressed:  '#234A40',
+  // ── Brand (Deep Teal - Kipepeo Aesthetic) ────────────────────────────────
+  primary:         '#0E5F72',
+  primaryDark:     '#0A4553',
+  primaryLight:    '#ACD9DE',
+  primaryLighter:  '#D4EBEE',
+  primaryPressed:  '#0A4553',
   textOnPrimary:   '#FFFFFF',
 
   // ── Text ────────────────────────────────────────────────────────────────
@@ -99,13 +99,16 @@ const lightColors = {
   textDisabled:    '#B7B0A9',
 
   // ── Accent (violet — data/secondary accent) ─────────────────────────────
-  accent:          '#7C5CB8',
+  // The original #7C5CB8 measured 4.33:1 on accentLight — below AA (4.5:1)
+  // for normal text. Darkened along the same hue to 5.07:1 on accentLight /
+  // 6.02:1 on white and as white-on-fill.
+  accent:          '#744FB0',
   accentLight:     '#EFE9F8',
 
   // ── Semantic ────────────────────────────────────────────────────────────
-  success:         '#2F5D50',
-  successBg:       '#D8E6DE',
-  successDark:     '#234A40',
+  success:         '#0E5F72',
+  successBg:       '#D4EBEE',
+  successDark:     '#0A4553',
   warning:         '#B05426',
   warningBg:       '#FBF0E1',
   error:           '#CE2929',
@@ -113,6 +116,10 @@ const lightColors = {
   info:            '#3E6EAF',
   infoBg:          '#E8F0FA',
   infoDark:        '#2C5488',
+  // Decorative card edge only (matches premiumBorder's 1.45:1 / ovulationBorder's
+  // 1.70:1 — CLAUDE.md exempts card-edge borders from the 3:1 UI-component bar,
+  // reserving it for essential control borders). Measured 1.58:1 on white.
+  infoBorder:      '#B8D0EC',
 
   shadow:          '#5C554A',
 
@@ -129,6 +136,24 @@ const lightColors = {
   luteal:          '#E8A23D',
   lutealBg:        '#FBF3E2',
   lutealBorder:    '#F0D3A0',
+
+  // ── Mood spectrum (QuickLogScreen's mood picker — expression language, own hues) ─
+  // A genuinely distinct dimension from the phase palette above (mood is not
+  // cycle phase, so it does not borrow those hues) and from `success`, which
+  // is the brand green itself and carries no room for a second "great" green
+  // (see the note above on why success IS the brand). Five tones spanning
+  // green -> teal -> gold -> terracotta -> plum, each measured on its own
+  // tint: 6.13:1 / 6.33:1 / 5.28:1 / 5.33:1 / 5.23:1.
+  moodGreat:       '#256341',
+  moodGreatBg:     '#E3F1E8',
+  moodGood:        '#146157',
+  moodGoodBg:      '#DFF3F0',
+  moodNeutral:     '#7D5D12',
+  moodNeutralBg:   '#F7EED9',
+  moodLow:         '#9E4419',
+  moodLowBg:       '#FBE7DA',
+  moodRough:       '#8B4789',
+  moodRoughBg:     '#F4E7F3',
 
   // ── Premium (gold) ──────────────────────────────────────────────────────
   premium:         '#90662E',
@@ -170,15 +195,13 @@ const darkColors = {
   background:      '#0F1113',
 
   // ── Brand (soft teal-mint — the light-on-dark counterpart) ──────────────
-  // Derived by rotating each old dark-brand token's hue by the same ~21°
-  // delta the light-mode primary underwent (#0E6930 -> #2F5D50), keeping
-  // each token's own lightness/saturation rather than eyeballing new ones.
-  primary:         '#6AD7B7',
-  primaryDark:     '#4DCBA6',
-  primaryLight:    '#1D352E',
-  primaryLighter:  '#172923',
-  primaryPressed:  '#4DCBA6',
-  textOnPrimary:   '#081F18',
+  // Derived for the Kipepeo teal theme
+  primary:         '#89C6CD',
+  primaryDark:     '#ACD9DE',
+  primaryLight:    '#0A4553',
+  primaryLighter:  '#07303A',
+  primaryPressed:  '#ACD9DE',
+  textOnPrimary:   '#07303A',
 
   // ── Text ────────────────────────────────────────────────────────────────
   textPrimary:     '#E6E8EA',
@@ -193,9 +216,9 @@ const darkColors = {
   accentLight:     '#2C2438',
 
   // ── Semantic ────────────────────────────────────────────────────────────
-  success:         '#6AD7B7',
-  successBg:       '#1D352E',
-  successDark:     '#92DDC8',
+  success:         '#89C6CD',
+  successBg:       '#0A4553',
+  successDark:     '#ACD9DE',
   warning:         '#E8A23D',
   warningBg:       '#332A18',
   error:           '#E57373',
@@ -203,6 +226,8 @@ const darkColors = {
   info:            '#7FA8DC',
   infoBg:          '#1F2A3A',
   infoDark:        '#9CBCE8',
+  // Decorative card edge only — see the light-mode infoBorder note.
+  infoBorder:      '#3A5470',
 
   shadow:          '#000000',
 
@@ -219,6 +244,19 @@ const darkColors = {
   luteal:          '#EDB563',
   lutealBg:        '#3A3020',
   lutealBorder:    '#6B5430',
+
+  // ── Mood spectrum ────────────────────────────────────────────────────────
+  // Measured on their own dark tint: 6.87:1 / 7.12:1 / 7.39:1 / 5.86:1 / 5.58:1.
+  moodGreat:       '#5FBF8C',
+  moodGreatBg:     '#16281E',
+  moodGood:        '#4FC4B5',
+  moodGoodBg:      '#132A28',
+  moodNeutral:     '#D9B15C',
+  moodNeutralBg:   '#2E2617',
+  moodLow:         '#E08858',
+  moodLowBg:       '#2E2019',
+  moodRough:       '#C583C3',
+  moodRoughBg:     '#2A1F2A',
 
   // ── Premium (gold) ──────────────────────────────────────────────────────
   premium:         '#D9B25C',

@@ -4,10 +4,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { WellnessStackParamList } from '@navigation/types';
 import { useTheme } from '@hooks/useTheme';
 
-const QuickLogScreen          = React.lazy(() => import('@screens/wellness/QuickLogScreen'));
-const WellnessDashboardScreen = React.lazy(() => import('@screens/wellness/WellnessDashboardScreen'));
-const LogWellnessScreen       = React.lazy(() => import('@screens/wellness/LogWellnessScreen'));
-const MedicationsScreen       = React.lazy(() => import('@screens/wellness/MedicationsScreen'));
+import QuickLogScreen from '@screens/wellness/QuickLogScreen';
+import WellnessDashboardScreen from '@screens/wellness/WellnessDashboardScreen';
+import LogWellnessScreen from '@screens/wellness/LogWellnessScreen';
+import MedicationsScreen from '@screens/wellness/MedicationsScreen';
 
 const Stack = createNativeStackNavigator<WellnessStackParamList>();
 

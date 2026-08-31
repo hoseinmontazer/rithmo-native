@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { useTheme } from '@hooks/useTheme';
 import { screen } from '@theme/spacing';
-import { textRoles } from '@theme/typography';
+import { textRoles, typography } from '@theme/typography';
 import {
   useNotifications,
   useMarkNotificationRead,
@@ -125,7 +125,7 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   flex:      { flex: 1 },
   hero:      { borderRadius: 24, borderWidth: 1, padding: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  eyebrow:   { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', marginBottom: 4 },
+  eyebrow:   { fontSize: typography.overline, fontWeight: '800', textTransform: 'uppercase', marginBottom: 4 },
   // 700 = the screenTitle role. Persian letterforms join, so no tracking.
   title:     { fontWeight: '700', marginBottom: 5 },
   heroActions: { flexDirection: 'row', alignItems: 'center' },

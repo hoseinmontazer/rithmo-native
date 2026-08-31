@@ -3,6 +3,7 @@
  */
 import React, { memo } from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
+import { typography } from '@theme/typography';
 import { useTheme } from '@hooks/useTheme';
 import { Icon } from './Icon';
 
@@ -79,7 +80,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emoji: {
-    fontSize: 16,
+    fontSize: typography.compact,
   },
   label: {},
 });

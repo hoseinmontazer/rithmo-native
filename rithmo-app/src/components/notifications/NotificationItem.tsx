@@ -42,7 +42,7 @@ export const NotificationItem = memo(function NotificationItem({
       ]}
     >
       <View style={styles.row}>
-        <Text style={{ fontSize: 24, marginRight: spacing[3] }}>
+        <Text style={{ fontSize: typography.xlarge, marginEnd: spacing[3] }}>
           {TYPE_EMOJI[notification.notification_type]}
         </Text>
         <View style={styles.content}>
@@ -85,5 +85,5 @@ const styles = StyleSheet.create({
   title:     {},
   message:   { lineHeight: 18 },
   date:      {},
-  dot:       { width: 8, height: 8, borderRadius: 4, marginTop: 6, marginLeft: 8 },
+  dot:       { width: 8, height: 8, borderRadius: 4, marginTop: 6, marginStart: 8 },
 });

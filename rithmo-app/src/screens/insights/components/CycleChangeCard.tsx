@@ -45,11 +45,11 @@ export const CycleChangeCard = memo(function CycleChangeCard({ evidenceNote }: P
         <View
           style={[
             styles.badge,
-            { backgroundColor: colors.premiumBg, borderRadius: borderRadius.pill },
+            { backgroundColor: colors.infoBg, borderRadius: borderRadius.pill },
           ]}
         >
-          <Icon name="calendar-sync-outline" size={12} color={colors.premium} />
-          <Text style={{ color: colors.premium, fontSize: typography.caption, fontWeight: '700' }}>
+          <Icon name="calendar-sync-outline" size={12} color={colors.info} />
+          <Text style={{ color: colors.info, fontSize: typography.caption, fontWeight: '700' }}>
             این چرخه چه فرقی داشت؟
           </Text>
         </View>

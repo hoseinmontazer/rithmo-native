@@ -257,7 +257,6 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: '800',
     textAlign: 'center',
-    letterSpacing: -0.3,
     paddingHorizontal: 32,
   },
   message: {

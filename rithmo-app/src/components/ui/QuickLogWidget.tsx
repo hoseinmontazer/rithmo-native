@@ -11,6 +11,7 @@ import {
   Animated,
   ViewStyle,
 } from 'react-native';
+import { typography } from '@theme/typography';
 import { useTheme } from '@hooks/useTheme';
 import { CircularProgress } from './CircularProgress';
 import { CircularAvatar } from './CircularAvatar';
@@ -102,6 +103,8 @@ export const QuickLogWidget = memo(function QuickLogWidget({
               <TouchableOpacity
                 onPress={onNotificationPress}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="اعلان‌ها"
                 style={[
                   styles.notificationButton,
                   { backgroundColor: colors.primaryLighter, borderRadius: 12, padding: spacing[2] },
@@ -191,7 +194,7 @@ export const QuickLogWidget = memo(function QuickLogWidget({
               ]}
             >
               <Icon name="heart" size={18} color={colors.textOnPrimary} />
-              <Text style={[styles.ctaText, { color: colors.textOnPrimary, fontSize: typography.md, marginLeft: spacing[2] }]}>
+              <Text style={[styles.ctaText, { color: colors.textOnPrimary, fontSize: typography.md, marginStart: spacing[2] }]}>
                 Check In Now
               </Text>
             </View>
@@ -246,7 +249,7 @@ const styles = StyleSheet.create({
   },
   notificationBadgeText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: typography.micro,
     fontWeight: '700',
   },
   header: {
@@ -255,7 +258,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   greeting: {
-    marginLeft: 12,
+    marginStart: 12,
     flex: 1,
   },
   greetingText: {

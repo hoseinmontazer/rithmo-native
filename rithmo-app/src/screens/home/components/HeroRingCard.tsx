@@ -2,18 +2,19 @@
  * HeroRingCard — Home's headline "where am I" element.
  *
  * Replaces the dark greeting banner + CycleContextStrip/PregnancyContextStrip
- * pairing with one card: a progress ring (cycle day, or gestational week
- * during pregnancy) beside a plain-language status line. Same honesty rules
- * CycleContextStrip already enforced — carried here, not relaxed, because the
- * ring makes it easier to imply a number that isn't real:
+ * pairing with one card: a solid circle stating the day count (cycle day, or
+ * gestational week during pregnancy) beside a plain-language status line. A
+ * flat count, not a fraction of a total — there is no arc/progress math to
+ * misrepresent, so the same honesty rule CycleContextStrip enforced still
+ * holds by construction:
  *
- *   - No cycle data yet -> no ring, one line + a "log a period" CTA.
- *   - Cycle known but no prediction yet -> the ring shows the day count with
- *     an empty arc rather than guessing a cycle length to divide by.
- *   - Prediction known -> the arc is cycle_day / (cycle_day +
- *     days_until_next_period), i.e. derived from the same two numbers the
- *     line below it states in words, never a separate assumed constant.
- *   - Pregnant -> gestational_week / 40, the standard full-term denominator.
+ *   - No cycle data yet -> no circle, one line + a "log a period" CTA.
+ *   - Cycle known but no prediction yet -> the circle shows the day count on
+ *     its own; the line below says a prediction isn't available yet, rather
+ *     than guessing a cycle length to imply one.
+ *   - Prediction known -> the line below states days-until-next-period in
+ *     words, from the same number the day count itself is drawn from.
+ *   - Pregnant -> the circle shows the gestational week.
  *
  * Reacts to the day strip's shared selection (`selectedDateStore`):
  *   - Selection === today -> unchanged, driven by the backend's today-only
@@ -30,14 +31,14 @@
  *     which only changes the strip's color-coding, not the hero).
  */
 import React, { memo } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, Animated, Easing } from 'react-native';
+import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useTheme } from '@hooks/useTheme';
 import { textRoles } from '@theme/typography';
 import { toFa, faDateShort } from '@utils/persian';
 import { todayISO } from '@utils/dateUtils';
 import { phasePlainLabel, phaseDescription } from '@i18n';
-import { GradientSurface, PressScale } from '@components/ui';
-import { CircularProgress } from '@components/ui/CircularProgress';
+import { Card, PressScale } from '@components/ui';
 import { usePeriods } from '@hooks/queries/usePeriods';
 import { useSelectedDateStore } from '@store/selectedDateStore';
 import { buildCycleDateMap, cycleDayForDate, type DayType } from '@utils/cycleDayMap';
@@ -59,6 +60,108 @@ const PHASE_TAG_FA: Partial<Record<DayType, string>> = {
   predicted_period: 'پریود پیش‌بینی‌شده',
   late: 'پریود پیش‌بینی‌شده',
 };
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+const FancyCircle = memo(function FancyCircle({ progressPct, themeColor, gradientColors, size = 150, big, bigLabel }: any) {
+  const strokeWidth = 14;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const { colors, typography } = useTheme();
+  
+  const animatedProgress = React.useRef(new Animated.Value(0)).current;
+  const pulseAnim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(animatedProgress, {
+      toValue: progressPct,
+      duration: 1200,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+
+    Animated.loop(
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: 3000,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true, // View transform/opacity supports native driver
+      })
+    ).start();
+  }, [progressPct, animatedProgress, pulseAnim]);
+
+  const strokeDashoffset = animatedProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [circumference, 0]
+  });
+
+  const pulseScale = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.15]
+  });
+
+  const pulseOpacity = pulseAnim.interpolate({
+    inputRange: [0, 0.4, 1],
+    outputRange: [0.6, 0.4, 0]
+  });
+
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      {/* Ripple/Pulse Effect behind the ring */}
+      <Animated.View style={{
+        position: 'absolute',
+        width: size,
+        height: size,
+        transform: [{ scale: pulseScale }],
+        opacity: pulseOpacity,
+      }}>
+        <Svg width={size} height={size}>
+          <Circle
+            stroke={gradientColors ? gradientColors[1] : themeColor}
+            fill="none"
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            strokeWidth={strokeWidth}
+          />
+        </Svg>
+      </Animated.View>
+
+      <Svg width={size} height={size}>
+        <Defs>
+          <LinearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor={gradientColors ? gradientColors[0] : themeColor} stopOpacity="1" />
+            <Stop offset="100%" stopColor={gradientColors ? gradientColors[1] : themeColor} stopOpacity={gradientColors ? "1" : "0.4"} />
+          </LinearGradient>
+        </Defs>
+        <Circle
+          stroke={colors.borderSubtle}
+          fill="none"
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          strokeWidth={strokeWidth}
+        />
+        <AnimatedCircle
+          stroke="url(#grad)"
+          fill="none"
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <View style={{ position: 'absolute', alignItems: 'center' }}>
+          <Text style={{ color: themeColor, fontSize: 48, fontWeight: '800' }}>{big}</Text>
+        <Text style={{ color: colors.textSecondary, fontSize: typography.bodySmall, fontWeight: '600', marginTop: 4 }}>{bigLabel}</Text>
+      </View>
+    </View>
+  );
+});
 
 interface Props {
   cycle?: CycleContextPayload | null;
@@ -89,7 +192,12 @@ export const HeroRingCard = memo(function HeroRingCard({
         activeOpacity={0.85}
         style={[
           styles.emptyCard,
-          { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius['2xl'], padding: spacing[5] },
+          {
+            backgroundColor: colors.surfaceSecondary,
+            borderColor: colors.border,
+            borderRadius: borderRadius['2xl'],
+            padding: spacing[5],
+          },
         ]}
         accessibilityRole="button"
         accessibilityLabel="ثبت اولین دوره برای شروع دنبال‌کردن چرخه"
@@ -109,7 +217,6 @@ export const HeroRingCard = memo(function HeroRingCard({
     );
   }
 
-  let ringProgress = 0;
   let big = '';
   let bigLabel = '';
   let tag = '';
@@ -119,7 +226,6 @@ export const HeroRingCard = memo(function HeroRingCard({
   if (isPregnant && pregnancy) {
     const week = pregnancy.gestational_week ?? 0;
     const trimester = pregnancy.trimester ?? 1;
-    ringProgress = Math.min(100, Math.max(0, (week / 40) * 100));
     big = toFa(week);
     bigLabel = 'هفته';
     tag = 'بارداری';
@@ -129,7 +235,6 @@ export const HeroRingCard = memo(function HeroRingCard({
     const day = cycle.cycle_day ?? 0;
     const daysUntil = cycle.days_until_next_period;
     const knownTotal = typeof daysUntil === 'number' && daysUntil > 0 ? day + daysUntil : null;
-    ringProgress = knownTotal ? Math.min(100, Math.max(0, (day / knownTotal) * 100)) : 0;
     big = day > 0 ? toFa(day) : '—';
     bigLabel = 'روز چرخه';
     tag = cycle.is_on_period
@@ -152,13 +257,6 @@ export const HeroRingCard = memo(function HeroRingCard({
     const cycleMap = buildCycleDateMap(periodsArr);
     const dayType = cycleMap.get(selectedDate)?.type;
     const day = cycleDayForDate(selectedDate, periodsArr);
-    const avgCycleLen = typeof cycle?.usable_cycles === 'number' && cycle.usable_cycles > 0
-      ? cycle.days_until_next_period != null && cycle.cycle_day != null
-        ? cycle.cycle_day + cycle.days_until_next_period
-        : null
-      : null;
-
-    ringProgress = day != null && avgCycleLen ? Math.min(100, Math.max(0, (day / avgCycleLen) * 100)) : 0;
     big = day != null ? toFa(day) : '—';
     bigLabel = 'روز چرخه';
     tag = (dayType && PHASE_TAG_FA[dayType]) || 'بدون داده';
@@ -168,65 +266,107 @@ export const HeroRingCard = memo(function HeroRingCard({
       : 'برای این روز داده‌ای ثبت نشده است.';
   }
 
+  let progressPct = 0;
+  if (isPregnant && pregnancy) {
+    const week = pregnancy.gestational_week ?? 0;
+    progressPct = week / 40;
+  } else if (isToday && cycle) {
+    const day = cycle.cycle_day ?? 0;
+    const daysUntil = cycle.days_until_next_period;
+    const knownTotal = typeof daysUntil === 'number' && daysUntil > 0 ? day + daysUntil : 28;
+    progressPct = day > 0 ? day / knownTotal : 0;
+  } else {
+    const periodsArr = (periods as any[]) ?? [];
+    const day = cycleDayForDate(selectedDate, periodsArr);
+    progressPct = day != null ? day / 28 : 0;
+  }
+  progressPct = Math.min(1, Math.max(0, progressPct));
+
+  let themeColor = colors.primary;
+  let gradientColors = ['#0E5F72', '#89C6CD'];
+
+  if (isPregnant) {
+    themeColor = colors.primary;
+  } else if (cycle?.is_on_period) {
+    themeColor = colors.menstrual;
+    gradientColors = [colors.menstrual, '#F06284']; // Matching vibrant tone
+  } else if (cycle?.is_fertile_window) {
+    themeColor = colors.ovulation;
+    gradientColors = [colors.ovulation, '#B893E3'];
+  } else if (cycle?.pattern_phase === 'luteal' || cycle?.phase === 'luteal') {
+    themeColor = colors.luteal;
+    gradientColors = [colors.luteal, '#EDB563'];
+  } else {
+    themeColor = colors.follicular;
+  }
+
   const a11y = [tag, title, sub].filter(Boolean).join('، ');
 
   return (
     <PressScale onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y}>
-      <GradientSurface
-        colors={[colors.surface, colors.primaryLighter]}
-        borderRadius={borderRadius['2xl']}
-        style={[styles.card, { padding: spacing[5] }]}
+      <Card
+        rounded="2xl"
+        elevated
+        style={[
+          styles.card,
+          {
+            padding: spacing[5],
+            backgroundColor: colors.surface,
+          },
+        ]}
       >
-        <View style={styles.row}>
-          <CircularProgress
-            progress={ringProgress}
-            size={104}
-            strokeWidth={8}
-            colors={[colors.primary, colors.primary]}
-            backgroundColor={colors.primaryLight}
-          >
-            <Text style={{ color: colors.textPrimary, fontSize: 27, fontWeight: '700' }}>{big}</Text>
-            <Text style={{ color: colors.primaryDark, fontSize: 10.5, marginTop: 2 }}>{bigLabel}</Text>
-          </CircularProgress>
+        <View style={{ alignItems: 'center', marginVertical: spacing[4] }}>
+          <FancyCircle progressPct={progressPct} themeColor={themeColor} gradientColors={gradientColors} size={150} big={big} bigLabel={bigLabel} />
+        </View>
 
-          <View style={styles.textCol}>
-            <View style={[styles.tagPill, { backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: borderRadius.pill }]}>
-              <Text style={{ color: colors.primaryDark, fontSize: 11, fontWeight: '600' }}>{tag}</Text>
-            </View>
-            <Text
-              style={{
-                color: colors.textPrimary,
-                fontSize: textRoles.cardTitle.fontSize,
-                fontWeight: '600',
-                marginTop: spacing[2],
-              }}
-              numberOfLines={2}
-            >
-              {title}
-            </Text>
-            <Text
-              style={{
-                color: colors.textSecondary,
-                fontSize: typography.bodySmall,
-                lineHeight: 20,
-                marginTop: spacing[1],
-              }}
-              numberOfLines={2}
-            >
-              {sub}
-            </Text>
+        <View style={{ alignItems: 'center', marginBottom: spacing[4] }}>
+          <View
+            style={[
+              styles.tagPill,
+              {
+                backgroundColor: colors.surfaceSecondary,
+                borderColor: colors.borderSubtle,
+                borderWidth: 1,
+                borderRadius: borderRadius.pill,
+              },
+            ]}
+          >
+            <Text style={{ color: themeColor, fontSize: typography.bodySmall, fontWeight: '700' }}>{tag}</Text>
           </View>
         </View>
-      </GradientSurface>
+
+        <Text
+          style={{
+            color: colors.textPrimary,
+            fontSize: textRoles.cardTitle.fontSize,
+            fontWeight: '700',
+            textAlign: 'center',
+          }}
+          numberOfLines={2}
+        >
+          {title}
+        </Text>
+        <Text
+          style={{
+            color: colors.textSecondary,
+            fontSize: typography.bodySmall,
+            lineHeight: 20,
+            marginTop: spacing[1],
+            textAlign: 'center',
+          }}
+          numberOfLines={2}
+        >
+          {sub}
+        </Text>
+      </Card>
     </PressScale>
   );
 });
 
 const styles = StyleSheet.create({
   card: { overflow: 'hidden' },
-  emptyCard: {},
-  row: { flexDirection: 'row', alignItems: 'center', gap: 18 },
-  textCol: { flex: 1 },
-  tagPill: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6 },
+  emptyCard: { borderWidth: 1 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  tagPill: { paddingHorizontal: 12, paddingVertical: 6 },
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });

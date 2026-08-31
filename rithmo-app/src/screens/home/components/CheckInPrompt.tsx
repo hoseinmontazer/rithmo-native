@@ -9,9 +9,9 @@
  * the answer into the existing product, per the "check-in is an entry
  * point, not a parallel product" rule.
  *
- * `missing_data`'s "log" answer opens the existing full logger — the
- * exact `onGoFullLog` MoodQuickPick already uses, so "answer" and
- * "log more" are the same one route, not a new flow.
+ * `missing_data`'s "log" answer opens the existing full logger — the same
+ * route Home's "ثبت کامل روز" CTA uses, so "answer" and "log more" are one
+ * route, not a new flow.
  * `deviation_confirm` has no natural navigation of its own; both answers
  * just record a real yes/no against an established pattern, which is
  * already useful signal on its own.
@@ -59,13 +59,13 @@ export const CheckInPrompt = memo(function CheckInPrompt({ checkIn, onGoFullLog,
 
   return (
     <Reveal>
-      <Card rounded="2xl" style={{ padding: spacing[5] }}>
+      <Card rounded="3xl" style={{ backgroundColor: colors.primaryLighter, borderColor: colors.primaryLight, padding: spacing[5] }}>
         {checkIn.state === 'shown' ? (
           <>
-            <Text style={{ color: colors.textPrimary, fontSize: typography.bodySmall, fontWeight: '600', lineHeight: 22 }}>
+            <Text style={{ color: colors.primaryDark, fontSize: typography.bodySmall, fontWeight: '700', lineHeight: 22, textAlign: 'center' }}>
               {checkIn.question_fa}
             </Text>
-            <View style={[styles.row, { marginTop: spacing[3] }]}>
+            <View style={[styles.row, { marginTop: spacing[4], justifyContent: 'center' }]}>
               {checkIn.options.map((opt) => (
                 <PressScale
                   key={opt.value}
@@ -73,7 +73,7 @@ export const CheckInPrompt = memo(function CheckInPrompt({ checkIn, onGoFullLog,
                   disabled={isPending}
                   style={[
                     styles.optionBtn,
-                    { backgroundColor: colors.primaryLighter, borderRadius: borderRadius.pill, opacity: isPending ? 0.6 : 1 },
+                    { backgroundColor: colors.surface, borderColor: colors.primaryLight, borderWidth: 1, borderRadius: borderRadius.pill, opacity: isPending ? 0.6 : 1 },
                   ]}
                   accessibilityRole="button"
                   accessibilityLabel={opt.label_fa}
@@ -90,14 +90,14 @@ export const CheckInPrompt = memo(function CheckInPrompt({ checkIn, onGoFullLog,
                 accessibilityRole="button"
                 accessibilityLabel="بستن"
               >
-                <Text style={{ color: colors.textTertiary, fontSize: typography.caption }}>
+                <Text style={{ color: colors.primary, fontSize: typography.caption, fontWeight: '600' }}>
                   بستن
                 </Text>
               </PressScale>
             </View>
           </>
         ) : (
-          <Text style={{ color: colors.textSecondary, fontSize: typography.caption }}>
+          <Text style={{ color: colors.primary, fontSize: typography.caption, textAlign: 'center' }}>
             {checkIn.state === 'answered' ? 'ممنون — این در تحلیل بعدی لحاظ می‌شه.' : 'باشه، دیگه نمی‌پرسیم.'}
           </Text>
         )}

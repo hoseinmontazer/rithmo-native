@@ -27,7 +27,7 @@ export const StepperInput = memo(function StepperInput({
   error,
   onChange,
 }: StepperInputProps) {
-  const { colors, spacing, typography, borderRadius } = useTheme();
+  const { colors, typography, borderRadius } = useTheme();
 
   const decrement = () => { if (value > min) { onChange(value - 1); } };
   const increment = () => { if (value < max) { onChange(value + 1); } };
@@ -69,7 +69,7 @@ export const StepperInput = memo(function StepperInput({
           <Text
             style={{
               color: canDec ? colors.primary : colors.textDisabled,
-              fontSize: 22,
+              fontSize: typography.xlarge,
               fontWeight: '700',
               lineHeight: 26,
             }}
@@ -118,7 +118,7 @@ export const StepperInput = memo(function StepperInput({
           <Text
             style={{
               color: canInc ? colors.primary : colors.textDisabled,
-              fontSize: 22,
+              fontSize: typography.xlarge,
               fontWeight: '700',
               lineHeight: 26,
             }}

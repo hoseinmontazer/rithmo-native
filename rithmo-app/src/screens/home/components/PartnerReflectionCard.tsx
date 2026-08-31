@@ -33,11 +33,11 @@ export const PartnerReflectionCard = memo(function PartnerReflectionCard() {
         <View
           style={[
             styles.badge,
-            { backgroundColor: colors.premiumBg, borderRadius: borderRadius.pill },
+            { backgroundColor: colors.infoBg, borderRadius: borderRadius.pill },
           ]}
         >
-          <Icon name="creation" size={12} color={colors.premium} />
-          <Text style={{ color: colors.premium, fontSize: typography.caption, fontWeight: '700' }}>
+          <Icon name="creation" size={12} color={colors.info} />
+          <Text style={{ color: colors.info, fontSize: typography.caption, fontWeight: '700' }}>
             راهنمای هوشمند
           </Text>
         </View>

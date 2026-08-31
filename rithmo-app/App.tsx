@@ -4,7 +4,11 @@
  */
 import React, { useEffect } from 'react';
 import { StatusBar, Appearance, I18nManager } from 'react-native';
+import { enableScreens, enableFreeze } from 'react-native-screens';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+enableScreens(true);
+enableFreeze(true);
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@api/queryClient';
 import { RootNavigator } from '@navigation/RootNavigator';

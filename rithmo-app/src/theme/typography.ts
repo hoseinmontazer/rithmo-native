@@ -75,6 +75,15 @@ export const typography = {
   label:      STEP.tiny,     // Badges, form labels & category tags
   button:     STEP.base,     // Button & interactive action labels
   overline:   STEP.overline, // Eyebrows & uppercase metadata
+  micro:      STEP.micro,    // Bottom tab labels & micro-metadata
+  tiny:       STEP.tiny,     // Badges, form labels, category tags (raw step)
+  small:      STEP.small,    // Secondary descriptions, timestamps (raw step)
+  compact:    STEP.compact,  // The app's most-used secondary size (raw step)
+  medium:     STEP.medium,   // Card headings (raw step)
+  large:      STEP.large,    // Section headers (raw step)
+  xlarge:     STEP.xlarge,   // Metric values in stat rows (raw step)
+  hero:       STEP.hero,     // Oversized impact numbers (raw step)
+  giant:      STEP.giant,    // The largest step in the product (raw step)
 
   // ── Numeric scale ─────────────────────────────────────────────────────────
   // Retained because the app overwhelmingly speaks in these names — `xs`, `sm`
@@ -129,6 +138,7 @@ export const typography = {
 // role's size and rounded up.
 
 type Role = {
+  fontFamily: string;
   fontSize: number;
   fontWeight: '400' | '500' | '600' | '700' | '800';
   lineHeight: number;
@@ -137,17 +147,17 @@ type Role = {
 
 export const textRoles = {
   /** Hero numerals — cycle day, primary impact values. */
-  display:      { fontSize: STEP.display,  fontWeight: '800', lineHeight: 43, letterSpacing: -0.4 },
+  display:      { fontFamily: 'Shabnam-Bold',   fontSize: STEP.display,  fontWeight: '800', lineHeight: 43, letterSpacing: -0.4 },
   /** Screen titles. */
-  screenTitle:  { fontSize: STEP.heading,  fontWeight: '700', lineHeight: 37 },
+  screenTitle:  { fontFamily: 'Shabnam-Bold',   fontSize: STEP.heading,  fontWeight: '700', lineHeight: 37 },
   /** Section headers within a screen. */
-  sectionTitle: { fontSize: STEP.large,    fontWeight: '700', lineHeight: 30 },
+  sectionTitle: { fontFamily: 'Shabnam-Bold',   fontSize: STEP.large,    fontWeight: '700', lineHeight: 30 },
   /** Card headings. */
-  cardTitle:    { fontSize: STEP.medium,   fontWeight: '600', lineHeight: 28 },
+  cardTitle:    { fontFamily: 'Shabnam-Medium', fontSize: STEP.medium,   fontWeight: '600', lineHeight: 28 },
   /** Standard reading text. */
-  body:         { fontSize: STEP.base,     fontWeight: '400', lineHeight: 28 },
+  body:         { fontFamily: 'Shabnam',        fontSize: STEP.base,     fontWeight: '400', lineHeight: 28 },
   /** Body text that carries emphasis without becoming a heading. */
-  bodyEmphasis: { fontSize: STEP.base,     fontWeight: '600', lineHeight: 28 },
+  bodyEmphasis: { fontFamily: 'Shabnam-Medium', fontSize: STEP.base,     fontWeight: '600', lineHeight: 28 },
   /**
    * The dense secondary size the app actually reaches for most often.
    *
@@ -155,19 +165,19 @@ export const textRoles = {
    * anyone working from `textRoles` alone could not reproduce the app's own
    * most common text. Naming it is the point of this entry.
    */
-  bodyCompact:  { fontSize: STEP.compact,  fontWeight: '400', lineHeight: 24 },
+  bodyCompact:  { fontFamily: 'Shabnam',        fontSize: STEP.compact,  fontWeight: '400', lineHeight: 24 },
   /** Secondary descriptions and compact lists. */
-  bodySmall:    { fontSize: STEP.small,    fontWeight: '400', lineHeight: 23 },
+  bodySmall:    { fontFamily: 'Shabnam',        fontSize: STEP.small,    fontWeight: '400', lineHeight: 23 },
   /** Dates, timestamps, metadata. */
-  caption:      { fontSize: STEP.small,    fontWeight: '400', lineHeight: 22 },
+  caption:      { fontFamily: 'Shabnam',        fontSize: STEP.small,    fontWeight: '400', lineHeight: 22 },
   /** Badges, form labels, category tags. */
-  label:        { fontSize: STEP.tiny,     fontWeight: '500', lineHeight: 20 },
+  label:        { fontFamily: 'Shabnam-Medium', fontSize: STEP.tiny,     fontWeight: '500', lineHeight: 20 },
   /** Interactive action labels. */
-  button:       { fontSize: STEP.base,     fontWeight: '600', lineHeight: 25 },
+  button:       { fontFamily: 'Shabnam-Medium', fontSize: STEP.base,     fontWeight: '600', lineHeight: 25 },
   /** Metric values in stat rows — smaller than display, still dominant. */
-  metric:       { fontSize: STEP.xlarge,   fontWeight: '700', lineHeight: 31 },
+  metric:       { fontFamily: 'Shabnam-Bold',   fontSize: STEP.xlarge,   fontWeight: '700', lineHeight: 31 },
   /** Bottom tab labels. */
-  tabLabel:     { fontSize: STEP.micro,    fontWeight: '500', lineHeight: 17 },
+  tabLabel:     { fontFamily: 'Shabnam-Medium', fontSize: STEP.micro,    fontWeight: '500', lineHeight: 17 },
 } as const satisfies Record<string, Role>;
 
 export type TextRole = keyof typeof textRoles;

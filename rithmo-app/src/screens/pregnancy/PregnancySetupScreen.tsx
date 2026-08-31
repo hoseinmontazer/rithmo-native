@@ -62,7 +62,7 @@ function PregnancyDatePickerSheet({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={onClose} />
+        <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={onClose} accessibilityRole="button" accessibilityLabel="بستن" />
         <View style={[styles.sheet, { backgroundColor: colors.surface, borderRadius: borderRadius.xl }]}>
           <View style={styles.handleWrap}>
             <View style={[styles.handle, { backgroundColor: colors.border }]} />
@@ -71,7 +71,7 @@ function PregnancyDatePickerSheet({
             <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '700' }}>
               {title}
             </Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="بستن">
               <Icon name="close" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>

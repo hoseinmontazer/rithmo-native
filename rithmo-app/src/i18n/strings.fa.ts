@@ -45,7 +45,7 @@ export const navTitles = {
   LearningTimeline: 'چیزهایی که یاد گرفته‌ام',
 
   // Profile
-  Profile: 'من',
+  Profile: 'پروفایل',
   EditProfile: 'ویرایش پروفایل',
   PartnerManage: 'شریک',
   PartnerMessages: 'پیام‌ها',

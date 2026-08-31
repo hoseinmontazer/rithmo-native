@@ -142,6 +142,8 @@ export default function SupportScreen() {
             <TouchableOpacity
               onPress={backToList}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel="بازگشت"
               style={{ marginRight: spacing[3] }}
             >
               {/* Vector back chevron — the literal ‹ was a bidi-mirrored glyph
@@ -165,7 +167,7 @@ export default function SupportScreen() {
                 paddingVertical: 3,
               }}
             >
-              <Text style={{ color: s.color, fontSize: 10, fontWeight: '800' }}>{s.label}</Text>
+              <Text style={{ color: s.color, fontSize: typography.micro, fontWeight: '800' }}>{s.label}</Text>
             </View>
           </View>
 
@@ -214,7 +216,7 @@ export default function SupportScreen() {
                     <Text
                       style={{
                         color: mine ? colors.primaryDark : colors.textTertiary,
-                        fontSize: 10,
+                        fontSize: typography.micro,
                         fontWeight: '800',
                         marginBottom: 4,
                       }}
@@ -518,7 +520,7 @@ export default function SupportScreen() {
                         paddingVertical: 3,
                       }}
                     >
-                      <Text style={{ color: s.color, fontSize: 10, fontWeight: '800' }}>
+                      <Text style={{ color: s.color, fontSize: typography.micro, fontWeight: '800' }}>
                         {s.label}
                       </Text>
                     </View>

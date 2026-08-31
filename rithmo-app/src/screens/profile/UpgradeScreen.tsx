@@ -21,6 +21,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { typography } from '@theme/typography';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientSurface } from '@components/ui';
 import { useNavigation } from '@react-navigation/native';
@@ -343,7 +344,7 @@ export default function UpgradeScreen() {
               >
                 {plan.badge && (
                   <View style={[styles.planBadge, { backgroundColor: colors.premium }]}>
-                    <Text style={{ color: '#FFF8EC', fontSize: 10, fontWeight: '800' }}>
+                    <Text style={{ color: '#FFF8EC', fontSize: typography.micro, fontWeight: '800' }}>
                       {plan.badge}
                     </Text>
                   </View>
@@ -426,7 +427,7 @@ const styles = StyleSheet.create({
   hero:           { padding: 24, alignItems: 'center', marginBottom: spacing24(), gap: 10 },
   heroIcon:       { width: 56, height: 56, borderRadius: borderRadius.lg, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   heroTitle:      { fontWeight: '900', textAlign: 'center' },
-  heroSub:        { color: 'rgba(255,248,236,0.85)', fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  heroSub:        { color: 'rgba(255,248,236,0.85)', fontSize: typography.tiny, textAlign: 'center', lineHeight: 20 },
   sectionLabel:   { fontWeight: '800', letterSpacing: 0.4, marginBottom: 10, marginTop: 20 },
   card:           { borderRadius: borderRadius.lg, borderWidth: 1, overflow: 'hidden', marginBottom: 4 },
   featureRow:     { flexDirection: 'row', alignItems: 'flex-start', padding: 14 },
