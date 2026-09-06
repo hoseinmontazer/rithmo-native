@@ -29,7 +29,7 @@
  * FIREBASE_CREDENTIALS_PATH/FCM_ENABLED — see that module's own docstring.
  */
 import { useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
 import { useRegisterPushToken } from '@hooks/queries/useNotifications';
 import { useAuth } from '@hooks/useAuth';
 
@@ -74,7 +74,26 @@ export function usePushTokenRegistration(): void {
 
     async function requestAndRegister(): Promise<void> {
       try {
-        // Request permission (iOS only — Android ≥ 13 handled separately below)
+        // Android 13+ (API 33) requires this runtime permission before any
+        // notification will show at all — messaging().requestPermission()
+        // below is primarily an iOS API and does not request it. This was
+        // previously only requested in the unused pushNotifications.ts
+        // module (called once, unconditionally, at app launch before
+        // login — see App.tsx), never in this actual registration path, so
+        // real devices on Android 13+ registered a token whose
+        // notifications the OS silently dropped.
+        if (Platform.OS === 'android' && Platform.Version >= 33) {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+          );
+          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            if (__DEV__) {
+              console.log('[usePushTokenRegistration] POST_NOTIFICATIONS denied by user.');
+            }
+            return;
+          }
+        }
+
         const authStatus = await messaging().requestPermission();
         const enabled =
           authStatus === messaging.AuthorizationStatus.AUTHORIZED ||

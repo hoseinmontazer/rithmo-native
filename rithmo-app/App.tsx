@@ -18,7 +18,7 @@ import { applyGlobalFont } from '@theme/applyGlobalFont';
 import { ErrorBoundary } from '@components/ErrorBoundary';
 import { ToastProvider } from './src/context/ToastContext';
 import { ConfirmProvider } from './src/context/ConfirmContext';
-import { requestUserPermission, getFCMToken, setupNotificationListeners } from './src/services/pushNotifications';
+import { setupNotificationListeners } from './src/services/pushNotifications';
 
 // ── Persian-first: full RTL layout (Android; iOS follows locale) ─────────────
 I18nManager.forceRTL(true);
@@ -46,17 +46,18 @@ export default function App() {
   useEffect(() => {
     initialize();
 
-    // Initialize Push Notifications
-    const initPushNotifications = async () => {
-      const hasPermission = await requestUserPermission();
-      if (hasPermission) {
-        await getFCMToken();
-      }
-    };
-    initPushNotifications();
-
+    // Foreground/background/tap listeners only — safe to register before
+    // login, and requesting no permission itself. The actual permission
+    // request + token fetch/registration happens in
+    // usePushTokenRegistration (gated on isAuthenticated, wired into
+    // MainNavigator) — that used to be duplicated here too, requesting
+    // permission unconditionally at every app launch before the user had
+    // even logged in. On iOS the system permission dialog is effectively
+    // a one-time prompt, so that premature request could burn the user's
+    // one chance to grant it before they'd seen any login/context, and
+    // the token it fetched was never sent anywhere (only console.log'd).
     const unsubscribe = setupNotificationListeners();
-    
+
     return () => {
       unsubscribe();
     };
