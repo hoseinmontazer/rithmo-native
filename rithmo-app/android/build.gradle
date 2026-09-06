@@ -20,3 +20,13 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+// Cafe Bazaar's Poolakey in-app billing SDK is published on JitPack, not
+// Maven Central. @cafebazaar/react-native-poolakey's own build.gradle
+// declares the dependency but only lists mavenCentral()/google() in its
+// repositories block, so without this the app fails to resolve it.
+allprojects {
+    repositories {
+        maven { url 'https://jitpack.io' }
+    }
+}

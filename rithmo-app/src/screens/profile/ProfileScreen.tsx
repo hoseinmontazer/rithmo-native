@@ -26,7 +26,7 @@ import { useSubscription } from '@hooks/queries/useSubscription';
 import { usePregnancyStatus } from '@hooks/queries/usePregnancy';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Card, LoadingState, ErrorState, Divider, PressScale } from '@components/ui';
-import { PROFILE_ICONS, ICON_SIZE, ACTION_ICONS } from '@design-system/iconography';
+import { PROFILE_ICONS, ACTION_ICONS } from '@design-system/iconography';
 import { toFa, faDateShort } from '@utils/persian';
 import type { ProfileScreenProps } from '@navigation/types';
 
@@ -50,6 +50,7 @@ function sexMeta(sex?: string): { icon: string | null; label: string } {
 
 function planLabel(plan?: string | null): string {
   if (plan === 'monthly') { return 'ماهانه'; }
+  if (plan === 'quarterly') { return 'سه‌ماهه'; }
   if (plan === 'annual' || plan === 'yearly') { return 'سالانه'; }
   return plan || 'فعال';
 }
@@ -548,13 +549,6 @@ export default function ProfileScreen() {
               sub="گزارش‌های روزانه و ثبت علائم"
               accentColor={colors.primary}
               onPress={() => navigation.navigate('LogTab' as never, { screen: 'WellnessDashboard' } as never)}
-            />
-            <MenuRow
-              icon={PROFILE_ICONS.medications}
-              label="داروها و مکمل‌ها"
-              sub="یادآور و سابقه مصرف"
-              accentColor={colors.luteal}
-              onPress={() => navigation.navigate('LogTab' as never, { screen: 'Medications' } as never)}
             />
           </>
         )}

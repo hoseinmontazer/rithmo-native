@@ -26,6 +26,8 @@ BUILD_TYPE="release"
 DO_CLEAN=false
 DO_INSTALL=false
 DO_LAUNCH=false
+BAZAAR_TEST=false
+CAFEBAZAAR_PACKAGE_NAME="com.farsitel.bazaar"
 
 print_banner() {
     echo -e "${CYAN}${BOLD}"
@@ -44,6 +46,14 @@ usage() {
     echo "  -c, --clean        Run gradle clean before building"
     echo "  -i, --install      Install APK onto connected Android device via ADB"
     echo "  -l, --launch       Launch app after installing (implies --install)"
+    echo "  -b, --bazaar-test  Install with Cafe Bazaar recorded as the installer"
+    echo "                     package (adb install -i com.farsitel.bazaar), so a"
+    echo "                     sideloaded release build exercises the real Bazaar"
+    echo "                     pricing/purchase path instead of the Stripe fallback."
+    echo "                     TESTING ONLY — the APK itself is unchanged; this only"
+    echo "                     affects what this local install records as its"
+    echo "                     installer, same as Cafe Bazaar's own app would."
+    echo "                     Implies --install."
     echo "  -h, --help         Show this help message"
     echo ""
     echo "Examples:"
@@ -52,6 +62,7 @@ usage() {
     echo "  $0 -i -l            # Build, install, and launch on phone"
     echo "  $0 -c -i -l         # Clean, build, install, and launch"
     echo "  $0 -d -i -l         # Build and install Debug APK"
+    echo "  $0 -r -b -l         # Build release, install as a Bazaar-sourced app, and launch"
     exit 0
 }
 
@@ -77,6 +88,11 @@ while [[ $# -gt 0 ]]; do
         -l|--launch)
             DO_INSTALL=true
             DO_LAUNCH=true
+            shift
+            ;;
+        -b|--bazaar-test)
+            DO_INSTALL=true
+            BAZAAR_TEST=true
             shift
             ;;
         -h|--help)
@@ -183,7 +199,12 @@ if [ -n "$ADB_CMD" ]; then
         if [ "$DO_INSTALL" = true ]; then
             TARGET_DEVICE="${DEVICES[0]}"
             echo -e "\n${BLUE}[5/5] Installing APK to device (${GREEN}$TARGET_DEVICE${NC})...${NC}"
-            $ADB_CMD -s "$TARGET_DEVICE" install -r -d "$COPIED_APK"
+            if [ "$BAZAAR_TEST" = true ]; then
+                echo -e "  ${YELLOW}⚠ --bazaar-test: recording installer as $CAFEBAZAAR_PACKAGE_NAME (testing only — real users still install via the actual Bazaar app; this only affects this local install).${NC}"
+                $ADB_CMD -s "$TARGET_DEVICE" install -r -d -i "$CAFEBAZAAR_PACKAGE_NAME" "$COPIED_APK"
+            else
+                $ADB_CMD -s "$TARGET_DEVICE" install -r -d "$COPIED_APK"
+            fi
             echo -e "  ${GREEN}${BOLD}✓ App installed successfully!${NC}"
 
             if [ "$DO_LAUNCH" = true ]; then

@@ -270,11 +270,19 @@ export default function WellnessDashboardScreen() {
       {/* Quick Action Shortcuts */}
       <View style={[styles.actionsRow, { gap: spacing[2], marginBottom: spacing[4] }]}>
         <Button
-          label="ثبت گزارش جدید"
+          label="گزارش جدید"
           variant="primary"
           size="sm"
           onPress={() => navigation.navigate('LogWellness', {})}
           icon={<Icon name="plus" size={16} color={colors.textOnPrimary} />}
+          style={{ flex: 1 }}
+        />
+        <Button
+          label="داروها"
+          variant="secondary"
+          size="sm"
+          onPress={() => navigation.navigate('Medications')}
+          icon={<Icon name="pill" size={16} color={colors.textPrimary} />}
           style={{ flex: 1 }}
         />
         <Button

@@ -98,7 +98,9 @@ export const API_ENDPOINTS = {
   MEDICATION_REMINDERS: '/api/medications/reminders/',
   // Subscriptions
   SUBSCRIPTION_STATUS: '/api/subscriptions/status/',
+  SUBSCRIPTION_PLANS:  '/api/subscriptions/plans/',
   STRIPE_WEBHOOK:      '/api/subscriptions/webhook/',
+  SUBSCRIPTION_BAZAAR_VERIFY: '/api/subscriptions/bazaar/verify/',
 
   // Pregnancy (premium)
   PREGNANCY:     '/api/pregnancy/',
@@ -118,3 +120,35 @@ export const API_ENDPOINTS = {
 export const KEYCHAIN_SERVICE = 'com.rithmo.auth';
 export const QUERY_STALE_TIME_MS = 5 * 60 * 1000; // 5 minutes
 export const QUERY_CACHE_TIME_MS = 10 * 60 * 1000; // 10 minutes
+
+/**
+ * Cafe Bazaar in-app billing (Poolakey).
+ *
+ * Cafe Bazaar's publishing rules require any subscription or digital
+ * content unlocked inside the app to go through Bazaar's own in-app
+ * billing — not Stripe, not a link to an external checkout page. This
+ * only applies when the app was installed from Bazaar (see
+ * `isBazaarInstall` in `@utils/store`); everywhere else (direct APK,
+ * future iOS) the existing Stripe checkout flow is used.
+ *
+ * The RSA public key below is the *public* verification key from the
+ * Bazaar Developer Panel (App → In-app Billing) — safe to ship in the
+ * app, same as it would be for Google Play Billing. It is only used for
+ * the SDK's optional local signature check; purchases are still verified
+ * server-side against Bazaar's REST API before granting premium access.
+ */
+export const CAFEBAZAAR_PACKAGE_NAME = 'com.farsitel.bazaar';
+
+export const CAFEBAZAAR_RSA_PUBLIC_KEY =
+  'MIHNMA0GCSqGSIb3DQEBAQUAA4G7ADCBtwKBrwDyfbBUdi2AIPVw9VrZ2lYwJXywjnklz2rmuidtgEBq2534zbLldiF6h3qeUm/4eqtaKssyb87bkeVLPK6BtZxwqqB5zoG9cDB1EwFKq38bgf48ZeW35fVKCVB2x/7Kk9nEAU0Uj1L/vDNofoT0ph6Ysv4VT0MYnoDku3aQNg4FYjOu4bhPNLbCV7zxzXYjDL3X/erjvBdaPsFfF/FKoRi+hFRgRY1nSXlGXtZ3b3UCAwEAAQ==';
+
+// The real, admin-managed plan catalog now lives on the backend
+// (subscriptions.models.Plan, edited at /ops/plans/ — see
+// SUBSCRIPTION_PLANS above) so a new or retired SKU never needs a
+// mobile release. This is only the OFFLINE FALLBACK the app falls back
+// to if that fetch fails — it should track whatever the two original,
+// always-expected-to-exist plans are, not every plan an admin might add.
+export const DEFAULT_BAZAAR_PLANS = [
+  { plan: 'monthly',   sku: 'rithmo_premium_monthly', label_fa: 'ماهانه' },
+  { plan: 'quarterly', sku: 'rithmo_premium_3month',  label_fa: 'سه‌ماهه' },
+] as const;

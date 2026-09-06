@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import { subscriptionService } from '@api/services/subscriptionService';
 import { queryKeys } from '@api/queryKeys';
 import { useAuth } from '@hooks/useAuth';
+import { QUERY_STALE_TIME_MS } from '@constants/config';
 
 export function useSubscription() {
   const { isAuthenticated } = useAuth();
@@ -44,4 +45,27 @@ export function usePremiumStatus(): { isPremium: boolean; isLoading: boolean } {
     isPremium: data?.is_active ?? false,
     isLoading,
   };
+}
+
+/**
+ * The admin-managed Cafe Bazaar plan catalog (subscriptions.models.Plan,
+ * edited at /ops/plans/) — fetched fresh so a plan added or retired
+ * there shows up on the paywall without an app release. Only meaningful
+ * on a Bazaar install; pass `enabled: false` everywhere else.
+ *
+ * Callers should fall back to DEFAULT_BAZAAR_PLANS (@constants/config)
+ * while this is loading or if it errors, rather than showing no plans.
+ */
+export function useBazaarPlans(enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.subscription.plans(),
+    queryFn:  () => subscriptionService.getPlans().then((r) => r.data),
+    enabled,
+    staleTime: QUERY_STALE_TIME_MS,
+    retry: (failureCount, error: any) => {
+      const s = error?.response?.status;
+      if (s === 401 || s === 403) { return false; }
+      return failureCount < 2;
+    },
+  });
 }

@@ -147,6 +147,7 @@ export const subscriptionStatusLabels: Record<string, string> = {
 
 export const planLabels: Record<string, string> = {
   monthly: 'ماهانه',
+  quarterly: 'سه‌ماهه',
   annual: 'سالانه',
   family: 'خانوادگی',
   trial: 'آزمایشی',

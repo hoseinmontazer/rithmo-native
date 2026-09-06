@@ -5,10 +5,20 @@
  * analytics computed from the user's own logs — correlations, week
  * comparison, reports/export, partner depth.
  *
- * Flow unchanged:
- *   1. Feature list + monthly/annual plan cards
- *   2. "شروع پریمیوم" → POST /api/subscriptions/checkout/ → open URL
- *   3. Endpoint not built yet → honest Persian fallback (support email)
+ * Two purchase paths, chosen by isBazaarInstall() (see @utils/store):
+ *   - Bazaar install: Cafe Bazaar's payment rules require subscriptions
+ *     to go through Bazaar's own in-app billing, not a checkout link.
+ *     "شروع پریمیوم" → Poolakey subscribeProduct() → purchaseToken sent
+ *     to POST /api/subscriptions/bazaar/verify/ for server-side check.
+ *     The plan cards themselves come from GET /api/subscriptions/plans/
+ *     (subscriptions.models.Plan, admin-managed at /ops/plans/), not a
+ *     hardcoded list — an admin can add or retire a Bazaar plan without
+ *     an app release. DEFAULT_BAZAAR_PLANS (@constants/config) is only
+ *     the offline fallback if that fetch fails.
+ *   - Everywhere else: "شروع پریمیوم" → POST /api/subscriptions/checkout/
+ *     → open the returned Stripe Checkout URL. Endpoint not built yet →
+ *     honest Persian fallback (support email). Unaffected by the above —
+ *     Stripe still uses the static PLANS list below.
  */
 import React, { useCallback, useState, useEffect } from 'react';
 import {
@@ -30,14 +40,32 @@ import { useTheme } from '@hooks/useTheme';
 import { screen, borderRadius } from '@theme/spacing';
 import { useThemeStore } from '@store/themeStore';
 import { getBrandGradient } from '@theme/brand';
-import { useSubscription } from '@hooks/queries/useSubscription';
+import { useSubscription, useBazaarPlans } from '@hooks/queries/useSubscription';
 import { apiClient } from '@api/client';
+import { subscriptionService, type BazaarPlan } from '@api/services/subscriptionService';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@api/queryKeys';
 import { toFa, faDateYear } from '@utils/persian';
+import { isBazaarInstall } from '@utils/store';
+import { DEFAULT_BAZAAR_PLANS } from '@constants/config';
+import {
+  subscribeToPlan,
+  getSkuDetails,
+  restoreBazaarPurchases,
+  isBazaarPurchaseCanceled,
+  BazaarNotFoundError,
+  DisconnectedError,
+} from '@services/bazaarBilling';
+import {
+  planForBazaarSku,
+  summarizeBazaarRestore,
+  bazaarRestoreMessage,
+  type BazaarVerifyOutcome,
+} from '@utils/bazaarRestore';
 import { planLabel, subscriptionStatusLabel } from '@i18n';
 import { track } from '@analytics';
 import type { ProfileScreenProps } from '@navigation/types';
+import type { TypedAxiosError } from '@types/api.types';
 
 type Props = ProfileScreenProps<'Upgrade'>;
 
@@ -98,12 +126,14 @@ const PLANS: Plan[] = [
     period: 'تومان / ماه',
   },
   {
-    id:      'annual',
-    label:   'سالانه',
-    price:   toFa(3000000, { grouped: true }),
-    period:  'تومان / سال',
-    badge:   'بهترین ارزش',
-    savings: '۲ ماه رایگان',
+    id:     'quarterly',
+    label:  'سه‌ماهه',
+    // Used only on the non-Bazaar (Stripe) path — a Bazaar install
+    // renders displayPlans instead, sourced from the live plan catalog.
+    // No discount or "most popular" claim here since neither is
+    // confirmed; this is exactly 3x the monthly price, no badge.
+    price:  toFa(900000, { grouped: true }),
+    period: 'تومان / ۳ ماه',
   },
 ];
 
@@ -117,6 +147,15 @@ async function fetchCheckoutUrl(planId: string): Promise<string | null> {
     return null;
   }
 }
+
+// Known plan slugs only — an admin-added plan we have no specific
+// wording for (e.g. a new "half_year" SKU) falls back to a generic
+// per-period phrase rather than guessing a duration.
+const BAZAAR_PERIOD_LABEL: Record<string, string> = {
+  monthly:   'در ماه',
+  quarterly: 'در ۳ ماه',
+};
+const BAZAAR_PERIOD_LABEL_FALLBACK = 'برای این طرح';
 
 // ── main screen ───────────────────────────────────────────────────────────────
 
@@ -132,10 +171,38 @@ export default function UpgradeScreen() {
   const queryClient   = useQueryClient();
   const { data: sub, isLoading: subLoading, isError: subError, refetch: refetchSub } = useSubscription();
 
-  const [selectedPlan, setSelectedPlan] = useState<string>('annual');
+  const [selectedPlan, setSelectedPlan] = useState<string>('quarterly');
   const [loading,      setLoading]      = useState(false);
+  const [restoring,       setRestoring]       = useState(false);
+  const [isBazaar,        setIsBazaar]        = useState(false);
+  const [bazaarPricesBySku, setBazaarPricesBySku] = useState<Record<string, string>>({});
 
   const featureName = (navigation.getState().routes.slice(-1)[0]?.params as { featureName?: string } | undefined)?.featureName;
+
+  // Admin-managed plan catalog (subscriptions.models.Plan, /ops/plans/) —
+  // falls back to the two originally-shipped plans if the fetch hasn't
+  // resolved yet or fails, so a network hiccup never leaves the paywall
+  // with nothing to sell.
+  const plansQuery = useBazaarPlans(isBazaar);
+  const bazaarPlanList: BazaarPlan[] = plansQuery.data && plansQuery.data.length > 0
+    ? plansQuery.data
+    : [...DEFAULT_BAZAAR_PLANS];
+
+  // What the plan-selector cards actually render. On a Bazaar install
+  // this is built fresh from bazaarPlanList + live Bazaar pricing —
+  // never a fabricated price for a plan we don't have one for yet.
+  // Everywhere else, the static Toman-priced PLANS below is unchanged.
+  const displayPlans: Plan[] = isBazaar
+    ? bazaarPlanList.map((p) => {
+        const price = bazaarPricesBySku[p.sku];
+        return {
+          id:     p.plan,
+          label:  p.label_fa || planLabel(p.plan) || p.plan,
+          price:  price ?? '…',
+          period: price ? (BAZAAR_PERIOD_LABEL[p.plan] ?? BAZAAR_PERIOD_LABEL_FALLBACK) : '',
+        };
+      })
+    : PLANS;
 
   useEffect(() => {
     if (subLoading) { return; }
@@ -145,10 +212,139 @@ export default function UpgradeScreen() {
     });
   }, [subLoading, sub?.is_active, featureName]);
 
+  useEffect(() => {
+    let cancelled = false;
+    isBazaarInstall().then((result) => {
+      if (!cancelled && result) { setIsBazaar(true); }
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Cafe Bazaar's payment rules require the price shown here to match
+  // what Bazaar's own client shows — so on a Bazaar install, prefer the
+  // real SKU price over any hardcoded figure. Re-fetches whenever the
+  // plan catalog changes (e.g. an admin just added a plan).
+  useEffect(() => {
+    if (!isBazaar) { return; }
+    let cancelled = false;
+    getSkuDetails(bazaarPlanList.map((p) => p.sku))
+      .then((skus) => {
+        if (cancelled) { return; }
+        setBazaarPricesBySku(Object.fromEntries(skus.map((s) => [s.sku, s.price])));
+      })
+      .catch(() => { /* keep whatever prices we already had, if any */ });
+    return () => { cancelled = true; };
+  }, [isBazaar, bazaarPlanList]);
+
+  // Once the real catalog loads, make sure the pre-selected plan still
+  // exists in it (an admin could remove "quarterly" entirely).
+  useEffect(() => {
+    if (!bazaarPlanList.some((p) => p.plan === selectedPlan) && bazaarPlanList.length > 0) {
+      setSelectedPlan(bazaarPlanList[0].plan);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bazaarPlanList]);
+
+  const handleBazaarUpgrade = useCallback(async (planId: string) => {
+    const plan = bazaarPlanList.find((p) => p.plan === planId);
+    if (!plan) { return; } // shouldn't happen — selectedPlan is kept in sync with bazaarPlanList above
+    try {
+      const purchase = await subscribeToPlan(plan.sku);
+      await subscriptionService.verifyBazaarPurchase({
+        plan:           planId,
+        product_id:     purchase.productId,
+        purchase_token: purchase.purchaseToken,
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.subscription.status() });
+    } catch (error) {
+      if (isBazaarPurchaseCanceled(error)) {
+        return; // user backed out of Bazaar's payment sheet — not a failure
+      }
+      if (error instanceof BazaarNotFoundError) {
+        Alert.alert(
+          'برنامه‌ی بازار لازم است',
+          'برای خرید اشتراک، برنامه‌ی کافه‌بازار باید روی گوشی‌ات نصب باشد.',
+        );
+        return;
+      }
+      Alert.alert('خطا', 'پرداخت از طریق بازار انجام نشد. دوباره تلاش کن.');
+    }
+  }, [queryClient, bazaarPlanList]);
+
+  // Cafe Bazaar has no webhooks and no client-trusted purchase state — a
+  // reinstall, device change, or a purchase whose verifyBazaarPurchase()
+  // call never reached our backend (app killed mid-flow) all look the
+  // same from here: the backend simply doesn't know about a purchase
+  // Bazaar itself still has on record. This asks Bazaar what it has for
+  // the current device's Bazaar account and re-submits each one through
+  // the same verify endpoint used for a fresh purchase — no second trust
+  // path, and the backend's ownership check keeps this safe if a token
+  // turns out to belong to a different Rithmo account.
+  const handleRestoreBazaarPurchases = useCallback(async () => {
+    if (sub?.is_active) {
+      Alert.alert('پریمیوم فعال است', 'اشتراک شما همین الان هم فعال است.');
+      return;
+    }
+
+    track('subscription_restore_started', {});
+    setRestoring(true);
+    try {
+      const purchases = await restoreBazaarPurchases();
+      const outcomes: BazaarVerifyOutcome[] = [];
+      for (const purchase of purchases) {
+        try {
+          await subscriptionService.verifyBazaarPurchase({
+            plan:           planForBazaarSku(bazaarPlanList, purchase.productId) ?? 'monthly',
+            product_id:     purchase.productId,
+            purchase_token: purchase.purchaseToken,
+          });
+          outcomes.push({ ok: true });
+        } catch (verifyError) {
+          const axiosError = verifyError as TypedAxiosError;
+          outcomes.push({
+            ok:           false,
+            status:       axiosError?.response?.status,
+            networkError: !axiosError?.response,
+          });
+        }
+      }
+
+      const result = summarizeBazaarRestore(outcomes);
+      if (result.kind === 'restored') {
+        queryClient.invalidateQueries({ queryKey: queryKeys.subscription.status() });
+        track('subscription_restored', {});
+      } else {
+        track('subscription_restore_failed', { reason: result.kind });
+      }
+      Alert.alert(
+        result.kind === 'restored' ? 'بازیابی شد' : 'بازیابی خرید',
+        bazaarRestoreMessage(result),
+      );
+    } catch (error) {
+      if (error instanceof BazaarNotFoundError) {
+        Alert.alert(
+          'برنامه‌ی بازار لازم است',
+          'برای بازیابی خرید، برنامه‌ی کافه‌بازار باید روی گوشی‌ات نصب باشد.',
+        );
+      } else if (error instanceof DisconnectedError) {
+        Alert.alert('خطا', 'امکان اتصال به کافه‌بازار نبود. دوباره تلاش کن.');
+      } else {
+        Alert.alert('خطا', 'بازیابی خرید انجام نشد. دوباره تلاش کن.');
+      }
+      track('subscription_restore_failed', { reason: 'poolakey_error' });
+    } finally {
+      setRestoring(false);
+    }
+  }, [sub?.is_active, queryClient, bazaarPlanList]);
+
   const handleUpgrade = useCallback(async () => {
     track('subscription_action_started', { plan: selectedPlan });
     setLoading(true);
     try {
+      if (isBazaar) {
+        await handleBazaarUpgrade(selectedPlan);
+        return;
+      }
       const url = await fetchCheckoutUrl(selectedPlan);
       if (url) {
         await Linking.openURL(url);
@@ -166,7 +362,7 @@ export default function UpgradeScreen() {
     } finally {
       setLoading(false);
     }
-  }, [selectedPlan, queryClient]);
+  }, [selectedPlan, queryClient, isBazaar, handleBazaarUpgrade]);
 
   // ── State branches ───────────────────────────────────────────────────────
   // All hooks are declared above this point. The previous implementation
@@ -323,7 +519,7 @@ export default function UpgradeScreen() {
           انتخاب طرح
         </Text>
         <View style={{ flexDirection: 'row', gap: spacing[3], marginBottom: spacing[5] }}>
-          {PLANS.map((plan) => {
+          {displayPlans.map((plan) => {
             const selected = selectedPlan === plan.id;
             return (
               <TouchableOpacity
@@ -395,6 +591,26 @@ export default function UpgradeScreen() {
             )}
           </TouchableOpacity>
         </GradientSurface>
+
+        {/* ── Restore purchase (Bazaar installs only) ─────────────── */}
+        {isBazaar && (
+          <TouchableOpacity
+            onPress={handleRestoreBazaarPurchases}
+            disabled={restoring}
+            activeOpacity={0.7}
+            style={{ marginTop: spacing[4], alignItems: 'center', paddingVertical: spacing[2] }}
+            accessibilityRole="button"
+            accessibilityLabel="بازیابی خرید"
+          >
+            {restoring ? (
+              <ActivityIndicator color={colors.textSecondary} size="small" />
+            ) : (
+              <Text style={{ color: colors.textSecondary, fontSize: typography.sm, fontWeight: '700', textDecorationLine: 'underline' }}>
+                بازیابی خرید
+              </Text>
+            )}
+          </TouchableOpacity>
+        )}
 
         {/* ── Legal ───────────────────────────────────────────────── */}
         <Text style={{ color: colors.textDisabled, fontSize: typography.xs, textAlign: 'center', marginTop: spacing[4], lineHeight: 18 }}>

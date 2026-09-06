@@ -33,6 +33,9 @@ export type EventName =
   | 'partner_support_action_viewed'
   | 'subscription_viewed'
   | 'subscription_action_started'
+  | 'subscription_restore_started'
+  | 'subscription_restored'
+  | 'subscription_restore_failed'
   | 'notification_opened';
 
 /** Scalars only — nested values are dropped server-side. */
@@ -75,6 +78,10 @@ export interface EventProps {
 
   subscription_viewed: { is_active?: boolean; feature_name?: string };
   subscription_action_started: { plan?: string };
+  subscription_restore_started: Record<string, never>;
+  subscription_restored: Record<string, never>;
+  /** `reason` is which of the pure BazaarRestoreResult kinds it was — never a raw error message. */
+  subscription_restore_failed: { reason?: string };
 
   notification_opened: { notification_type?: string };
 }
