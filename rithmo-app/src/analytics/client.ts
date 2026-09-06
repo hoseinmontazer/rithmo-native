@@ -26,7 +26,7 @@ import { Platform } from 'react-native';
 import { apiClient } from '@api/client';
 import type { AnalyticsEvent, EventName, EventPropValue } from './types';
 
-const APP_VERSION = '1.0.2';
+const APP_VERSION = '1.0.5';
 
 /** Flush when the buffer reaches this many events… */
 const BATCH_SIZE = 12;
