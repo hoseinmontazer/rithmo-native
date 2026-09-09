@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, FlatList, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform, Alert, I18nManager,
@@ -44,6 +44,25 @@ export default function ConversationScreen() {
     try { await refetch(); } finally { setRefreshing(false); }
   }, [refetch]);
   const listRef = useRef<FlatList>(null);
+  const isMountedRef = useRef(true);
+  useEffect(() => () => { isMountedRef.current = false; }, []);
+
+  // Rendered as an INVERTED list (below): index 0 is the newest message and
+  // sits at the visual bottom, so opening the conversation is already
+  // "scrolled to the bottom" for free, with no manual scrollToEnd().
+  //
+  // The previous version rendered oldest-first and faked bottom-anchoring by
+  // calling scrollToEnd() from onContentSizeChange on every data change —
+  // including from the 10s background poll (useConversation). Combined with
+  // that scroll forcing FlatList to keep mounting cells all the way to the
+  // true end, a long thread (~60 messages here) had nearly its entire
+  // history mounted at once, and a poll-triggered re-render landing while
+  // the screen was mid-unmount (back navigation) crashed Fabric with
+  // "Cannot remove child at index N ... IndexOutOfBoundsException", leaving
+  // the app on a blank white screen until force-restarted. Inverting removes
+  // the scroll-forced full mount and the imperative scroll call that raced
+  // with unmount in the first place, rather than just guarding it.
+  const invertedMessages = useMemo(() => [...(messages ?? [])].reverse(), [messages]);
 
   const handleSend = useCallback(async () => {
     const trimmed = text.trim();
@@ -51,8 +70,10 @@ export default function ConversationScreen() {
     setText('');
     try {
       await sendMessage({ receiver: partnerId, message: trimmed });
-      // Scroll to bottom after send
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+      // "Scroll to bottom" on an inverted list is offset 0.
+      setTimeout(() => {
+        if (isMountedRef.current) {listRef.current?.scrollToOffset({ offset: 0, animated: true });}
+      }, 100);
     } catch (err) {
       Alert.alert('خطا', extractErrorMessage(err));
       setText(trimmed); // restore on failure
@@ -90,7 +111,7 @@ export default function ConversationScreen() {
     >
       <FlatList
         ref={listRef}
-        data={messages ?? []}
+        data={invertedMessages}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         contentContainerStyle={{ paddingVertical: spacing[3] }}
@@ -103,12 +124,13 @@ export default function ConversationScreen() {
             colors={[colors.primary]}
           />
         }
-        onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
-        removeClippedSubviews
+        // NOT removeClippedSubviews — on Android this is a long-documented
+        // source of "Cannot remove child at index N ... IndexOutOfBoundsException"
+        // crashes in Fabric/new-architecture apps.
         maxToRenderPerBatch={20}
         windowSize={10}
         initialNumToRender={20}
-        inverted={false}
+        inverted
       />
 
       {/* Input bar */}

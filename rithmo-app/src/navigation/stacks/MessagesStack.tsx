@@ -22,7 +22,26 @@ export function MessagesStack() {
       }}
     >
       <Stack.Screen name="MessagesList"  component={MessagesListScreen}  options={{ title: navTitle('MessagesList') }} />
-      <Stack.Screen name="Conversation"  component={ConversationScreen}  options={({ route }) => ({ title: route.params.partnerName })} />
+      <Stack.Screen
+        name="Conversation"
+        component={ConversationScreen}
+        options={({ route }) => ({
+          title: route.params.partnerName,
+          // App.tsx calls enableFreeze(true) globally, which makes every
+          // screen default to freezeOnBlur: true — react-native-screens
+          // suspends a blurred screen via an internal view-clipping
+          // mechanism (the native code path behind removeClippedSubviews).
+          // Popping this screen back to MessagesList used to reliably crash
+          // Fabric right there — "Cannot remove child at index N ...
+          // IndexOutOfBoundsException" inside
+          // ReactViewGroup.removeViewWithSubviewClippingEnabled — leaving a
+          // blank white screen until the app was force-restarted. The real
+          // fix was upgrading react-native-screens (3.34.0 → 3.37.0), which
+          // resolved it outright; this override is kept as a low-cost extra
+          // margin on the one screen that actually hit the bug.
+          freezeOnBlur: false,
+        })}
+      />
     </Stack.Navigator>
   );
 }

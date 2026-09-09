@@ -35,7 +35,7 @@ import { screen } from '@theme/spacing';
 import { textRoles } from '@theme/typography';
 import { useAuth } from '@hooks/useAuth';
 import { useProfile } from '@hooks/queries/useProfile';
-import { useUnreadNotifications } from '@hooks/queries/useNotifications';
+import { useUnreadNotifications, useUnreadMessages } from '@hooks/queries/useNotifications';
 import { usePartnerToday, useLogPartnerAction } from '@hooks/queries/useIntelligence';
 import { usePartnerReflection } from '@hooks/queries/usePartnerReflection';
 import { CheckInPrompt } from './components/CheckInPrompt';
@@ -45,6 +45,7 @@ import { track } from '@analytics';
 import { toFa, faDate } from '@utils/persian';
 import { Card, SectionHeading, Reveal, LoadingState, Button, AppIcon } from '@components/ui';
 import icons, { type AppIconName } from '@assets/icons';
+import { ACTION_ICONS } from '@design-system/iconography';
 
 /**
  * How each theme reads to the partner. Kept as short, non-clinical
@@ -170,6 +171,19 @@ export default function PartnerHomeScreen() {
   const unreadCount: number = (unreadNotifs as any)?.count ?? 0;
   const goToNotifications = useCallback(
     () => navigation.navigate('Notifications' as never),
+    [navigation],
+  );
+  // Small, header-level entry — same weight as the bell beside it. Was a
+  // full-width card between the header and the state-dependent body, which
+  // competed with "what's going on today" for first-thing-you-see space;
+  // this keeps it fast to find without being the first/primary thing on
+  // this screen. Hidden with no partner linked — nothing to message
+  // otherwise.
+  const hasPartner = (profile?.partners?.length ?? 0) > 0;
+  const { data: unreadMessages } = useUnreadMessages();
+  const unreadMessageCount: number = (unreadMessages as any)?.count ?? 0;
+  const goToMessages = useCallback(
+    () => navigation.navigate('ProfileTab' as never, { screen: 'PartnerMessages' } as never),
     [navigation],
   );
   /*
@@ -464,22 +478,42 @@ export default function PartnerHomeScreen() {
             {/* Quiet, on the canvas — the owner's bell sits translucent on a
                 gradient hero, which this screen deliberately does not have.
                 Same affordance, this screen's own surface treatment. */}
-            <TouchableOpacity
-              onPress={goToNotifications}
-              accessibilityRole="button"
-              accessibilityLabel={
-                unreadCount > 0 ? `اعلان‌ها، ${unreadCount} خوانده‌نشده` : 'اعلان‌ها'
-              }
-              style={[
-                styles.bell,
-                { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md },
-              ]}
-            >
-              <Icon name="bell-outline" size={20} color={colors.textSecondary} />
-              {unreadCount > 0 && (
-                <View style={[styles.bellDot, { backgroundColor: colors.menstrual, borderColor: colors.background }]} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {hasPartner && (
+                <TouchableOpacity
+                  onPress={goToMessages}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    unreadMessageCount > 0 ? `پیام شریک، ${unreadMessageCount} خوانده‌نشده` : 'پیام شریک'
+                  }
+                  style={[
+                    styles.bell,
+                    { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md },
+                  ]}
+                >
+                  <Icon name={ACTION_ICONS.messages} size={20} color={colors.textSecondary} />
+                  {unreadMessageCount > 0 && (
+                    <View style={[styles.bellDot, { backgroundColor: colors.menstrual, borderColor: colors.background }]} />
+                  )}
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={goToNotifications}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  unreadCount > 0 ? `اعلان‌ها، ${unreadCount} خوانده‌نشده` : 'اعلان‌ها'
+                }
+                style={[
+                  styles.bell,
+                  { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md },
+                ]}
+              >
+                <Icon name="bell-outline" size={20} color={colors.textSecondary} />
+                {unreadCount > 0 && (
+                  <View style={[styles.bellDot, { backgroundColor: colors.menstrual, borderColor: colors.background }]} />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
           <Text
             style={{

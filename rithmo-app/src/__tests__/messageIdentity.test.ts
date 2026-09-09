@@ -115,8 +115,15 @@ describe('conversation payload is unwrapped to an array', () => {
   });
 
   it('the screen still renders from a plain array', () => {
+    // The list is now inverted (newest message at the visual bottom, no
+    // manual scrollToEnd — see the react-native-screens crash fix), so the
+    // FlatList's `data` prop is a reversed copy rather than `messages`
+    // directly. What this test actually guards — that rendering starts
+    // from the plain, envelope-unwrapped array rather than some other
+    // assumed shape — still holds: the reversal is built directly from
+    // `messages ?? []`, not from anything else.
     expect(code('screens', 'messages', 'ConversationScreen.tsx'))
-      .toMatch(/data=\{messages \?\? \[\]\}/);
+      .toMatch(/\[\.\.\.\(messages \?\? \[\]\)\]\.reverse\(\)/);
   });
 
   /** The unwrap logic itself, against both shapes the endpoint may return. */

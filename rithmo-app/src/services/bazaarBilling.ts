@@ -33,37 +33,28 @@ export function isBazaarPurchaseCanceled(error: unknown): boolean {
   return error instanceof Error && error.message === 'purchase canceled';
 }
 
-let openConnections = 0;
-// Shared in-flight connect() call. Without this, two calls arriving close
+// Poolakey itself already reference-counts connect()/disconnect() calls
+// internally (module-level devConnected/isConnecting/isConnected in
+// @cafebazaar/react-native-poolakey — shared across every call made
+// anywhere in the app, not just the ones made through this module), and
+// already coalesces concurrent connect() calls onto one real bridge
+// connection. An earlier version of this wrapper re-implemented that same
+// ref-counting a second time on top of it, which meant two calls close
 // together (e.g. the SKU-price fetch on mount and a "start payment" tap)
-// both see openConnections === 0 and each fire their own bazaar.connect(),
-// racing on the underlying native connection — the loser's call silently
-// stalls, which is why a purchase could sit there doing nothing on the
-// first tap and only go through on a later one. Every caller now awaits
-// the same connect() promise instead of starting a new one.
-let connectionPromise: Promise<void> | null = null;
-
-async function ensureConnected(): Promise<void> {
-  if (!connectionPromise) {
-    connectionPromise = bazaar.connect(CAFEBAZAAR_RSA_PUBLIC_KEY).catch((error) => {
-      connectionPromise = null;
-      throw error;
-    });
-  }
-  await connectionPromise;
-}
-
+// could force a real disconnect-then-reconnect round trip through the
+// Bazaar service in between them, even though Poolakey's own counter
+// would have kept the single real connection alive across both. That
+// forced teardown/rebuild — genuinely slow, since it re-binds to the
+// Bazaar app's service — was why a purchase tap could sit there doing
+// nothing until a later tap landed outside that window. Delegating
+// straight to bazaar.connect()/disconnect() lets Poolakey's own counter
+// do the coalescing it already does correctly.
 async function withBazaarConnection<T>(run: () => Promise<T>): Promise<T> {
-  openConnections += 1;
+  await bazaar.connect(CAFEBAZAAR_RSA_PUBLIC_KEY);
   try {
-    await ensureConnected();
     return await run();
   } finally {
-    openConnections -= 1;
-    if (openConnections === 0) {
-      connectionPromise = null;
-      await bazaar.disconnect().catch(() => {});
-    }
+    await bazaar.disconnect().catch(() => {});
   }
 }
 

@@ -19,6 +19,11 @@ import { ErrorBoundary } from '@components/ErrorBoundary';
 import { ToastProvider } from './src/context/ToastContext';
 import { ConfirmProvider } from './src/context/ConfirmContext';
 import { setupNotificationListeners } from './src/services/pushNotifications';
+// TEMPORARY — Phase 2 real-device verification harness for the new
+// installation-source detector. Logs the result via console.log (read with
+// `adb logcat | grep ReactNativeJS`) so it can be observed across install
+// scenarios without a UI. Remove after verification is recorded.
+import { getInstallationSource, getPaymentProvider } from '@services/installationSource';
 
 // ── Persian-first: full RTL layout (Android; iOS follows locale) ─────────────
 I18nManager.forceRTL(true);
@@ -41,6 +46,15 @@ hydrateThemeStore();
 export default function App() {
   const initialize  = useAuthStore((s) => s.initialize);
   const { isDark, mode, setMode } = useThemeStore();
+
+  // TEMPORARY — Phase 2 verification only, removed after device testing.
+  useEffect(() => {
+    getInstallationSource().then((source) =>
+      getPaymentProvider().then((provider) =>
+        console.log(`[INSTALL_SOURCE_DEBUG] source=${source} provider=${provider}`),
+      ),
+    );
+  }, []);
 
   // Bootstrap: restore auth session from secure storage on mount
   useEffect(() => {

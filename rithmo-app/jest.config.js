@@ -31,6 +31,7 @@ module.exports = {
     '^@constants/(.*)$': '<rootDir>/src/constants/$1',
     '^@store/(.*)$': '<rootDir>/src/store/$1',
     '^@hooks/(.*)$': '<rootDir>/src/hooks/$1',
+    '^@services/(.*)$': '<rootDir>/src/services/$1',
     '^react-native$': '<rootDir>/src/__tests__/mocks/reactNative.js',
   },
 };

@@ -26,7 +26,7 @@ import { useSubscription } from '@hooks/queries/useSubscription';
 import { usePregnancyStatus } from '@hooks/queries/usePregnancy';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Card, LoadingState, ErrorState, Divider, PressScale } from '@components/ui';
-import { PROFILE_ICONS, ACTION_ICONS } from '@design-system/iconography';
+import { PROFILE_ICONS } from '@design-system/iconography';
 import { toFa, faDateShort } from '@utils/persian';
 import type { ProfileScreenProps } from '@navigation/types';
 
@@ -509,14 +509,12 @@ export default function ProfileScreen() {
               </React.Fragment>
             ))}
             <Divider />
-            <MenuRow
-              icon={ACTION_ICONS.messages}
-              label="پیام‌ها"
-              sub="گفتگو و تبادل نظر با شریک"
-              accentColor={colors.follicular}
-              onPress={() => navigation.navigate('PartnerMessages' as never)}
-            />
-            <Divider />
+            {/* "پیام‌ها" used to live here as a menu row — moved to a small
+                header-level icon on Home (next to the notification bell)
+                since messaging is a relationship feature, not a settings
+                utility, and deliberately not a Profile entry at all: still
+                reachable, just from Home, one tap into the same
+                PartnerMessages route this row used to open. */}
             <MenuRow
               icon={PROFILE_ICONS.partnerManage}
               label="مدیریت شریک"

@@ -43,13 +43,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { useAuth } from '@hooks/useAuth';
-import { useUnreadNotifications } from '@hooks/queries/useNotifications';
+import { useUnreadNotifications, useUnreadMessages } from '@hooks/queries/useNotifications';
 import { useProfile } from '@hooks/queries/useProfile';
 import { useToday } from '@hooks/queries/useIntelligence';
 import { usePregnancyStatus } from '@hooks/queries/usePregnancy';
 import type { HomeScreenProps } from '@navigation/types';
 import type { GuidedAction, Insight } from '@types/intelligence.types';
 import { textRoles } from '@theme/typography';
+import { ACTION_ICONS } from '@design-system/iconography';
 import { screen } from '@theme/spacing';
 import { toFa, faDate } from '@utils/persian';
 import {
@@ -106,7 +107,9 @@ export default function HomeScreen() {
   } = useToday(shouldFetch);
 
   const { data: unreadNotifs } = useUnreadNotifications();
+  const { data: unreadMessages } = useUnreadMessages();
   const { data: pregnancy } = usePregnancyStatus();
+  const hasPartner = (profile?.partners?.length ?? 0) > 0;
 
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
@@ -159,6 +162,9 @@ export default function HomeScreen() {
   const goToCycle = useCallback(() => navigation.navigate('CycleTab' as any), [navigation]);
   const goToInsights = useCallback(() => navigation.navigate('InsightsTab' as any), [navigation]);
   const goToNotifications = useCallback(() => navigation.navigate('Notifications'), [navigation]);
+  const goToMessages = useCallback(() => {
+    navigation.navigate('ProfileTab' as any, { screen: 'PartnerMessages' } as any);
+  }, [navigation]);
   const goToLogPeriod = useCallback(() => {
     navigation.navigate('CycleTab' as any, { screen: 'LogPeriod' } as any);
   }, [navigation]);
@@ -192,6 +198,7 @@ export default function HomeScreen() {
   const dateStr = useMemo(() => faDate(new Date()), []);
   const userName = profile?.first_name || user?.username || '';
   const unreadCount: number = (unreadNotifs as any)?.count ?? 0;
+  const unreadMessageCount: number = (unreadMessages as any)?.count ?? 0;
 
   return (
     <SafeAreaView
@@ -240,22 +247,51 @@ export default function HomeScreen() {
               {dateStr}
             </Text>
           </View>
-          <TouchableOpacity
-            onPress={goToNotifications}
-            style={[styles.bellBtn, { backgroundColor: colors.primaryLighter, borderRadius: borderRadius.pill }]}
-            accessibilityRole="button"
-            accessibilityLabel={`اعلان‌ها${unreadCount > 0 ? `، ${toFa(unreadCount)} خوانده‌نشده` : ''}`}
-          >
-            <Icon name="bell-outline" size={20} color={colors.primaryDark} />
-            {unreadCount > 0 ? (
-              <View
-                style={[
-                  styles.unreadDot,
-                  { backgroundColor: colors.menstrual, borderColor: colors.primaryLighter },
-                ]}
-              />
-            ) : null}
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            {/* Partner messages — small, header-level, same weight as the
+                bell beside it. Was a full-width card between Hero and the
+                AI reflection; that competed with "what data do I see first"
+                on a screen whose whole point is showing that data first, so
+                it moved here: fast to find, never the first/primary thing
+                on Home. Hidden with no partner linked — nothing to
+                message otherwise. */}
+            {hasPartner && (
+              <TouchableOpacity
+                onPress={goToMessages}
+                style={[styles.bellBtn, { backgroundColor: colors.primaryLighter, borderRadius: borderRadius.pill }]}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  unreadMessageCount > 0 ? `پیام شریک، ${toFa(unreadMessageCount)} خوانده‌نشده` : 'پیام شریک'
+                }
+              >
+                <Icon name={ACTION_ICONS.messages} size={20} color={colors.primaryDark} />
+                {unreadMessageCount > 0 ? (
+                  <View
+                    style={[
+                      styles.unreadDot,
+                      { backgroundColor: colors.menstrual, borderColor: colors.primaryLighter },
+                    ]}
+                  />
+                ) : null}
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={goToNotifications}
+              style={[styles.bellBtn, { backgroundColor: colors.primaryLighter, borderRadius: borderRadius.pill }]}
+              accessibilityRole="button"
+              accessibilityLabel={`اعلان‌ها${unreadCount > 0 ? `، ${toFa(unreadCount)} خوانده‌نشده` : ''}`}
+            >
+              <Icon name="bell-outline" size={20} color={colors.primaryDark} />
+              {unreadCount > 0 ? (
+                <View
+                  style={[
+                    styles.unreadDot,
+                    { backgroundColor: colors.menstrual, borderColor: colors.primaryLighter },
+                  ]}
+                />
+              ) : null}
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ── 1. Hero — cycle/pregnancy ring, the SELECTED day's fact ─── */}
@@ -384,6 +420,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   headerTextCol: { flex: 1 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bellBtn: {
     width: 42,
     height: 42,

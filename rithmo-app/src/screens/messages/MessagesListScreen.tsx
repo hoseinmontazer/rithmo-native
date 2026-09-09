@@ -192,7 +192,13 @@ export default function MessagesListScreen() {
             />
           )
         }
-        removeClippedSubviews
+        // NOT removeClippedSubviews — this is the screen navigated back to
+        // from Conversation, and on Android removeClippedSubviews is a
+        // long-documented source of "Cannot remove child at index N ...
+        // IndexOutOfBoundsException" crashes when a list's content changes
+        // (e.g. useMessages' background refetch landing) during the pop
+        // transition's clipping recalculation. That crash is exactly what
+        // left this screen blank until the app was force-restarted.
         maxToRenderPerBatch={10}
         windowSize={5}
       />

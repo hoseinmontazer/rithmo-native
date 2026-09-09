@@ -579,10 +579,24 @@ export default function UpgradeScreen() {
           style={[styles.ctaBtn, { opacity: loading ? 0.7 : 1 }]}
         >
           <TouchableOpacity
-            onPress={handleUpgrade}
+            // onPressIn, not onPress — this button sits inside a ScrollView,
+            // and even a couple of pixels of finger drift during a quick tap
+            // (near-universal on real touchscreens, absent from a scripted
+            // zero-movement tap) makes the ScrollView steal the touch as a
+            // scroll attempt before a normal release-based onPress ever
+            // fires, so a fast tap silently did nothing and only a
+            // held-still touch worked. onPressIn fires the moment the touch
+            // is granted, before any such drift gets a chance to steal it.
+            onPressIn={handleUpgrade}
             disabled={loading}
             activeOpacity={0.85}
-            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
+            style={{
+              width: '100%',
+              paddingVertical: 18,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
             accessibilityRole="button"
             accessibilityLabel="شروع پریمیوم"
           >
@@ -602,7 +616,7 @@ export default function UpgradeScreen() {
         {/* ── Restore purchase (Bazaar installs only) ─────────────── */}
         {isBazaar && (
           <TouchableOpacity
-            onPress={handleRestoreBazaarPurchases}
+            onPressIn={handleRestoreBazaarPurchases}
             disabled={restoring}
             activeOpacity={0.7}
             style={{ marginTop: spacing[4], alignItems: 'center', paddingVertical: spacing[2] }}
@@ -658,7 +672,10 @@ const styles = StyleSheet.create({
   freeRow:        { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14 },
   planCard:       { borderRadius: borderRadius.lg, borderWidth: 2, padding: 16, alignItems: 'center', position: 'relative', minHeight: 120, justifyContent: 'center' },
   planBadge:      { position: 'absolute', top: -10, paddingHorizontal: 8, paddingVertical: 3, borderRadius: borderRadius.sm },
-  ctaBtn:         { paddingVertical: 18, alignItems: 'center', justifyContent: 'center' },
+  // No padding here — it lives on the TouchableOpacity inside instead, so
+  // the padded area is part of the tappable region rather than dead space
+  // around a smaller hit target (see the CTA button below).
+  ctaBtn:         { alignItems: 'center', justifyContent: 'center' },
 });
 
 function spacing24(): number { return 24; }
