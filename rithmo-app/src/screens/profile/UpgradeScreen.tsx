@@ -157,6 +157,13 @@ const BAZAAR_PERIOD_LABEL: Record<string, string> = {
 };
 const BAZAAR_PERIOD_LABEL_FALLBACK = 'برای این طرح';
 
+// Copied once, at module load, into a mutable BazaarPlan[] — never inside
+// the component. A copy made per-render would be a new array reference
+// every time, and it feeds a useEffect dependency below that talks to
+// Cafe Bazaar; a reference that changes every render re-fires that effect
+// every render, reopening the Bazaar connection in a loop.
+const DEFAULT_BAZAAR_PLANS_STABLE: BazaarPlan[] = [...DEFAULT_BAZAAR_PLANS];
+
 // ── main screen ───────────────────────────────────────────────────────────────
 
 export default function UpgradeScreen() {
@@ -186,7 +193,7 @@ export default function UpgradeScreen() {
   const plansQuery = useBazaarPlans(isBazaar);
   const bazaarPlanList: BazaarPlan[] = plansQuery.data && plansQuery.data.length > 0
     ? plansQuery.data
-    : [...DEFAULT_BAZAAR_PLANS];
+    : DEFAULT_BAZAAR_PLANS_STABLE;
 
   // What the plan-selector cards actually render. On a Bazaar install
   // this is built fresh from bazaarPlanList + live Bazaar pricing —

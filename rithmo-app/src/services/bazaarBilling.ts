@@ -34,17 +34,34 @@ export function isBazaarPurchaseCanceled(error: unknown): boolean {
 }
 
 let openConnections = 0;
+// Shared in-flight connect() call. Without this, two calls arriving close
+// together (e.g. the SKU-price fetch on mount and a "start payment" tap)
+// both see openConnections === 0 and each fire their own bazaar.connect(),
+// racing on the underlying native connection — the loser's call silently
+// stalls, which is why a purchase could sit there doing nothing on the
+// first tap and only go through on a later one. Every caller now awaits
+// the same connect() promise instead of starting a new one.
+let connectionPromise: Promise<void> | null = null;
+
+async function ensureConnected(): Promise<void> {
+  if (!connectionPromise) {
+    connectionPromise = bazaar.connect(CAFEBAZAAR_RSA_PUBLIC_KEY).catch((error) => {
+      connectionPromise = null;
+      throw error;
+    });
+  }
+  await connectionPromise;
+}
 
 async function withBazaarConnection<T>(run: () => Promise<T>): Promise<T> {
-  if (openConnections === 0) {
-    await bazaar.connect(CAFEBAZAAR_RSA_PUBLIC_KEY);
-  }
   openConnections += 1;
   try {
+    await ensureConnected();
     return await run();
   } finally {
     openConnections -= 1;
     if (openConnections === 0) {
+      connectionPromise = null;
       await bazaar.disconnect().catch(() => {});
     }
   }
