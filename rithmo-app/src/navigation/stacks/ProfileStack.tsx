@@ -12,6 +12,7 @@ import SettingsScreen from '@screens/profile/SettingsScreen';
 import ChangePasswordScreen from '@screens/profile/ChangePasswordScreen';
 import DeleteAccountScreen from '@screens/profile/DeleteAccountScreen';
 import UpgradeScreen from '@screens/profile/UpgradeScreen';
+import ZibalPaymentScreen from '@screens/profile/ZibalPaymentScreen';
 import SupportScreen from '@screens/support/SupportScreen';
 import PregnancyScreen from '@screens/pregnancy/PregnancyScreen';
 
@@ -46,6 +47,11 @@ export function ProfileStack() {
         name="Upgrade"
         component={UpgradeScreen as React.ComponentType}
         options={{ title: navTitle('Upgrade'), presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="ZibalPayment"
+        component={ZibalPaymentScreen as React.ComponentType}
+        options={{ title: navTitle('ZibalPayment'), presentation: 'modal' }}
       />
     </Stack.Navigator>
   );

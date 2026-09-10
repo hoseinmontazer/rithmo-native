@@ -5,7 +5,7 @@ export interface SubscriptionStatus {
   plan:               string | null;
   status:             string;
   is_active:          boolean;
-  provider?:          'stripe' | 'bazaar';
+  provider?:          'stripe' | 'bazaar' | 'zibal';
   current_period_end: string | null;
 }
 
@@ -24,6 +24,25 @@ export interface BazaarPlan {
   label_fa: string;
 }
 
+export interface RequestZibalPaymentRequest {
+  plan: 'monthly' | 'annual';
+}
+
+/**
+ * Everything needed to open the Zibal payment page — never a price or
+ * merchant id, both of which stay server-side (subscriptions/zibal.py).
+ * payment_url is just gateway.zibal.ir/start/{track_id}; opening it (with
+ * the required Referer header) is this app's job, done in
+ * ZibalPaymentScreen.
+ */
+export interface RequestZibalPaymentResponse {
+  order_ref:    string;
+  track_id:     number;
+  amount_rial:  number;
+  plan:         string;
+  payment_url:  string;
+}
+
 export const subscriptionService = {
   getStatus: () =>
     apiClient.get<SubscriptionStatus>(API_ENDPOINTS.SUBSCRIPTION_STATUS),
@@ -40,4 +59,12 @@ export const subscriptionService = {
   // before activating premium. Returns the resulting subscription state.
   verifyBazaarPurchase: (payload: VerifyBazaarPurchaseRequest) =>
     apiClient.post<SubscriptionStatus>(API_ENDPOINTS.SUBSCRIPTION_BAZAAR_VERIFY, payload),
+
+  // Starts a Zibal payment session — the server resolves the real price
+  // from ZIBAL_PRICE_MONTHLY_RIAL / ZIBAL_PRICE_ANNUAL_RIAL; this call
+  // never sends an amount. Activation itself happens later, server-side,
+  // when Zibal's callback verifies the completed payment — this call
+  // only starts the session.
+  requestZibalPayment: (payload: RequestZibalPaymentRequest) =>
+    apiClient.post<RequestZibalPaymentResponse>(API_ENDPOINTS.SUBSCRIPTION_ZIBAL_REQUEST, payload),
 };

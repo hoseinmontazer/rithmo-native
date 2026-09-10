@@ -36,6 +36,7 @@ export type EventName =
   | 'subscription_restore_started'
   | 'subscription_restored'
   | 'subscription_restore_failed'
+  | 'zibal_payment_finished'
   | 'notification_opened';
 
 /** Scalars only — nested values are dropped server-side. */
@@ -82,6 +83,12 @@ export interface EventProps {
   subscription_restored: Record<string, never>;
   /** `reason` is which of the pure BazaarRestoreResult kinds it was — never a raw error message. */
   subscription_restore_failed: { reason?: string };
+  /**
+   * The WebView reached our callback URL — not itself proof of payment
+   * success (see ZibalPaymentScreen); the real state comes from a
+   * GET /api/subscriptions/status/ refetch triggered right after this.
+   */
+  zibal_payment_finished: Record<string, never>;
 
   notification_opened: { notification_type?: string };
 }

@@ -5,7 +5,9 @@
  * analytics computed from the user's own logs — correlations, week
  * comparison, reports/export, partner depth.
  *
- * Two purchase paths, chosen by isBazaarInstall() (see @utils/store):
+ * Three purchase paths, chosen automatically — never user-chosen — by
+ * getPaymentProvider() (@services/installationSource) on Android, and by
+ * platform everywhere else:
  *   - Bazaar install: Cafe Bazaar's payment rules require subscriptions
  *     to go through Bazaar's own in-app billing, not a checkout link.
  *     "شروع پریمیوم" → Poolakey subscribeProduct() → purchaseToken sent
@@ -15,7 +17,16 @@
  *     hardcoded list — an admin can add or retire a Bazaar plan without
  *     an app release. DEFAULT_BAZAAR_PLANS (@constants/config) is only
  *     the offline fallback if that fetch fails.
- *   - Everywhere else: "شروع پریمیوم" → POST /api/subscriptions/checkout/
+ *   - Android, not Bazaar (a real sideload, or no installer identity at
+ *     all — Phase 2's real-device testing found "no installer identity"
+ *     never happens for a genuine Bazaar install, so it's safe to treat
+ *     the same as a confirmed sideload here): "شروع پریمیوم" →
+ *     POST /api/subscriptions/zibal/request/ → open the returned
+ *     payment_url in ZibalPaymentScreen's WebView. Activation happens
+ *     server-side once Zibal's callback verifies the payment
+ *     (subscriptions/views.py zibal_callback) — this screen only starts
+ *     the session and later re-fetches status.
+ *   - Everywhere else (iOS): "شروع پریمیوم" → POST /api/subscriptions/checkout/
  *     → open the returned Stripe Checkout URL. Endpoint not built yet →
  *     honest Persian fallback (support email). Unaffected by the above —
  *     Stripe still uses the static PLANS list below.
@@ -30,6 +41,7 @@ import {
   Linking,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { typography } from '@theme/typography';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -46,7 +58,7 @@ import { subscriptionService, type BazaarPlan } from '@api/services/subscription
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@api/queryKeys';
 import { toFa, faDateYear } from '@utils/persian';
-import { isBazaarInstall } from '@utils/store';
+import { getPaymentProvider } from '@services/installationSource';
 import { DEFAULT_BAZAAR_PLANS } from '@constants/config';
 import {
   subscribeToPlan,
@@ -137,6 +149,19 @@ const PLANS: Plan[] = [
   },
 ];
 
+// Zibal plans — monthly/annual only, matching the two prices actually
+// configured server-side (ZIBAL_PRICE_MONTHLY_RIAL / ZIBAL_PRICE_ANNUAL_RIAL,
+// see subscriptions/views.py). There is no endpoint to read those prices
+// ahead of time, and showing a guessed Toman figure here could be wrong —
+// Zibal's own hosted payment page always shows the exact Rial amount
+// before the user enters card details, so that's this app's honest
+// source for "how much", not a number invented on this card.
+const ZIBAL_PLANS: Plan[] = [
+  { id: 'monthly', label: 'ماهانه', price: '', period: 'مبلغ در صفحه‌ی پرداخت' },
+  { id: 'annual',  label: 'سالانه',  price: '', period: 'مبلغ در صفحه‌ی پرداخت' },
+];
+const ZIBAL_PLAN_IDS = ZIBAL_PLANS.map((p) => p.id);
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 async function fetchCheckoutUrl(planId: string): Promise<string | null> {
@@ -181,7 +206,16 @@ export default function UpgradeScreen() {
   const [selectedPlan, setSelectedPlan] = useState<string>('quarterly');
   const [loading,      setLoading]      = useState(false);
   const [restoring,       setRestoring]       = useState(false);
-  const [isBazaar,        setIsBazaar]        = useState(false);
+  // Resolved once on mount, never user-chosen. 'bazaar' | 'zibal' on
+  // Android (via getPaymentProvider(), see @services/installationSource —
+  // 'unknown' folds into 'zibal': Phase 2's real-device testing found no
+  // installer identity never happens for a genuine Bazaar install, so
+  // it's only ever a real sideload here); 'stripe' on every other
+  // platform (iOS). null until resolved — nothing renders a purchase
+  // path before then.
+  const [paymentProvider, setPaymentProvider] = useState<'bazaar' | 'zibal' | 'stripe' | null>(null);
+  const isBazaar = paymentProvider === 'bazaar';
+  const isZibal  = paymentProvider === 'zibal';
   const [bazaarPricesBySku, setBazaarPricesBySku] = useState<Record<string, string>>({});
 
   const featureName = (navigation.getState().routes.slice(-1)[0]?.params as { featureName?: string } | undefined)?.featureName;
@@ -197,8 +231,9 @@ export default function UpgradeScreen() {
 
   // What the plan-selector cards actually render. On a Bazaar install
   // this is built fresh from bazaarPlanList + live Bazaar pricing —
-  // never a fabricated price for a plan we don't have one for yet.
-  // Everywhere else, the static Toman-priced PLANS below is unchanged.
+  // never a fabricated price for a plan we don't have one for yet. On
+  // Zibal, ZIBAL_PLANS (no invented price, see its own comment). Stripe
+  // (iOS) keeps the static Toman-priced PLANS below, unchanged.
   const displayPlans: Plan[] = isBazaar
     ? bazaarPlanList.map((p) => {
         const price = bazaarPricesBySku[p.sku];
@@ -209,7 +244,9 @@ export default function UpgradeScreen() {
           period: price ? (BAZAAR_PERIOD_LABEL[p.plan] ?? BAZAAR_PERIOD_LABEL_FALLBACK) : '',
         };
       })
-    : PLANS;
+    : isZibal
+      ? ZIBAL_PLANS
+      : PLANS;
 
   useEffect(() => {
     if (subLoading) { return; }
@@ -221,8 +258,13 @@ export default function UpgradeScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    isBazaarInstall().then((result) => {
-      if (!cancelled && result) { setIsBazaar(true); }
+    if (Platform.OS !== 'android') {
+      setPaymentProvider('stripe');
+      return;
+    }
+    getPaymentProvider().then((provider) => {
+      if (cancelled) { return; }
+      setPaymentProvider(provider === 'bazaar' ? 'bazaar' : 'zibal');
     });
     return () => { cancelled = true; };
   }, []);
@@ -251,6 +293,15 @@ export default function UpgradeScreen() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bazaarPlanList]);
+
+  // Zibal only prices 'monthly'/'annual' — the default 'quarterly'
+  // selection (Stripe/Bazaar's) isn't valid there.
+  useEffect(() => {
+    if (isZibal && !ZIBAL_PLAN_IDS.includes(selectedPlan)) {
+      setSelectedPlan('monthly');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isZibal]);
 
   const handleBazaarUpgrade = useCallback(async (planId: string) => {
     const plan = bazaarPlanList.find((p) => p.plan === planId);
@@ -344,12 +395,27 @@ export default function UpgradeScreen() {
     }
   }, [sub?.is_active, queryClient, bazaarPlanList]);
 
+  // Starts a Zibal payment session and opens it in ZibalPaymentScreen's
+  // WebView. Activation is entirely server-side (see subscriptions/
+  // views.py zibal_callback) — this only requests the session and
+  // navigates; ZibalPaymentScreen re-fetches subscription status once
+  // the WebView reaches our callback URL.
+  const handleZibalUpgrade = useCallback(async (planId: string) => {
+    if (planId !== 'monthly' && planId !== 'annual') { return; } // shouldn't happen — kept in sync above
+    const res = await subscriptionService.requestZibalPayment({ plan: planId });
+    navigation.navigate('ZibalPayment', { paymentUrl: res.data.payment_url });
+  }, [navigation]);
+
   const handleUpgrade = useCallback(async () => {
     track('subscription_action_started', { plan: selectedPlan });
     setLoading(true);
     try {
       if (isBazaar) {
         await handleBazaarUpgrade(selectedPlan);
+        return;
+      }
+      if (isZibal) {
+        await handleZibalUpgrade(selectedPlan);
         return;
       }
       const url = await fetchCheckoutUrl(selectedPlan);
@@ -369,7 +435,7 @@ export default function UpgradeScreen() {
     } finally {
       setLoading(false);
     }
-  }, [selectedPlan, queryClient, isBazaar, handleBazaarUpgrade]);
+  }, [selectedPlan, queryClient, isBazaar, isZibal, handleBazaarUpgrade, handleZibalUpgrade]);
 
   // ── State branches ───────────────────────────────────────────────────────
   // All hooks are declared above this point. The previous implementation

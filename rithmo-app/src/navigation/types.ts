@@ -71,6 +71,9 @@ export type ProfileStackParamList = {
   Support:         undefined;
   Upgrade:         { featureName?: string };  // paywall — featureName shown in headline
   Pregnancy:       undefined;                 // premium-gated; shows setup or status internally
+  // Zibal's in-app payment page (WebView) — see subscriptions/zibal.py
+  // and Phase 3's request/callback contract on the backend.
+  ZibalPayment:    { paymentUrl: string };
 };
 
 // ── Messages Stack ────────────────────────────────────────────────────────────

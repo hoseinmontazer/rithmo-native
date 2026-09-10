@@ -55,6 +55,7 @@ export const navTitles = {
   Support: 'پشتیبانی',
   Upgrade: 'ریتمو پریمیوم',
   Pregnancy: 'بارداری',
+  ZibalPayment: 'پرداخت',
 
   // Messages
   MessagesList: 'پیام‌ها',
