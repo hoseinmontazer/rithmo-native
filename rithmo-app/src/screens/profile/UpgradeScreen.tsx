@@ -52,7 +52,7 @@ import { useTheme } from '@hooks/useTheme';
 import { screen, borderRadius } from '@theme/spacing';
 import { useThemeStore } from '@store/themeStore';
 import { getBrandGradient } from '@theme/brand';
-import { useSubscription, useBazaarPlans } from '@hooks/queries/useSubscription';
+import { useSubscription, useBazaarPlans, useZibalPlans } from '@hooks/queries/useSubscription';
 import { apiClient } from '@api/client';
 import { subscriptionService, type BazaarPlan } from '@api/services/subscriptionService';
 import { useQueryClient } from '@tanstack/react-query';
@@ -150,17 +150,13 @@ const PLANS: Plan[] = [
 ];
 
 // Zibal plans — monthly/annual only, matching the two prices actually
-// configured server-side (ZIBAL_PRICE_MONTHLY_RIAL / ZIBAL_PRICE_ANNUAL_RIAL,
-// see subscriptions/views.py). There is no endpoint to read those prices
-// ahead of time, and showing a guessed Toman figure here could be wrong —
-// Zibal's own hosted payment page always shows the exact Rial amount
-// before the user enters card details, so that's this app's honest
-// source for "how much", not a number invented on this card.
-const ZIBAL_PLANS: Plan[] = [
-  { id: 'monthly', label: 'ماهانه', price: '', period: 'مبلغ در صفحه‌ی پرداخت' },
-  { id: 'annual',  label: 'سالانه',  price: '', period: 'مبلغ در صفحه‌ی پرداخت' },
-];
-const ZIBAL_PLAN_IDS = ZIBAL_PLANS.map((p) => p.id);
+// configured server-side (ZIBAL_PRICE_MONTHLY_RIAL / ZIBAL_PRICE_ANNUAL_RIAL).
+// The real amount comes from GET /api/subscriptions/zibal/plans/
+// (useZibalPlans below) — never invented here. Converted Rial → Toman
+// (÷10) to match this screen's existing Toman display convention.
+const ZIBAL_PLAN_IDS = ['monthly', 'annual'] as const;
+const ZIBAL_PLAN_LABEL: Record<string, string> = { monthly: 'ماهانه', annual: 'سالانه' };
+const ZIBAL_PERIOD_LABEL: Record<string, string> = { monthly: 'تومان / ماه', annual: 'تومان / سال' };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -229,11 +225,19 @@ export default function UpgradeScreen() {
     ? plansQuery.data
     : DEFAULT_BAZAAR_PLANS_STABLE;
 
+  // The Zibal prices actually configured server-side right now — never a
+  // fabricated Toman figure while this is loading or if a plan has no
+  // price configured (see useZibalPlans).
+  const zibalPlansQuery = useZibalPlans(isZibal);
+  const zibalRialByPlan: Record<string, number> = Object.fromEntries(
+    (zibalPlansQuery.data ?? []).map((p) => [p.plan, p.amount_rial]),
+  );
+
   // What the plan-selector cards actually render. On a Bazaar install
   // this is built fresh from bazaarPlanList + live Bazaar pricing —
   // never a fabricated price for a plan we don't have one for yet. On
-  // Zibal, ZIBAL_PLANS (no invented price, see its own comment). Stripe
-  // (iOS) keeps the static Toman-priced PLANS below, unchanged.
+  // Zibal, from zibalRialByPlan the same way. Stripe (iOS) keeps the
+  // static Toman-priced PLANS below, unchanged.
   const displayPlans: Plan[] = isBazaar
     ? bazaarPlanList.map((p) => {
         const price = bazaarPricesBySku[p.sku];
@@ -245,7 +249,16 @@ export default function UpgradeScreen() {
         };
       })
     : isZibal
-      ? ZIBAL_PLANS
+      ? ZIBAL_PLAN_IDS.map((id) => {
+          const rial = zibalRialByPlan[id];
+          const toman = rial != null ? Math.round(rial / 10) : null;
+          return {
+            id,
+            label:  ZIBAL_PLAN_LABEL[id],
+            price:  toman != null ? toFa(toman, { grouped: true }) : '…',
+            period: toman != null ? ZIBAL_PERIOD_LABEL[id] : '',
+          };
+        })
       : PLANS;
 
   useEffect(() => {
@@ -297,7 +310,7 @@ export default function UpgradeScreen() {
   // Zibal only prices 'monthly'/'annual' — the default 'quarterly'
   // selection (Stripe/Bazaar's) isn't valid there.
   useEffect(() => {
-    if (isZibal && !ZIBAL_PLAN_IDS.includes(selectedPlan)) {
+    if (isZibal && !(ZIBAL_PLAN_IDS as readonly string[]).includes(selectedPlan)) {
       setSelectedPlan('monthly');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

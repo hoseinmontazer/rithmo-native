@@ -69,3 +69,25 @@ export function useBazaarPlans(enabled: boolean) {
     },
   });
 }
+
+/**
+ * The Zibal prices actually configured server-side
+ * (ZIBAL_PRICE_MONTHLY_RIAL / ZIBAL_PRICE_ANNUAL_RIAL) — display only, for
+ * the plan cards before the user commits to a payment session. Only
+ * meaningful on the Zibal path; pass `enabled: false` everywhere else. No
+ * offline fallback — a plan with no confirmed price shows no number
+ * rather than a guessed one (see UpgradeScreen).
+ */
+export function useZibalPlans(enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.subscription.zibalPlans(),
+    queryFn:  () => subscriptionService.getZibalPlans().then((r) => r.data),
+    enabled,
+    staleTime: QUERY_STALE_TIME_MS,
+    retry: (failureCount, error: any) => {
+      const s = error?.response?.status;
+      if (s === 401 || s === 403) { return false; }
+      return failureCount < 2;
+    },
+  });
+}

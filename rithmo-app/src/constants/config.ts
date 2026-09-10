@@ -101,6 +101,7 @@ export const API_ENDPOINTS = {
   SUBSCRIPTION_PLANS:  '/api/subscriptions/plans/',
   STRIPE_WEBHOOK:      '/api/subscriptions/webhook/',
   SUBSCRIPTION_BAZAAR_VERIFY: '/api/subscriptions/bazaar/verify/',
+  SUBSCRIPTION_ZIBAL_PLANS:   '/api/subscriptions/zibal/plans/',
   SUBSCRIPTION_ZIBAL_REQUEST: '/api/subscriptions/zibal/request/',
 
   // Pregnancy (premium)

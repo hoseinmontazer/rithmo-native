@@ -29,6 +29,20 @@ export interface RequestZibalPaymentRequest {
 }
 
 /**
+ * Display-only price for a Zibal plan — read from the same
+ * ZIBAL_PRICE_MONTHLY_RIAL / ZIBAL_PRICE_ANNUAL_RIAL env vars that
+ * request_zibal_payment resolves the real charge from, but this call
+ * never feeds back into that one; the amount actually charged is always
+ * re-resolved server-side at payment time. A plan with no configured
+ * price is simply absent from the list, never shown with a guessed
+ * amount.
+ */
+export interface ZibalPlan {
+  plan:        'monthly' | 'annual';
+  amount_rial: number;
+}
+
+/**
  * Everything needed to open the Zibal payment page — never a price or
  * merchant id, both of which stay server-side (subscriptions/zibal.py).
  * payment_url is just gateway.zibal.ir/start/{track_id}; opening it (with
@@ -67,4 +81,9 @@ export const subscriptionService = {
   // only starts the session.
   requestZibalPayment: (payload: RequestZibalPaymentRequest) =>
     apiClient.post<RequestZibalPaymentResponse>(API_ENDPOINTS.SUBSCRIPTION_ZIBAL_REQUEST, payload),
+
+  // The Zibal prices actually configured on the server right now — for
+  // display on the plan cards, before the user commits to a session.
+  getZibalPlans: () =>
+    apiClient.get<ZibalPlan[]>(API_ENDPOINTS.SUBSCRIPTION_ZIBAL_PLANS),
 };
