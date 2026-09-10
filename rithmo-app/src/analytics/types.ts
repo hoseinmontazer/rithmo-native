@@ -37,6 +37,12 @@ export type EventName =
   | 'subscription_restored'
   | 'subscription_restore_failed'
   | 'zibal_payment_finished'
+  | 'knowledge_impression'
+  | 'knowledge_open'
+  | 'knowledge_source_open'
+  | 'knowledge_save'
+  | 'knowledge_dismiss'
+  | 'knowledge_feedback'
   | 'notification_opened';
 
 /** Scalars only — nested values are dropped server-side. */
@@ -89,6 +95,16 @@ export interface EventProps {
    * GET /api/subscriptions/status/ refetch triggered right after this.
    */
   zibal_payment_finished: Record<string, never>;
+
+  /** item_id/category/value are identifiers or bounded enums — never the
+   * generated title/summary/body text itself. Mirrors the backend
+   * allowlist in analytics/events.py exactly. */
+  knowledge_impression:  { item_id: number; category: string; is_personalized?: boolean; is_premium_item?: boolean };
+  knowledge_open:        { item_id: number; category: string };
+  knowledge_source_open: { item_id: number; category: string };
+  knowledge_save:        { item_id: number; category: string };
+  knowledge_dismiss:     { item_id: number; category: string };
+  knowledge_feedback:    { item_id: number; value: 'helpful' | 'not_relevant' };
 
   notification_opened: { notification_type?: string };
 }

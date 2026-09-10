@@ -66,6 +66,7 @@ import { CheckInPrompt } from './components/CheckInPrompt';
 import { SecondaryActions } from './components/SecondaryActions';
 import { AccrualLedger } from './components/AccrualLedger';
 import { DailyReflectionCard } from './components/DailyReflectionCard';
+import { KnowledgeCard } from './components/KnowledgeCard';
 import { HeroRingCard } from './components/HeroRingCard';
 import { QuickCheckInWidget } from './components/QuickCheckInWidget';
 
@@ -173,6 +174,10 @@ export default function HomeScreen() {
   }, [navigation]);
   const goToInsightDetail = useCallback(
     (insight: Insight) => navigation.navigate('InsightDetail', { insight }),
+    [navigation],
+  );
+  const goToKnowledgeDetail = useCallback(
+    (itemId: number) => navigation.navigate('KnowledgeDetail', { itemId }),
     [navigation],
   );
 
@@ -361,6 +366,14 @@ export default function HomeScreen() {
             <CheckInPrompt checkIn={today.check_in} onGoFullLog={goToQuickLog} />
           </View>
         ) : null}
+
+        {/* Living Health Knowledge Layer — "یک چیز جدید برای دانستن".
+            Secondary, below the personal story; renders null with no
+            content yet (never for entitlement — free users see this
+            too). See KnowledgeCard's own header. */}
+        <View style={{ marginTop: spacing[4] }}>
+          <KnowledgeCard onOpenDetail={goToKnowledgeDetail} />
+        </View>
 
         {/* ── 3. Secondary actions — subordinate rows ───────────────── */}
         {!todayLoading && secondaryActions.length > 0 ? (

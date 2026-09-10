@@ -149,14 +149,14 @@ const PLANS: Plan[] = [
   },
 ];
 
-// Zibal plans — monthly/annual only, matching the two prices actually
-// configured server-side (ZIBAL_PRICE_MONTHLY_RIAL / ZIBAL_PRICE_ANNUAL_RIAL).
-// The real amount comes from GET /api/subscriptions/zibal/plans/
-// (useZibalPlans below) — never invented here. Converted Rial → Toman
-// (÷10) to match this screen's existing Toman display convention.
-const ZIBAL_PLAN_IDS = ['monthly', 'annual'] as const;
-const ZIBAL_PLAN_LABEL: Record<string, string> = { monthly: 'ماهانه', annual: 'سالانه' };
-const ZIBAL_PERIOD_LABEL: Record<string, string> = { monthly: 'تومان / ماه', annual: 'تومان / سال' };
+// Zibal plans — monthly/quarterly only, matching Bazaar/Stripe's own plan
+// set (ZIBAL_PRICE_MONTHLY_RIAL / ZIBAL_PRICE_QUARTERLY_RIAL). The real
+// amount comes from GET /api/subscriptions/zibal/plans/ (useZibalPlans
+// below) — never invented here. Converted Rial → Toman (÷10) to match
+// this screen's existing Toman display convention.
+const ZIBAL_PLAN_IDS = ['monthly', 'quarterly'] as const;
+const ZIBAL_PLAN_LABEL: Record<string, string> = { monthly: 'ماهانه', quarterly: 'سه‌ماهه' };
+const ZIBAL_PERIOD_LABEL: Record<string, string> = { monthly: 'تومان / ماه', quarterly: 'تومان / ۳ ماه' };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -307,8 +307,9 @@ export default function UpgradeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bazaarPlanList]);
 
-  // Zibal only prices 'monthly'/'annual' — the default 'quarterly'
-  // selection (Stripe/Bazaar's) isn't valid there.
+  // Zibal only prices 'monthly'/'quarterly' — the default 'quarterly'
+  // selection already matches, but this stays as a safety net in case
+  // that plan set ever changes again.
   useEffect(() => {
     if (isZibal && !(ZIBAL_PLAN_IDS as readonly string[]).includes(selectedPlan)) {
       setSelectedPlan('monthly');
@@ -414,7 +415,7 @@ export default function UpgradeScreen() {
   // navigates; ZibalPaymentScreen re-fetches subscription status once
   // the WebView reaches our callback URL.
   const handleZibalUpgrade = useCallback(async (planId: string) => {
-    if (planId !== 'monthly' && planId !== 'annual') { return; } // shouldn't happen — kept in sync above
+    if (planId !== 'monthly' && planId !== 'quarterly') { return; } // shouldn't happen — kept in sync above
     const res = await subscriptionService.requestZibalPayment({ plan: planId });
     navigation.navigate('ZibalPayment', { paymentUrl: res.data.payment_url });
   }, [navigation]);

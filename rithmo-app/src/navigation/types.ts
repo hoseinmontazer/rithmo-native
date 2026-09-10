@@ -31,6 +31,10 @@ export type HomeStackParamList = {
   // trigger that navigates here, and the underlying data itself requires an
   // owner-authenticated request server-side regardless.
   InsightDetail:   { insight: Insight };
+  // Living Health Knowledge Layer — fetches its own detail (body/evidence
+  // aren't already client-side, unlike InsightDetail's insight object),
+  // so only the id is passed.
+  KnowledgeDetail: { itemId: number };
 };
 
 // ── Cycle Stack ───────────────────────────────────────────────────────────────
@@ -57,6 +61,9 @@ export type InsightsStackParamList = {
   // role at all (see MainNavigator's `{!isPartner && ...}` gate), so this
   // route inherits that same guarantee without any privacy code of its own.
   LearningTimeline:  undefined;
+  // Living Health Knowledge Layer's "امروز / این هفته / ذخیره‌شده‌ها"
+  // timeline — sibling to LearningTimeline, same nesting precedent.
+  KnowledgeHistory:  undefined;
 };
 
 // ── Profile Stack ─────────────────────────────────────────────────────────────

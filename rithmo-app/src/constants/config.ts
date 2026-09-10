@@ -104,6 +104,11 @@ export const API_ENDPOINTS = {
   SUBSCRIPTION_ZIBAL_PLANS:   '/api/subscriptions/zibal/plans/',
   SUBSCRIPTION_ZIBAL_REQUEST: '/api/subscriptions/zibal/request/',
 
+  // Living Health Knowledge Layer
+  KNOWLEDGE_BASE:    '/api/knowledge/',
+  KNOWLEDGE_TODAY:   '/api/knowledge/today/',
+  KNOWLEDGE_HISTORY: '/api/knowledge/history/',
+
   // Pregnancy (premium)
   PREGNANCY:     '/api/pregnancy/',
   PREGNANCY_END: '/api/pregnancy/end/',

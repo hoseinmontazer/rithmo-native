@@ -6,6 +6,7 @@ import { useTheme } from '@hooks/useTheme';
 import HomeScreen from '@screens/home/HomeScreen';
 import PartnerHomeScreen from '@screens/home/PartnerHomeScreen';
 import InsightDetailScreen from '@screens/home/InsightDetailScreen';
+import KnowledgeDetailScreen from '@screens/home/KnowledgeDetailScreen';
 import { useRole } from '@hooks/useRole';
 import NotificationsScreen from '@screens/notifications/NotificationsScreen';
 
@@ -46,6 +47,11 @@ export function HomeStack() {
         name="InsightDetail"
         component={InsightDetailScreen}
         options={{ title: 'چیزی که درباره تو یاد گرفته‌ام' }}
+      />
+      <Stack.Screen
+        name="KnowledgeDetail"
+        component={KnowledgeDetailScreen}
+        options={{ title: navTitle('KnowledgeDetail') }}
       />
     </Stack.Navigator>
   );

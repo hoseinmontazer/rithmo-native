@@ -25,7 +25,7 @@ export interface BazaarPlan {
 }
 
 export interface RequestZibalPaymentRequest {
-  plan: 'monthly' | 'annual';
+  plan: 'monthly' | 'quarterly';
 }
 
 /**
@@ -38,7 +38,7 @@ export interface RequestZibalPaymentRequest {
  * amount.
  */
 export interface ZibalPlan {
-  plan:        'monthly' | 'annual';
+  plan:        'monthly' | 'quarterly';
   amount_rial: number;
 }
 

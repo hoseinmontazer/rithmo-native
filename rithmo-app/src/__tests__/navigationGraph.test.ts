@@ -89,6 +89,21 @@ describe('route registration', () => {
     );
     expect(callers.length).toBeGreaterThan(0);
   });
+
+  it('registers the Living Health Knowledge Layer routes, and both are reachable', () => {
+    expect(registered('stacks/HomeStack.tsx')).toContain('KnowledgeDetail');
+    expect(registered('stacks/InsightsStack.tsx')).toContain('KnowledgeHistory');
+
+    const detailCallers = SOURCES.filter(
+      s => !s.file.startsWith('navigation') && s.text.includes("'KnowledgeDetail'"),
+    );
+    expect(detailCallers.length).toBeGreaterThan(0);
+
+    const historyCallers = SOURCES.filter(
+      s => !s.file.startsWith('navigation') && s.text.includes("'KnowledgeHistory'"),
+    );
+    expect(historyCallers.length).toBeGreaterThan(0);
+  });
 });
 
 describe('removed routes stay removed', () => {

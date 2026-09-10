@@ -7,6 +7,7 @@ import { useTheme } from '@hooks/useTheme';
 import InsightsHomeScreen from '@screens/insights/InsightsHomeScreen';
 import DeepInsightsScreen from '@screens/insights/DeepInsightsScreen';
 import LearningTimelineScreen from '@screens/insights/LearningTimelineScreen';
+import KnowledgeHistoryScreen from '@screens/insights/KnowledgeHistoryScreen';
 
 const Stack = createNativeStackNavigator<InsightsStackParamList>();
 
@@ -37,6 +38,11 @@ export function InsightsStack() {
         name="LearningTimeline"
         component={LearningTimelineScreen}
         options={{ title: navTitle('LearningTimeline') }}
+      />
+      <Stack.Screen
+        name="KnowledgeHistory"
+        component={KnowledgeHistoryScreen}
+        options={{ title: navTitle('KnowledgeHistory') }}
       />
     </Stack.Navigator>
   );

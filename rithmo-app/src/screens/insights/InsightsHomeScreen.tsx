@@ -467,6 +467,33 @@ export default function InsightsHomeScreen() {
           </Card>
         </TouchableOpacity>
 
+        {/* ══ KNOWLEDGE HISTORY CTA ═══════════════════════════════════
+            "امروز / این هفته / ذخیره‌شده‌ها" — the Living Health Knowledge
+            Layer's history, sibling to the Learning Timeline CTA above. */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('KnowledgeHistory')}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="دانستنی‌ها"
+          style={{ marginBottom: spacing[4] }}
+        >
+          <Card
+            elevated={false}
+            rounded="2xl"
+            style={[styles.ctaCard, { backgroundColor: colors.surface, borderColor: colors.border, padding: spacing[4] }]}
+          >
+            <View style={styles.ctaHeaderRow}>
+              <Text style={[styles.ctaTitle, { color: colors.textPrimary, fontSize: typography.lg }]}>
+                دانستنی‌ها
+              </Text>
+              <Icon name="arrow-left" size={18} color={colors.primary} />
+            </View>
+            <Text style={[styles.ctaBody, { color: colors.textSecondary, fontSize: typography.sm, marginTop: spacing[1] }]}>
+              دانستنی‌های علمی که تا امروز برایت آورده‌ایم.
+            </Text>
+          </Card>
+        </TouchableOpacity>
+
         {/* ══ PREMIUM AI SYNTHESIS (Cycle Change + Weekly Review) ═══════
             Free users see the standard PremiumGate upsell card here;
             premium users see the real cards, each of which renders

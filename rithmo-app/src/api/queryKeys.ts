@@ -78,6 +78,11 @@ export const queryKeys = {
     plans:  () => ['subscription', 'plans'] as const,
     zibalPlans: () => ['subscription', 'zibalPlans'] as const,
   },
+  knowledge: {
+    today:   () => ['knowledge', 'today'] as const,
+    history: () => ['knowledge', 'history'] as const,
+    detail:  (id: number) => ['knowledge', 'detail', id] as const,
+  },
   pregnancy: {
     all: () => ['pregnancy'] as const,
     status: () => ['pregnancy', 'status'] as const,

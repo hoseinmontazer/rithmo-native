@@ -56,6 +56,8 @@ export const navTitles = {
   Upgrade: 'ریتمو پریمیوم',
   Pregnancy: 'بارداری',
   ZibalPayment: 'پرداخت',
+  KnowledgeDetail: 'دانستنی امروز',
+  KnowledgeHistory: 'دانستنی‌ها',
 
   // Messages
   MessagesList: 'پیام‌ها',
