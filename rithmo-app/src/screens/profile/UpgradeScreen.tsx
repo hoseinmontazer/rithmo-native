@@ -72,6 +72,7 @@ import {
   planForBazaarSku,
   summarizeBazaarRestore,
   bazaarRestoreMessage,
+  isTransientBazaarVerifyError,
   type BazaarVerifyOutcome,
 } from '@utils/bazaarRestore';
 import { planLabel, subscriptionStatusLabel } from '@i18n';
@@ -321,13 +322,52 @@ export default function UpgradeScreen() {
     const plan = bazaarPlanList.find((p) => p.plan === planId);
     if (!plan) { return; } // shouldn't happen — selectedPlan is kept in sync with bazaarPlanList above
     try {
-      const purchase = await subscribeToPlan(plan.sku);
-      await subscriptionService.verifyBazaarPurchase({
+      // Only plans listed in BazaarDiscountCampaign/BazaarDiscountGrant's
+      // shared PLAN_CHOICES (currently monthly + quarterly) can ever have
+      // a discount — and even then, only if a blanket campaign is active
+      // or this account has an open admin grant. A 404 (or any other
+      // failure) here just means "no discount", never a reason to block
+      // a normal full-price purchase — this lookup is a pure best-effort
+      // enhancement, not a required step.
+      let dynamicPriceToken: string | undefined;
+      if (planId === 'monthly' || planId === 'quarterly') {
+        try {
+          const discount = await subscriptionService.getBazaarDiscountToken({ plan: planId });
+          dynamicPriceToken = discount.data.token;
+        } catch {
+          dynamicPriceToken = undefined;
+        }
+      }
+      const purchase = await subscribeToPlan(plan.sku, dynamicPriceToken);
+      const payload = {
         plan:           planId,
         product_id:     purchase.productId,
         purchase_token: purchase.purchaseToken,
-      });
-      queryClient.invalidateQueries({ queryKey: queryKeys.subscription.status() });
+      };
+      // A real purchase can take a moment to propagate to Bazaar's own
+      // verification API — a transient failure here (network error, or the
+      // backend's 502/503 when it couldn't reach Bazaar) says nothing
+      // about whether the purchase is real, unlike a 402/409 denial.
+      // Retrying a few times with backoff before giving up avoids showing
+      // a paying user a scary "failed" message for what's often a 1-2s
+      // blip (see subscriptions/cafebazaar.py's own 200/404-vs-other
+      // distinction, which this mirrors client-side).
+      let lastError: unknown;
+      for (const delayMs of [0, 1500, 3000, 4500]) {
+        if (delayMs > 0) { await new Promise<void>((resolve) => setTimeout(resolve, delayMs)); }
+        try {
+          await subscriptionService.verifyBazaarPurchase(payload);
+          queryClient.invalidateQueries({ queryKey: queryKeys.subscription.status() });
+          return;
+        } catch (verifyError) {
+          lastError = verifyError;
+          const axiosError = verifyError as TypedAxiosError;
+          if (!isTransientBazaarVerifyError(axiosError?.response?.status, !axiosError?.response)) {
+            throw verifyError; // a real denial (402/409) — retrying can't change the answer
+          }
+        }
+      }
+      throw lastError;
     } catch (error) {
       if (isBazaarPurchaseCanceled(error)) {
         return; // user backed out of Bazaar's payment sheet — not a failure
@@ -336,6 +376,14 @@ export default function UpgradeScreen() {
         Alert.alert(
           'برنامه‌ی بازار لازم است',
           'برای خرید اشتراک، برنامه‌ی کافه‌بازار باید روی گوشی‌ات نصب باشد.',
+        );
+        return;
+      }
+      const axiosError = error as TypedAxiosError;
+      if (isTransientBazaarVerifyError(axiosError?.response?.status, !axiosError?.response)) {
+        Alert.alert(
+          'در حال فعال‌سازی',
+          'پرداخت شما ثبت شد ولی فعال‌سازی کمی بیشتر طول می‌کشد. لطفاً چند دقیقه‌ی دیگر دوباره امتحان کن یا از «بازیابی خرید» استفاده کن.',
         );
         return;
       }

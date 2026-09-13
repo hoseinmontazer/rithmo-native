@@ -13,6 +13,7 @@
 import {
   normalizeInstallationSource,
   mapInstallationSourceToPaymentProvider,
+  normalizeBuildPaymentProvider,
   type InstallationSource,
 } from '@services/installationSource';
 
@@ -66,6 +67,21 @@ describe('normalizeInstallationSource', () => {
     expect(normalizeInstallationSource(true)).toBe('unknown');
     expect(normalizeInstallationSource({})).toBe('unknown');
     expect(normalizeInstallationSource(['bazaar'])).toBe('unknown');
+  });
+});
+
+describe('normalizeBuildPaymentProvider', () => {
+  it('passes "bazaar" through unchanged', () => {
+    expect(normalizeBuildPaymentProvider('bazaar')).toBe('bazaar');
+  });
+
+  it('fails closed to "zibal" for anything other than exactly "bazaar"', () => {
+    expect(normalizeBuildPaymentProvider('zibal')).toBe('zibal');
+    expect(normalizeBuildPaymentProvider('google_play')).toBe('zibal');
+    expect(normalizeBuildPaymentProvider('Bazaar')).toBe('zibal');
+    expect(normalizeBuildPaymentProvider(undefined)).toBe('zibal');
+    expect(normalizeBuildPaymentProvider(null)).toBe('zibal');
+    expect(normalizeBuildPaymentProvider('')).toBe('zibal');
   });
 });
 

@@ -58,9 +58,19 @@ async function withBazaarConnection<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
-/** Subscribes the user to a plan via Bazaar's billing UI. Resolves with the purchase to verify server-side. */
-export function subscribeToPlan(sku: string): Promise<BazaarPurchaseResult> {
-  return withBazaarConnection(() => bazaar.subscribeProduct(sku));
+/**
+ * Subscribes the user to a plan via Bazaar's billing UI. Resolves with
+ * the purchase to verify server-side.
+ *
+ * dynamicPriceToken is the signed JWT from subscriptionService
+ * .getBazaarDiscountToken() — only ever present when the backend has an
+ * admin-granted 100% discount open for this user (see
+ * ops_admin.services.grant_bazaar_discount); omitted (undefined), this
+ * is a completely normal full-price purchase. Passed straight through
+ * to Poolakey — never inspected or modified here.
+ */
+export function subscribeToPlan(sku: string, dynamicPriceToken?: string): Promise<BazaarPurchaseResult> {
+  return withBazaarConnection(() => bazaar.subscribeProduct(sku, null, dynamicPriceToken));
 }
 
 /** Real Bazaar-client prices for the given SKUs — use these over any hardcoded price. */

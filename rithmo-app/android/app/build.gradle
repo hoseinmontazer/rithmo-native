@@ -107,8 +107,32 @@ android {
         applicationId "com.rithmo"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3
-        versionName "1.0.5"
+        versionCode 4
+        versionName "1.0.6"
+    }
+    // PAYMENT_PROVIDER is decided here, at build time, per distribution
+    // channel — never at runtime by asking the OS who installed the APK
+    // (see InstallSourceModule.kt: that stays diagnostic-only). AppInfoModule
+    // exposes these BuildConfig fields to JS; @services/installationSource's
+    // getPaymentProvider() is the one place that reads them.
+    //   bazaar  → Cafe Bazaar's own in-app billing (Poolakey) only.
+    //   global  → direct/website distribution → Zibal.
+    // (Google Play Billing is intentionally not a flavor yet — not built.)
+    buildFeatures {
+        buildConfig true
+    }
+    flavorDimensions = ["distribution"]
+    productFlavors {
+        bazaar {
+            dimension "distribution"
+            buildConfigField "String", "PAYMENT_PROVIDER", "\"bazaar\""
+            buildConfigField "String", "DISTRIBUTION", "\"bazaar\""
+        }
+        global {
+            dimension "distribution"
+            buildConfigField "String", "PAYMENT_PROVIDER", "\"zibal\""
+            buildConfigField "String", "DISTRIBUTION", "\"global\""
+        }
     }
     signingConfigs {
         debug {
@@ -162,8 +186,9 @@ android.applicationVariants.all { variant ->
         def appName = "rithmo"
         def versionName = variant.versionName
         def buildType = variant.buildType.name
+        def flavorName = variant.flavorName
 
-        outputFileName = "${appName}-${buildType}-v${versionName}.apk"
+        outputFileName = "${appName}-${flavorName}-${buildType}-v${versionName}.apk"
     }
 }
 

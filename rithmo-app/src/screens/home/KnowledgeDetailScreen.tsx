@@ -134,16 +134,28 @@ export default function KnowledgeDetailScreen({ route }: Props) {
 
         <View style={[styles.actionsRow, { marginTop: spacing[4] }]}>
           <Text
-            onPress={handleSave}
+            onPress={saveMutation.isPending ? undefined : handleSave}
             accessibilityRole="button"
-            style={{ color: item.saved ? colors.success : colors.textSecondary, fontSize: typography.caption, fontWeight: '700' }}
+            accessibilityState={{ disabled: saveMutation.isPending, busy: saveMutation.isPending }}
+            style={{
+              color: item.saved ? colors.success : colors.textSecondary,
+              fontSize: typography.caption,
+              fontWeight: '700',
+              opacity: saveMutation.isPending ? 0.5 : 1,
+            }}
           >
-            {item.saved ? 'ذخیره شد' : 'ذخیره کن'}
+            {saveMutation.isPending ? 'در حال ذخیره...' : item.saved ? 'ذخیره شد' : 'ذخیره کن'}
           </Text>
           <Text
-            onPress={handleDismiss}
+            onPress={dismissMutation.isPending ? undefined : handleDismiss}
             accessibilityRole="button"
-            style={{ color: colors.textTertiary, fontSize: typography.caption, fontWeight: '700' }}
+            accessibilityState={{ disabled: dismissMutation.isPending, busy: dismissMutation.isPending }}
+            style={{
+              color: colors.textTertiary,
+              fontSize: typography.caption,
+              fontWeight: '700',
+              opacity: dismissMutation.isPending ? 0.5 : 1,
+            }}
           >
             نمایش نده
           </Text>

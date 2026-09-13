@@ -12,8 +12,13 @@
  * the source text itself for a rule that's cheap and meaningful to check
  * that way.
  */
-import fs from 'fs';
-import path from 'path';
+export {};
+
+declare const __dirname: string;
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const fs = require('fs');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const path = require('path');
 
 const SOURCE = fs.readFileSync(
   path.join(__dirname, '..', 'hooks', 'queries', 'useKnowledgeToday.ts'),

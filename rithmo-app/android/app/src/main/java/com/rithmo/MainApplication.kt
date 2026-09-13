@@ -20,6 +20,7 @@ class MainApplication : Application(), ReactApplication {
             PackageList(this).packages.apply {
               // Packages that cannot be autolinked yet can be added manually here
               add(InstallSourcePackage())
+              add(AppInfoPackage())
             }
 
         override fun getJSMainModuleName(): String = "index"
@@ -35,6 +36,12 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
+
+    // Device-test diagnostic only (see AppInfoModule.kt for the real JS-facing
+    // path) — logged unconditionally at process start, before the JS bridge
+    // or any screen exists, so `adb logcat` can confirm which flavor an
+    // installed build actually is without navigating anywhere in the app.
+    android.util.Log.i("Rithmo", "PAYMENT_PROVIDER=" + BuildConfig.PAYMENT_PROVIDER)
 
     // Persian-first: set the RTL flag natively, before React Native starts.
     //

@@ -14,6 +14,7 @@ import {
   planForBazaarSku,
   summarizeBazaarRestore,
   bazaarRestoreMessage,
+  isTransientBazaarVerifyError,
   type BazaarVerifyOutcome,
 } from '@utils/bazaarRestore';
 
@@ -78,6 +79,29 @@ describe('summarizeBazaarRestore', () => {
   it('falls back to unknown_error for an unrecognized failure', () => {
     const outcomes: BazaarVerifyOutcome[] = [{ ok: false, status: 400 }];
     expect(summarizeBazaarRestore(outcomes)).toEqual({ kind: 'unknown_error' });
+  });
+});
+
+describe('isTransientBazaarVerifyError', () => {
+  it('treats a network error (no response at all) as transient', () => {
+    expect(isTransientBazaarVerifyError(undefined, true)).toBe(true);
+  });
+
+  it('treats a 5xx as transient — our own backend or Bazaar\'s API had a problem', () => {
+    expect(isTransientBazaarVerifyError(502, false)).toBe(true);
+    expect(isTransientBazaarVerifyError(503, false)).toBe(true);
+  });
+
+  it('treats a 402 (expired/invalid purchase) as a real denial, not transient', () => {
+    expect(isTransientBazaarVerifyError(402, false)).toBe(false);
+  });
+
+  it('treats a 409 (token owned by another account) as a real denial, not transient', () => {
+    expect(isTransientBazaarVerifyError(409, false)).toBe(false);
+  });
+
+  it('treats a 400 (unknown SKU) as a real denial, not transient', () => {
+    expect(isTransientBazaarVerifyError(400, false)).toBe(false);
   });
 });
 

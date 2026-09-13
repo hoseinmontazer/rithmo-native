@@ -19,6 +19,7 @@ import { ErrorBoundary } from '@components/ErrorBoundary';
 import { ToastProvider } from './src/context/ToastContext';
 import { ConfirmProvider } from './src/context/ConfirmContext';
 import { setupNotificationListeners } from './src/services/pushNotifications';
+import { getBuildPaymentProvider } from '@services/installationSource';
 
 // ── Persian-first: full RTL layout (Android; iOS follows locale) ─────────────
 I18nManager.forceRTL(true);
@@ -32,6 +33,17 @@ applyGlobalFont();
 
 // ── Restore the persisted theme choice (audit M6) before first render ───────
 hydrateThemeStore();
+
+// ── Log the build-time payment provider once, unconditionally, at boot ──────
+// getBuildPaymentProvider() already logs "[Rithmo] PAYMENT_PROVIDER=..." on
+// Android internally (see @services/installationSource) — previously this
+// only ran when UpgradeScreen happened to mount, so a device-test harness
+// that just launches the app and reads logcat (never navigating to
+// Premium) had nothing to see. Calling it here, fire-and-forget, at module
+// load makes that signal reliably observable right after a fresh launch,
+// matching build-and-install.sh's payment-test step. Never throws (see its
+// own try/catch), so no .catch() is needed.
+getBuildPaymentProvider();
 
 // ── React Query client ────────────────────────────────────────────────────────
 // Lives in its own module so the auth store can clear it when the signed-in

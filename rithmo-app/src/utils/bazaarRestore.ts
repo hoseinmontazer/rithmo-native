@@ -32,6 +32,19 @@ export interface BazaarVerifyOutcome {
   networkError?: boolean;
 }
 
+/**
+ * Classifies a failed /bazaar/verify/ call as transient (worth retrying)
+ * vs. a real denial. Mirrors the backend's own 402/409-vs-502 distinction
+ * (subscriptions/views.py verify_bazaar_purchase): a 402 (expired/invalid)
+ * or 409 (owned by another account) is a genuine "no" that retrying can't
+ * fix; a network failure or 5xx means the backend itself couldn't reach
+ * Cafe Bazaar's API (or hit a transient error) and says nothing about
+ * whether the purchase is real — the purchase-propagation delay covered by
+ * the caller's retry loop lives in this same "transient" bucket. */
+export function isTransientBazaarVerifyError(status: number | undefined, networkError: boolean): boolean {
+  return networkError || (status !== undefined && status >= 500);
+}
+
 export type BazaarRestoreResult =
   | { kind: 'no_purchases' }
   | { kind: 'restored' }

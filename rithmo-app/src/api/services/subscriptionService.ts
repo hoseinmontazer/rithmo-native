@@ -24,6 +24,23 @@ export interface BazaarPlan {
   label_fa: string;
 }
 
+export interface BazaarDiscountTokenRequest {
+  plan: string;
+}
+
+/**
+ * A signed Cafe Bazaar Dynamic Discount JWT — server-minted, single-use,
+ * short-lived. Passed straight to Poolakey's subscribeProduct() as
+ * dynamicPriceToken; never inspected or modified client-side. Only
+ * exists at all when the backend already has an admin-granted discount
+ * open for this user (see ops_admin's "Grant 100% Bazaar discount").
+ */
+export interface BazaarDiscountToken {
+  token: string;
+  sku:   string;
+  price: number;
+}
+
 export interface RequestZibalPaymentRequest {
   plan: 'monthly' | 'quarterly';
 }
@@ -73,6 +90,13 @@ export const subscriptionService = {
   // before activating premium. Returns the resulting subscription state.
   verifyBazaarPurchase: (payload: VerifyBazaarPurchaseRequest) =>
     apiClient.post<SubscriptionStatus>(API_ENDPOINTS.SUBSCRIPTION_BAZAAR_VERIFY, payload),
+
+  // 404s (no error thrown here beyond a normal rejected promise) unless
+  // an operator has already granted this exact user a one-time 100%
+  // Bazaar discount — callers must treat that as "no discount available"
+  // and fall back to a normal full-price purchase, never as a hard error.
+  getBazaarDiscountToken: (payload: BazaarDiscountTokenRequest) =>
+    apiClient.post<BazaarDiscountToken>(API_ENDPOINTS.SUBSCRIPTION_BAZAAR_DISCOUNT_TOKEN, payload),
 
   // Starts a Zibal payment session — the server resolves the real price
   // from ZIBAL_PRICE_MONTHLY_RIAL / ZIBAL_PRICE_ANNUAL_RIAL; this call
