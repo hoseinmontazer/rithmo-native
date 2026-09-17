@@ -17,6 +17,7 @@ import { PremiumGate } from '@components/PremiumGate';
 import { usePremiumStatus } from '@hooks/queries/useSubscription';
 import { LoadingState } from '@components/ui';
 import { FertileWindowCard } from './components/FertileWindowCard';
+import { HealthChangeCard } from './components/HealthChangeCard';
 
 export default function PremiumDashboardScreen() {
   const { colors, spacing, typography } = useTheme();
@@ -54,6 +55,11 @@ export default function PremiumDashboardScreen() {
         {/* ── Fertile window (P1.1) ─────────────────────────────────── */}
         <View style={{ marginBottom: spacing[4] }}>
           <FertileWindowCard />
+        </View>
+
+        {/* ── Health change + pain/PMS (P1.2) ─────────────────────────── */}
+        <View style={{ marginBottom: spacing[4] }}>
+          <HealthChangeCard />
         </View>
       </ScrollView>
     </SafeAreaView>

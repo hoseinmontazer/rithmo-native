@@ -12,6 +12,7 @@ import type {
   TodayPayload,
 } from '@types/intelligence.types';
 import type { FertileWindowPayload } from '@types/fertileWindow.types';
+import type { HealthChangePayload } from '@types/healthChange.types';
 
 /** Unwrap the `{ status, data }` envelope the Rithmo API returns. */
 function unwrap<T>(r: { data: unknown }): T {
@@ -97,6 +98,15 @@ export const intelligenceService = {
     apiClient
       .get(API_ENDPOINTS.INTELLIGENCE_FERTILE_WINDOW)
       .then((r) => unwrap<FertileWindowPayload>(r)),
+
+  // Premium — P1.2. Deterministic, no AI: a curated digest over the same
+  // insights getInsights() already computes — see
+  // intelligence/services.py's health_change_payload() for what is and is
+  // not computed here.
+  getHealthChanges: () =>
+    apiClient
+      .get(API_ENDPOINTS.INTELLIGENCE_HEALTH_CHANGES)
+      .then((r) => unwrap<HealthChangePayload>(r)),
 
   getPartnerToday: () =>
     apiClient

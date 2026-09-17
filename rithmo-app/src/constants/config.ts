@@ -52,6 +52,10 @@ export const API_ENDPOINTS = {
   INTELLIGENCE_PROGRESS: '/api/intelligence/progress/',
   // P1.1 — see intelligence/domain/fertility.py / fertile_window_payload().
   INTELLIGENCE_FERTILE_WINDOW: '/api/intelligence/fertile-window/',
+  // P1.2 — see intelligence/services.py's health_change_payload(). A
+  // curated digest over the same deviation/phase/recurrence/symptom
+  // insights the free INTELLIGENCE_INSIGHTS feed already computes.
+  INTELLIGENCE_HEALTH_CHANGES: '/api/intelligence/health-changes/',
   INTELLIGENCE_PARTNER_TODAY: '/api/intelligence/partner/today/',
   INTELLIGENCE_PARTNER_ACTION: '/api/intelligence/partner/action/',
 

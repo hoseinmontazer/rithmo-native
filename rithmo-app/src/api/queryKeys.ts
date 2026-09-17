@@ -72,6 +72,7 @@ export const queryKeys = {
       ['intelligence', 'insights', includeInsufficient ? 'all' : 'supported'] as const,
     progress: () => ['intelligence', 'progress'] as const,
     fertileWindow: () => ['intelligence', 'fertileWindow'] as const,
+    healthChanges: () => ['intelligence', 'healthChanges'] as const,
     partnerToday: () => ['intelligence', 'partner', 'today'] as const,
   },
   subscription: {

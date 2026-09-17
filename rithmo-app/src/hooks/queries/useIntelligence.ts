@@ -14,6 +14,7 @@ import type {
   TodayPayload,
 } from '@types/intelligence.types';
 import type { FertileWindowPayload } from '@types/fertileWindow.types';
+import type { HealthChangePayload } from '@types/healthChange.types';
 
 /**
  * Today's personal state, leading insight and guided actions.
@@ -61,6 +62,25 @@ export function useFertileWindow(enabled = true) {
   return useQuery<FertileWindowPayload>({
     queryKey: queryKeys.intelligence.fertileWindow(),
     queryFn: () => intelligenceService.getFertileWindow(),
+    enabled: enabled && isAuthenticated && !isPremiumLoading && isPremium,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Health Change Detection + Pain/PMS Intelligence (P1.2) — Premium. Same
+ * gating contract as useForecast/useFertileWindow: disabled entirely for
+ * a non-premium/unauthenticated user, so a free user's client never
+ * receives the curated digest — the underlying insights themselves stay
+ * on the free useInsights() feed, unchanged.
+ */
+export function useHealthChanges(enabled = true) {
+  const { isAuthenticated } = useAuth();
+  const { isPremium, isLoading: isPremiumLoading } = usePremiumStatus();
+
+  return useQuery<HealthChangePayload>({
+    queryKey: queryKeys.intelligence.healthChanges(),
+    queryFn: () => intelligenceService.getHealthChanges(),
     enabled: enabled && isAuthenticated && !isPremiumLoading && isPremium,
     staleTime: 5 * 60 * 1000,
   });
