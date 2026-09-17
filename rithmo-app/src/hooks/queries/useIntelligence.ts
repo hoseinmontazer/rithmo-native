@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { intelligenceService } from '@api/services/intelligenceService';
 import { queryKeys } from '@api/queryKeys';
+import { useAuth } from '@hooks/useAuth';
+import { usePremiumStatus } from '@hooks/queries/useSubscription';
 import type {
   ActionStatus,
   CheckIn,
@@ -11,6 +13,7 @@ import type {
   ProgressPayload,
   TodayPayload,
 } from '@types/intelligence.types';
+import type { FertileWindowPayload } from '@types/fertileWindow.types';
 
 /**
  * Today's personal state, leading insight and guided actions.
@@ -42,6 +45,24 @@ export function useProgress(enabled = true) {
     queryKey: queryKeys.intelligence.progress(),
     queryFn: () => intelligenceService.getProgress(),
     enabled,
+  });
+}
+
+/**
+ * Fertile Window Intelligence (P1.1) — Premium. Same gating contract as
+ * the AI reflection hooks (useWeeklyReview etc.): disabled entirely for a
+ * non-premium/unauthenticated user rather than fetched and hidden, so a
+ * free user's client never receives Premium data at all.
+ */
+export function useFertileWindow(enabled = true) {
+  const { isAuthenticated } = useAuth();
+  const { isPremium, isLoading: isPremiumLoading } = usePremiumStatus();
+
+  return useQuery<FertileWindowPayload>({
+    queryKey: queryKeys.intelligence.fertileWindow(),
+    queryFn: () => intelligenceService.getFertileWindow(),
+    enabled: enabled && isAuthenticated && !isPremiumLoading && isPremium,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

@@ -56,6 +56,9 @@ export type WellnessStackParamList = {
 // ── Insights Stack ────────────────────────────────────────────────────────────
 export type InsightsStackParamList = {
   InsightsHome:      undefined;
+  // The Premium home hosting Fertile Window Intelligence (P1.1).
+  // Premium-gated by the screen itself (PremiumGate), same as DeepInsights.
+  PremiumDashboard:  undefined;
   DeepInsights:      undefined;
   // Owner-only by construction: InsightsTab is never mounted for a partner
   // role at all (see MainNavigator's `{!isPartner && ...}` gate), so this

@@ -11,6 +11,7 @@ import type {
   ProgressPayload,
   TodayPayload,
 } from '@types/intelligence.types';
+import type { FertileWindowPayload } from '@types/fertileWindow.types';
 
 /** Unwrap the `{ status, data }` envelope the Rithmo API returns. */
 function unwrap<T>(r: { data: unknown }): T {
@@ -88,6 +89,14 @@ export const intelligenceService = {
     apiClient
       .get(API_ENDPOINTS.INTELLIGENCE_PROGRESS)
       .then((r) => unwrap<ProgressPayload>(r)),
+
+  // Premium — P1.1. Deterministic, no AI: see
+  // intelligence/domain/fertility.py and services.fertile_window_payload()
+  // for what is and is not computed here.
+  getFertileWindow: () =>
+    apiClient
+      .get(API_ENDPOINTS.INTELLIGENCE_FERTILE_WINDOW)
+      .then((r) => unwrap<FertileWindowPayload>(r)),
 
   getPartnerToday: () =>
     apiClient

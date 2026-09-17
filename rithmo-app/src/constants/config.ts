@@ -50,6 +50,8 @@ export const API_ENDPOINTS = {
   INTELLIGENCE_ACTIONS: '/api/intelligence/actions/',
   INTELLIGENCE_CHECKIN: '/api/intelligence/checkin/',
   INTELLIGENCE_PROGRESS: '/api/intelligence/progress/',
+  // P1.1 — see intelligence/domain/fertility.py / fertile_window_payload().
+  INTELLIGENCE_FERTILE_WINDOW: '/api/intelligence/fertile-window/',
   INTELLIGENCE_PARTNER_TODAY: '/api/intelligence/partner/today/',
   INTELLIGENCE_PARTNER_ACTION: '/api/intelligence/partner/action/',
 

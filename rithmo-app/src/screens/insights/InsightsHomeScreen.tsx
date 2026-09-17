@@ -494,6 +494,42 @@ export default function InsightsHomeScreen() {
           </Card>
         </TouchableOpacity>
 
+        {/* ══ PREMIUM DASHBOARD CTA ═════════════════════════════════════
+            Entry point to the Premium home now hosting Fertile Window
+            Intelligence (P1.1) — a separate screen, reached the same way
+            DeepInsights already is below. This is additive: it does not
+            replace the inline Cycle Change / Weekly Review cards just
+            below, which stay exactly where the existing test suite
+            (weeklyReviewContract / cycleChangeReviewContract) already
+            asserts they belong. */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('PremiumDashboard')}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="پنل هوش سلامت شخصی"
+          style={{ marginBottom: spacing[4] }}
+        >
+          <Card
+            elevated={false}
+            rounded="2xl"
+            style={[
+              styles.ctaCard,
+              { backgroundColor: colors.premiumBg, borderColor: colors.premiumBorder, padding: spacing[4] },
+            ]}
+          >
+            <View style={styles.ctaHeaderRow}>
+              <Badge label="ویژه پریمیوم" variant="primary" />
+              <Icon name="arrow-left" size={18} color={colors.premium} />
+            </View>
+            <Text style={[styles.ctaTitle, { color: colors.textPrimary, fontSize: typography.lg, marginTop: spacing[2] }]}>
+              پنل هوش سلامت شخصی
+            </Text>
+            <Text style={[styles.ctaBody, { color: colors.textSecondary, fontSize: typography.sm, marginTop: spacing[1] }]}>
+              بازه‌ی باروری تخمینی‌ات را بر اساس داده‌های خودت ببین.
+            </Text>
+          </Card>
+        </TouchableOpacity>
+
         {/* ══ PREMIUM AI SYNTHESIS (Cycle Change + Weekly Review) ═══════
             Free users see the standard PremiumGate upsell card here;
             premium users see the real cards, each of which renders

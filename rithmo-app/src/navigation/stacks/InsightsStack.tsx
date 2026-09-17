@@ -5,6 +5,7 @@ import type { InsightsStackParamList } from '@navigation/types';
 import { useTheme } from '@hooks/useTheme';
 
 import InsightsHomeScreen from '@screens/insights/InsightsHomeScreen';
+import PremiumDashboardScreen from '@screens/insights/PremiumDashboardScreen';
 import DeepInsightsScreen from '@screens/insights/DeepInsightsScreen';
 import LearningTimelineScreen from '@screens/insights/LearningTimelineScreen';
 import KnowledgeHistoryScreen from '@screens/insights/KnowledgeHistoryScreen';
@@ -28,6 +29,11 @@ export function InsightsStack() {
         name="InsightsHome"
         component={InsightsHomeScreen}
         options={{ title: navTitle('InsightsHome'), headerShown: false }}
+      />
+      <Stack.Screen
+        name="PremiumDashboard"
+        component={PremiumDashboardScreen}
+        options={{ title: navTitle('PremiumDashboard') }}
       />
       <Stack.Screen
         name="DeepInsights"

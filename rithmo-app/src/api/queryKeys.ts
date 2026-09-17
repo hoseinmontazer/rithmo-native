@@ -71,6 +71,7 @@ export const queryKeys = {
     insights: (includeInsufficient?: boolean) =>
       ['intelligence', 'insights', includeInsufficient ? 'all' : 'supported'] as const,
     progress: () => ['intelligence', 'progress'] as const,
+    fertileWindow: () => ['intelligence', 'fertileWindow'] as const,
     partnerToday: () => ['intelligence', 'partner', 'today'] as const,
   },
   subscription: {

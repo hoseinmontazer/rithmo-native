@@ -41,6 +41,7 @@ export const navTitles = {
 
   // Insights
   InsightsHome: 'الگوهای من',
+  PremiumDashboard: 'پنل هوش سلامت',
   DeepInsights: 'تحلیل عمیق',
   LearningTimeline: 'چیزهایی که یاد گرفته‌ام',
 
