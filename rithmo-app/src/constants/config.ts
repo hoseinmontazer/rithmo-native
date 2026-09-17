@@ -56,6 +56,10 @@ export const API_ENDPOINTS = {
   // curated digest over the same deviation/phase/recurrence/symptom
   // insights the free INTELLIGENCE_INSIGHTS feed already computes.
   INTELLIGENCE_HEALTH_CHANGES: '/api/intelligence/health-changes/',
+  // P1.3 — see intelligence/services.py's pregnancy_timeline_payload().
+  // Reframes cycle_tracker's existing PREGNANCY/PREGNANCY_END data as a
+  // small deterministic timeline; does not replace those endpoints.
+  INTELLIGENCE_PREGNANCY: '/api/intelligence/pregnancy/',
   INTELLIGENCE_PARTNER_TODAY: '/api/intelligence/partner/today/',
   INTELLIGENCE_PARTNER_ACTION: '/api/intelligence/partner/action/',
 

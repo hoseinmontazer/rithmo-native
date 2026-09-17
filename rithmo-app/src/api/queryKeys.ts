@@ -88,6 +88,7 @@ export const queryKeys = {
   pregnancy: {
     all: () => ['pregnancy'] as const,
     status: () => ['pregnancy', 'status'] as const,
+    timeline: () => ['pregnancy', 'timeline'] as const,
   },
   aiReflection: {
     daily: () => ['aiReflection', 'daily'] as const,

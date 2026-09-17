@@ -13,10 +13,11 @@ import { CommonActions, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@hooks/useTheme';
 import { screen } from '@theme/spacing';
-import { Button, Card, ConfirmSheet, Icon, LoadingState } from '@components/ui';
-import { useEndPregnancy, usePregnancyStatus } from '@hooks/queries/usePregnancy';
+import { Button, Card, ConfirmSheet, ErrorState, Icon, LoadingState } from '@components/ui';
+import { useEndPregnancy, usePregnancyStatus, usePregnancyTimeline } from '@hooks/queries/usePregnancy';
 import { toFa, faDateYear } from '@utils/persian';
 import { useToast } from '../../context/ToastContext';
+import { PregnancyTimeline } from './components/PregnancyTimeline';
 
 const TRIMESTER_LABEL_FA: Record<number, string> = {
   1: 'سه‌ماهه اول',
@@ -29,6 +30,13 @@ export default function PregnancyStatusScreen() {
   const navigation = useNavigation();
   const toast = useToast();
   const { data, isLoading } = usePregnancyStatus();
+  const {
+    data: timeline,
+    isLoading: timelineLoading,
+    isError: timelineIsError,
+    error: timelineErrorObj,
+    refetch: refetchTimeline,
+  } = usePregnancyTimeline();
   const endPregnancy = useEndPregnancy();
   const [confirmEndVisible, setConfirmEndVisible] = useState(false);
 
@@ -88,6 +96,23 @@ export default function PregnancyStatusScreen() {
           </View>
         </Card>
 
+        {timelineIsError ? (
+          <Card style={{ marginBottom: spacing[4] }}>
+            <ErrorState error={timelineErrorObj} onRetry={refetchTimeline} />
+          </Card>
+        ) : timelineLoading ? (
+          <Card style={{ marginBottom: spacing[4] }}>
+            <LoadingState message="در حال بارگذاری جدول زمانی…" />
+          </Card>
+        ) : timeline && timeline.timeline.length > 0 ? (
+          <Card style={{ padding: spacing[4], marginBottom: spacing[4] }}>
+            <Text style={{ color: colors.textPrimary, fontSize: typography.bodySmall, fontWeight: '700', marginBottom: spacing[4] }}>
+              جدول زمانی بارداری
+            </Text>
+            <PregnancyTimeline timeline={timeline.timeline} />
+          </Card>
+        ) : null}
+
         <Card style={{ padding: spacing[4], marginBottom: spacing[4] }}>
           <View style={styles.row}>
             <Text style={{ color: colors.textSecondary, fontSize: typography.bodySmall }}>
@@ -98,6 +123,19 @@ export default function PregnancyStatusScreen() {
             </Text>
           </View>
         </Card>
+
+        {timeline?.disclaimer_fa ? (
+          <Text
+            style={{
+              color: colors.textTertiary,
+              fontSize: typography.caption,
+              lineHeight: 18,
+              marginBottom: spacing[5],
+            }}
+          >
+            {timeline.disclaimer_fa}
+          </Text>
+        ) : null}
 
         <Button
           label="ثبت حال امروز"
