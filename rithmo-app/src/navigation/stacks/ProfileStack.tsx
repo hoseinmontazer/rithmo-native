@@ -15,6 +15,7 @@ import UpgradeScreen from '@screens/profile/UpgradeScreen';
 import ZibalPaymentScreen from '@screens/profile/ZibalPaymentScreen';
 import SupportScreen from '@screens/support/SupportScreen';
 import PregnancyScreen from '@screens/pregnancy/PregnancyScreen';
+import TTCScreen from '@screens/ttc/TTCScreen';
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
@@ -43,6 +44,7 @@ export function ProfileStack() {
       <Stack.Screen name="DeleteAccount"   component={DeleteAccountScreen}  options={{ title: navTitle('DeleteAccount') }} />
       <Stack.Screen name="Support"         component={SupportScreen}       options={{ title: navTitle('Support') }} />
       <Stack.Screen name="Pregnancy"       component={PregnancyScreen as React.ComponentType} options={{ title: navTitle('Pregnancy') }} />
+      <Stack.Screen name="TTC"             component={TTCScreen as React.ComponentType} options={{ title: navTitle('TTC') }} />
       <Stack.Screen
         name="Upgrade"
         component={UpgradeScreen as React.ComponentType}

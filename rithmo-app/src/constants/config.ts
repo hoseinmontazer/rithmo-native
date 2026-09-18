@@ -60,6 +60,10 @@ export const API_ENDPOINTS = {
   // Reframes cycle_tracker's existing PREGNANCY/PREGNANCY_END data as a
   // small deterministic timeline; does not replace those endpoints.
   INTELLIGENCE_PREGNANCY: '/api/intelligence/pregnancy/',
+  // P1.4.1 — see intelligence/services.py's ttc_status_payload(). Reuses
+  // fertile_window_payload() and the existing cycle-analysis engine
+  // unchanged; adds only the user's own TTC status/start date.
+  INTELLIGENCE_TTC: '/api/intelligence/ttc/',
   INTELLIGENCE_PARTNER_TODAY: '/api/intelligence/partner/today/',
   INTELLIGENCE_PARTNER_ACTION: '/api/intelligence/partner/action/',
 

@@ -24,6 +24,7 @@ import { useAuth } from '@hooks/useAuth';
 import { useProfile } from '@hooks/queries/useProfile';
 import { useSubscription } from '@hooks/queries/useSubscription';
 import { usePregnancyStatus } from '@hooks/queries/usePregnancy';
+import { useTTCStatus } from '@hooks/queries/useTTC';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Card, LoadingState, ErrorState, Divider, PressScale } from '@components/ui';
 import { PROFILE_ICONS } from '@design-system/iconography';
@@ -178,6 +179,7 @@ export default function ProfileScreen() {
   const { data: profile, isLoading, isError, error, refetch } = useProfile();
   const { data: premium } = useSubscription();
   const { data: pregnancy } = usePregnancyStatus();
+  const { data: ttc } = useTTCStatus();
   const { isPartner } = useRole();
 
   const handleLogout = useCallback(() => {
@@ -464,6 +466,59 @@ export default function ProfileScreen() {
                     height: 22,
                     borderRadius: borderRadius.pill,
                     backgroundColor: pregnancy?.has_active_pregnancy ? '#FFFFFF' : colors.textTertiary,
+                  }}
+                />
+              </View>
+            </TouchableOpacity>
+          </Card>
+        </>
+      )}
+
+      {/* ── 4.5. TTC (Trying To Conceive) Mode — P1.4.1 ─────────────────── */}
+      {isCycleOwner && (
+        <>
+          <SectionHeader label="تلاش برای بارداری" icon={PROFILE_ICONS.ttc} />
+          <Card rounded="2xl" style={{ backgroundColor: colors.surface, borderColor: colors.border, paddingHorizontal: spacing[4] }}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('TTC')}
+              activeOpacity={0.72}
+              style={[styles.menuRow, { paddingVertical: spacing[3] + 2 }]}
+              accessibilityRole="button"
+              accessibilityLabel={ttc?.active
+                ? 'حالت تلاش برای بارداری روشن است'
+                : 'حالت تلاش برای بارداری خاموش است'}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.textPrimary, fontSize: typography.base, fontWeight: '600' }}>
+                  تلاش برای بارداری
+                </Text>
+                <Text style={{ color: colors.textTertiary, fontSize: typography.xs, marginTop: 2, lineHeight: 17 }}>
+                  {ttc?.active
+                    ? 'روشن'
+                    : ttc?.status === 'paused'
+                    ? 'متوقف‌شده'
+                    : 'خاموش'}
+                </Text>
+              </View>
+              <View
+                style={{
+                  width: 50,
+                  height: 28,
+                  borderRadius: borderRadius.pill,
+                  backgroundColor: ttc?.active ? colors.primary : colors.surfaceSecondary,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                  padding: 2,
+                  flexDirection: 'row',
+                  justifyContent: ttc?.active ? 'flex-start' : 'flex-end',
+                }}
+              >
+                <View
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: borderRadius.pill,
+                    backgroundColor: ttc?.active ? '#FFFFFF' : colors.textTertiary,
                   }}
                 />
               </View>

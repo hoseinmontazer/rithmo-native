@@ -90,6 +90,10 @@ export const queryKeys = {
     status: () => ['pregnancy', 'status'] as const,
     timeline: () => ['pregnancy', 'timeline'] as const,
   },
+  ttc: {
+    all: () => ['ttc'] as const,
+    status: () => ['ttc', 'status'] as const,
+  },
   aiReflection: {
     daily: () => ['aiReflection', 'daily'] as const,
     partner: () => ['aiReflection', 'partner'] as const,

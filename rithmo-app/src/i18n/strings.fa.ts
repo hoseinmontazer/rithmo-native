@@ -56,6 +56,7 @@ export const navTitles = {
   Support: 'پشتیبانی',
   Upgrade: 'ریتمو پریمیوم',
   Pregnancy: 'بارداری',
+  TTC: 'تلاش برای بارداری',
   ZibalPayment: 'پرداخت',
   KnowledgeDetail: 'دانستنی امروز',
   KnowledgeHistory: 'دانستنی‌ها',

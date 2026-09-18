@@ -90,6 +90,7 @@ export const PROFILE_ICONS = {
   history: 'history',
   medications: 'pill',
   pregnancy: 'human-pregnant',
+  ttc: 'heart-plus-outline',
 } as const;
 
 export type ProfileIconKey = keyof typeof PROFILE_ICONS;
