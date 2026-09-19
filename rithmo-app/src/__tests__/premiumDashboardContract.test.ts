@@ -11,6 +11,12 @@
  * and cycleChangeReviewContract.test.ts already assert stay on
  * InsightsHomeScreen.
  */
+// A top-level `export` makes this a module rather than a global script —
+// without it, this file's `fs`/`path`/`SRC`/`read` collide at the
+// type-checker level with the same names declared the same way in
+// navigationGraph.test.ts (TS2451/TS2393), even though Jest runs each
+// file in its own sandbox at runtime.
+export {};
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const fs = require('fs');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
