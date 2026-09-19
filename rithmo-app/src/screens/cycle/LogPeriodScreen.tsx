@@ -81,7 +81,6 @@ function CustomDatePickerSheet({
   onSelect: (d: Date) => void;
 }) {
   const { colors, spacing, typography, borderRadius } = useTheme();
-  const [cur, setCur] = useState(selected);
   const today = new Date();
 
   const dates: Date[] = Array.from({ length: 45 }, (_, i) => {
@@ -94,7 +93,10 @@ function CustomDatePickerSheet({
     faDate(d, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
   const isToday = (d: Date) => d.toDateString() === today.toDateString();
-  const isSel = (d: Date) => d.toDateString() === cur.toDateString();
+  // Reads the live `selected` prop directly rather than staging a local
+  // copy — a tap below commits immediately (see onPress), so there is
+  // never an uncommitted selection that a dismiss could silently drop.
+  const isSel = (d: Date) => d.toDateString() === selected.toDateString();
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -123,7 +125,10 @@ function CustomDatePickerSheet({
               return (
                 <TouchableOpacity
                   key={i}
-                  onPress={() => setCur(d)}
+                  onPress={() => {
+                    onSelect(d);
+                    onClose();
+                  }}
                   style={[
                     styles.dateOptionRow,
                     {
@@ -159,19 +164,6 @@ function CustomDatePickerSheet({
               );
             })}
           </ScrollView>
-
-          {/* Action */}
-          <View style={[styles.modalActionFooter, { borderTopColor: colors.border, padding: spacing[4] }]}>
-            <Button
-              label="انتخاب این تاریخ"
-              onPress={() => {
-                onSelect(cur);
-                onClose();
-              }}
-              size="md"
-              fullWidth
-            />
-          </View>
         </View>
       </View>
     </Modal>
@@ -843,9 +835,6 @@ const styles = StyleSheet.create({
   todayTagText: {
     fontWeight: '600',
     marginTop: 1,
-  },
-  modalActionFooter: {
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
   endPeriodSheet: {
     borderBottomLeftRadius: 0,
