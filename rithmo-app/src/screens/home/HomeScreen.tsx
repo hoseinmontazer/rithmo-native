@@ -310,7 +310,7 @@ export default function HomeScreen() {
               onPress={pregnancy?.has_active_pregnancy ? goToPregnancy : goToCycle}
               onStartTracking={goToLogPeriod}
             />
-            {(!pregnancy?.has_active_pregnancy || (cycle && cycle.is_known)) && (
+            {(!pregnancy?.has_active_pregnancy || state?.cycle?.is_known) && (
               <QuickCheckInWidget onPressItem={goToQuickLogCategory} />
             )}
           </View>
