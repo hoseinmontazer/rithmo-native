@@ -7,7 +7,7 @@
  * describes an internal condition rather than anything she can act on.
  */
 
-import { extractErrorMessage, isNetworkError, isUnauthorizedError } from '@utils/errorHandler';
+import { extractErrorMessage, isNetworkError, isRateLimitedError, isUnauthorizedError } from '@utils/errorHandler';
 
 const LATIN = /[A-Za-z]/;
 
@@ -15,8 +15,16 @@ function axiosError(message: string) {
   return { message, isAxiosError: true };
 }
 
-function responseError(data: unknown, status = 400) {
-  return { message: 'Request failed', response: { status, data }, isAxiosError: true };
+function responseError(data: unknown, status = 400, headers?: Record<string, string>) {
+  return { message: 'Request failed', response: { status, data, headers }, isAxiosError: true };
+}
+
+function throttledError(retryAfterSeconds?: number) {
+  const detail = retryAfterSeconds !== undefined
+    ? `Request was throttled. Expected available in ${retryAfterSeconds} seconds.`
+    : 'Request was throttled.';
+  const headers = retryAfterSeconds !== undefined ? { 'retry-after': String(retryAfterSeconds) } : undefined;
+  return responseError({ detail }, 429, headers);
 }
 
 describe('technical strings never reach the user', () => {
@@ -89,5 +97,40 @@ describe('error classification still works', () => {
   it('detects a network error', () => {
     expect(isNetworkError(axiosError('Network Error'))).toBe(true);
     expect(isNetworkError(responseError({}, 500))).toBe(false);
+  });
+});
+
+describe('HTTP 429 (rate limit) gets its own dedicated message, never the generic one', () => {
+  it('detects a 429 specifically', () => {
+    expect(isRateLimitedError(throttledError(3600))).toBe(true);
+    expect(isRateLimitedError(responseError({}, 500))).toBe(false);
+    expect(isRateLimitedError(responseError({}, 403))).toBe(false);
+  });
+
+  it('never shows the generic "مشکلی پیش آمد" message for a 429', () => {
+    const out = extractErrorMessage(throttledError(3600));
+    expect(out).not.toBe('مشکلی پیش آمد. دوباره تلاش کن.');
+    expect(out).not.toMatch(LATIN);
+    expect(out).toContain('درخواست‌های زیادی ارسال شده');
+  });
+
+  it('uses the real Retry-After header when the server provides one, rounded to a natural unit', () => {
+    expect(extractErrorMessage(throttledError(3600))).toContain('یک ساعت');
+    expect(extractErrorMessage(throttledError(300))).toContain('۵ دقیقه');
+    expect(extractErrorMessage(throttledError(20))).toContain('۲۰ ثانیه');
+  });
+
+  it('falls back to a generic wait message when no reliable Retry-After is given — never invents a duration', () => {
+    const out = extractErrorMessage(throttledError(undefined));
+    expect(out).toBe('درخواست‌های زیادی ارسال شده. چند لحظه صبر کن و دوباره امتحان کن.');
+  });
+
+  it('does not change how 401, 500, or network errors are classified or messaged', () => {
+    expect(isRateLimitedError(responseError({}, 401))).toBe(false);
+    expect(isUnauthorizedError(responseError({}, 401))).toBe(true);
+    expect(isRateLimitedError(axiosError('Network Error'))).toBe(false);
+    expect(isNetworkError(axiosError('Network Error'))).toBe(true);
+    expect(extractErrorMessage(responseError({ detail: 'Internal Server Error' }, 500)))
+      .toBe('مشکلی پیش آمد. دوباره تلاش کن.');
   });
 });

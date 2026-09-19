@@ -18,6 +18,8 @@ export interface TypedAxiosError {
   response?: {
     status: number;
     data: ApiError;
+    /** Axios lowercases header names on the response object. */
+    headers?: Record<string, string>;
   };
   message: string;
 }

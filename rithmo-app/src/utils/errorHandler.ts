@@ -1,4 +1,5 @@
 import type { ApiError, TypedAxiosError } from '@types/api.types';
+import { toFa } from '@utils/persian';
 
 /**
  * Turn an error into something a Persian-speaking user can act on.
@@ -51,8 +52,55 @@ function translate(raw: string): string {
   return isLatin(raw) ? GENERIC : raw;
 }
 
+/** "حدود ۳۰ ثانیه" / "حدود ۵ دقیقه" / "حدود یک ساعت" — a natural-language
+ * rounding of a Retry-After duration, never a literal second count for
+ * anything past a minute (nobody reads "بعد از ۳۶۰۰ ثانیه صبر کن" as
+ * "an hour"). */
+function formatWaitDuration(seconds: number): string {
+  if (seconds < 60) {
+    return `حدود ${toFa(Math.max(1, Math.round(seconds)))} ثانیه`;
+  }
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) {
+    return `حدود ${toFa(minutes)} دقیقه`;
+  }
+  const hours = Math.round(seconds / 3600);
+  return hours <= 1 ? 'حدود یک ساعت' : `حدود ${toFa(hours)} ساعت`;
+}
+
+/**
+ * HTTP 429 (DRF's ScopedRateThrottle) is a distinct, non-error condition —
+ * the user did nothing wrong, they just need to wait. It must never reach
+ * the generic "مشکلی پیش آمد" path: DRF's own detail string ("Request was
+ * throttled. Expected available in N seconds.") is English, so the normal
+ * isLatin() fallback below would otherwise swallow it into the same
+ * generic message a real failure gets, which is exactly the bug this
+ * exists to fix. DRF sets a real `Retry-After` header (see
+ * rest_framework.views.exception_handler) whenever the throttle knows how
+ * long is left — used when present, never guessed when it is not.
+ */
+function rateLimitMessage(axiosError: TypedAxiosError): string {
+  const retryAfterHeader = axiosError.response?.headers?.['retry-after'];
+  const seconds = retryAfterHeader !== undefined ? Number(retryAfterHeader) : NaN;
+  if (Number.isFinite(seconds) && seconds > 0) {
+    return `درخواست‌های زیادی ارسال شده. ${formatWaitDuration(seconds)} صبر کن و دوباره امتحان کن.`;
+  }
+  return 'درخواست‌های زیادی ارسال شده. چند لحظه صبر کن و دوباره امتحان کن.';
+}
+
+/** True for HTTP 429 — callers use this to skip automatic retry logic and
+ * to route to the dedicated rate-limit UI treatment rather than a plain
+ * error toast. */
+export function isRateLimitedError(error: unknown): boolean {
+  return (error as TypedAxiosError)?.response?.status === 429;
+}
+
 export function extractErrorMessage(error: unknown): string {
   const axiosError = error as TypedAxiosError;
+
+  if (axiosError?.response?.status === 429) {
+    return rateLimitMessage(axiosError);
+  }
 
   if (axiosError?.response?.data) {
     const data = axiosError.response.data as ApiError;

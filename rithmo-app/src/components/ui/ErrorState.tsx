@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '@hooks/useTheme';
 import { Button } from './Button';
 import { Icon } from './Icon';
-import { extractErrorMessage } from '@utils/errorHandler';
+import { extractErrorMessage, isRateLimitedError } from '@utils/errorHandler';
 
 interface ErrorStateProps {
   error: unknown;
@@ -14,14 +14,22 @@ interface ErrorStateProps {
 export const ErrorState = memo(function ErrorState({ error, onRetry, fullScreen = false }: ErrorStateProps) {
   const { colors, typography, spacing } = useTheme();
   const message = extractErrorMessage(error);
+  // A 429 is not a failure — the user did nothing wrong, they just need
+  // to wait — so it gets its own calmer framing (clock icon, no "مشکلی
+  // پیش آمد") rather than the generic error treatment below.
+  const rateLimited = isRateLimitedError(error);
 
   return (
     <View style={[styles.container, fullScreen && styles.fullScreen, { backgroundColor: colors.background }]}>
-      <View style={[styles.iconContainer, { backgroundColor: colors.errorBg }]}>
-        <Icon name="alert-circle-outline" size={28} color={colors.error} />
+      <View style={[styles.iconContainer, { backgroundColor: rateLimited ? colors.surfaceSecondary : colors.errorBg }]}>
+        <Icon
+          name={rateLimited ? 'clock-outline' : 'alert-circle-outline'}
+          size={28}
+          color={rateLimited ? colors.textSecondary : colors.error}
+        />
       </View>
       <Text style={[styles.title, { color: colors.textPrimary, fontSize: typography.title, marginTop: spacing[3] }]}>
-        مشکلی پیش آمد
+        {rateLimited ? 'کمی صبر کن' : 'مشکلی پیش آمد'}
       </Text>
       <Text style={[styles.message, { color: colors.textSecondary, fontSize: typography.bodySmall, marginTop: spacing[2] }]}>
         {message}
