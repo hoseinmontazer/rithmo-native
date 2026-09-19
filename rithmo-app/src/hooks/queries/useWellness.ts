@@ -71,6 +71,13 @@ export function useDeleteWellnessLog() {
   });
 }
 
+/**
+ * The endpoint itself now returns 200 with `averages: null` for a
+ * genuinely empty window (see cycle_tracker/views/wellness_log.py's
+ * `analytics` action) rather than a 404 — an empty state is not an
+ * error. The 404 branch below is defensive only, for a request that
+ * fails to reach the view at all (routing/proxy misconfiguration).
+ */
 export function useWellnessAnalytics(days: number = 30) {
   return useQuery<WellnessAnalytics | null>({
     queryKey: queryKeys.wellness.analytics(days),

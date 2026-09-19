@@ -99,7 +99,11 @@ export interface WellnessAnalytics {
     days: number;
     logs_count: number;
   };
-  averages: WellnessAverages;
+  /** `null` when `period.logs_count` is 0 — the backend returns 200 with
+   * an honest empty state rather than fabricating a zeroed average
+   * (which would read as "you slept 0 hours" instead of "nothing
+   * recorded yet"). */
+  averages: WellnessAverages | null;
   trends: Record<string, unknown>;
   best_day: { date: string; wellness_score: number } | null;
   worst_day: { date: string; wellness_score: number } | null;

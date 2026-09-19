@@ -319,8 +319,10 @@ export default function QuickLogScreen() {
    * One deliberate semantic change: the baseline is now the last 30 *days*
    * rather than the last 30 *entries*. For a daily logger they are the same
    * window; for a sparse logger "your usual" should mean recent life, not a
-   * span that might reach back a year. `useWellnessAnalytics` already maps
-   * the endpoint's 404-on-no-data to `null`.
+   * span that might reach back a year. With no logs in the window the
+   * endpoint returns 200 with `averages: null` (an empty state, not an
+   * error) — `hasBaseline` below already treats that the same as
+   * `analytics` being absent.
    */
   const { data: analytics } = useWellnessAnalytics(BASELINE_WINDOW_DAYS);
   const { data: streaks } = useWellnessStreaks();
