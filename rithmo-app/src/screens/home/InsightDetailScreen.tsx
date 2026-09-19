@@ -120,7 +120,14 @@ export default function InsightDetailScreen() {
   const rows = evidenceRows(insight);
   const learning = today?.state.baselines.learning ?? [];
   const learningProgress = today?.state.baselines.learning_progress ?? {};
-  const usableCycles = today?.state.cycle.usable_cycles;
+  // `?.` before `.cycle` too, not just before `today` — optional chaining
+  // only short-circuits from the point it appears, so `today?.state.cycle`
+  // still throws "Property 'cycle' doesn't exist" if `state` is present
+  // but `cycle` itself is not (observed live on-device, TodayPayload's
+  // `state.cycle` being declared non-optional does not guarantee it at
+  // runtime for every payload this screen can receive, e.g. a stale
+  // cached response from an older shape).
+  const usableCycles = today?.state.cycle?.usable_cycles;
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['left', 'right']}>
