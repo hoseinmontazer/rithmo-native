@@ -11,6 +11,7 @@ import React, { useCallback } from 'react';
 import {
   View,
   Text,
+  Image,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -33,14 +34,9 @@ import type { ProfileScreenProps } from '@navigation/types';
 
 type Props = ProfileScreenProps<'Profile'>;
 
-// ── helpers ───────────────────────────────────────────────────────────────────
+const DEFAULT_AVATAR = require('../../assets/icons/default-avatar.png');
 
-function initials(first?: string, last?: string, username?: string) {
-  if (first && last) { return `${first[0]}${last[0]}`.toUpperCase(); }
-  if (first)         { return first[0].toUpperCase(); }
-  if (username)      { return username[0].toUpperCase(); }
-  return '؟';
-}
+// ── helpers ───────────────────────────────────────────────────────────────────
 
 function sexMeta(sex?: string): { icon: string | null; label: string } {
   if (sex === 'female') { return { icon: 'gender-female', label: 'زن' }; }
@@ -237,12 +233,11 @@ export default function ProfileScreen() {
                 backgroundColor: colors.primaryLighter,
                 borderColor: colors.primary,
                 borderRadius: borderRadius.pill,
+                overflow: 'hidden',
               },
             ]}
           >
-            <Text style={[styles.avatarText, { color: colors.primaryDark, fontSize: typography['2xl'], fontWeight: '800' }]}>
-              {initials(profile?.first_name, profile?.last_name, user?.username)}
-            </Text>
+            <Image source={DEFAULT_AVATAR} style={styles.avatarImage} />
           </View>
 
           {/* Identity details */}
@@ -674,7 +669,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginEnd: 14,
   },
-  avatarText: { lineHeight: 36 },
+  avatarImage: { width: '100%', height: '100%' },
   heroDetails: { flex: 1 },
   userName: {},
   userEmail: {},

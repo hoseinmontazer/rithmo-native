@@ -14,6 +14,8 @@ import {
 import { useTheme } from '@hooks/useTheme';
 import { Icon } from './Icon';
 
+const DEFAULT_AVATAR = require('../../assets/icons/default-avatar.png');
+
 interface CircularAvatarProps {
   source?: { uri: string } | number;
   size?: number;
@@ -102,21 +104,17 @@ export const CircularAvatar = memo(function CircularAvatar({
             },
           ]}
         >
-          {source ? (
-            <Image
-              source={source}
-              style={[
-                styles.image,
-                {
-                  width: innerSize,
-                  height: innerSize,
-                  borderRadius: innerSize / 2,
-                },
-              ]}
-            />
-          ) : (
-            <Icon name="account" size={innerSize * 0.6} color={colors.textSecondary} />
-          )}
+          <Image
+            source={source ?? DEFAULT_AVATAR}
+            style={[
+              styles.image,
+              {
+                width: innerSize,
+                height: innerSize,
+                borderRadius: innerSize / 2,
+              },
+            ]}
+          />
         </View>
       </View>
       
