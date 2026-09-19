@@ -14,4 +14,10 @@ export const aiReflectionService = {
 
   getWeeklyReview: () =>
     apiClient.get<DailyReflectionResponse>(API_ENDPOINTS.AI_WEEKLY_REVIEW),
+
+  getMonthlyReview: () =>
+    apiClient.get<DailyReflectionResponse>(API_ENDPOINTS.AI_MONTHLY_REVIEW),
+
+  getDoctorReport: () =>
+    apiClient.get<DailyReflectionResponse>(API_ENDPOINTS.AI_DOCTOR_REPORT),
 };

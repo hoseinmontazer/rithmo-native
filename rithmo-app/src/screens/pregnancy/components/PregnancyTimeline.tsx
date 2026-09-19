@@ -1,5 +1,6 @@
 /**
- * PregnancyTimeline — «جدول زمانی بارداری» (P1.3, Premium)
+ * PregnancyTimeline — «جدول زمانی بارداری» (P1.3, free — see
+ * docs/DECISIONS.md DEC-005)
  *
  * Renders exactly what `/api/intelligence/pregnancy/` returns: a fixed,
  * small product timeline (started → trimester 1/2/3 → estimated due

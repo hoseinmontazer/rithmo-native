@@ -50,6 +50,10 @@ export const API_ENDPOINTS = {
   INTELLIGENCE_ACTIONS: '/api/intelligence/actions/',
   INTELLIGENCE_CHECKIN: '/api/intelligence/checkin/',
   INTELLIGENCE_PROGRESS: '/api/intelligence/progress/',
+  // Premium — see intelligence/domain/forecast.py / monthly_review_payload().
+  INTELLIGENCE_FORECAST: '/api/intelligence/forecast/',
+  INTELLIGENCE_REVIEW_MONTHLY: '/api/intelligence/review/monthly/',
+  INTELLIGENCE_DOCTOR_REPORT: '/api/intelligence/doctor-report/',
   // P1.1 — see intelligence/domain/fertility.py / fertile_window_payload().
   INTELLIGENCE_FERTILE_WINDOW: '/api/intelligence/fertile-window/',
   // P1.2 — see intelligence/services.py's health_change_payload(). A
@@ -134,6 +138,9 @@ export const API_ENDPOINTS = {
   AI_PARTNER_REFLECTION: '/api/ai/partner-reflection/',
   AI_CYCLE_CHANGE_REVIEW: '/api/ai/cycle-change-review/',
   AI_WEEKLY_REVIEW: '/api/ai/weekly-review/',
+  AI_MONTHLY_REVIEW: '/api/ai/monthly-review/',
+  AI_ASK_RITHMO: '/api/ai/ask-rithmo/',
+  AI_DOCTOR_REPORT: '/api/ai/doctor-report/',
 
   // Support (user-facing tickets; internal notes are server-side only)
   SUPPORT_TICKETS: '/api/support/tickets/',

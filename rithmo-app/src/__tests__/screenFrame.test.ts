@@ -22,13 +22,15 @@ const SCREENS = path.join(__dirname, '..', 'screens');
 
 /**
  * Centred hero layouts, not content pages: their larger top inset is doing
- * vertical composition. ConversationScreen is a chat transcript, which is
- * pinned to its own edges.
+ * vertical composition. ConversationScreen and AskRithmoScreen are both a
+ * scrollable content list sitting above its own fixed input bar, not a
+ * plain page pinned to the screen edge — same reasoning, same exemption.
  */
 const EXEMPT = [
   path.join('auth', ''),
   path.join('onboarding', ''),
   path.join('messages', 'ConversationScreen.tsx'),
+  path.join('insights', 'AskRithmoScreen.tsx'),
 ];
 
 function walk(dir: string): string[] {

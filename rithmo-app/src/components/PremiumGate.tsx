@@ -30,9 +30,18 @@ interface PremiumGateProps {
   featureName?: string;
   /** If true, renders children behind a blur/overlay instead of replacing them */
   overlay?:     boolean;
+  /**
+   * Overrides the banner/card's own generic explanation with a specific,
+   * already-computed reason (e.g. a backend `premium_teaser_fa`, or —
+   * for Ask Rithmo, where the explanation already lives inline in
+   * `answer_fa` — omit both `message` and children for just the compact
+   * CTA button with no restated text). Keeps one reusable component
+   * instead of a second, slightly-different Premium banner per screen.
+   */
+  message?: string;
 }
 
-export function PremiumGate({ children, featureName, overlay = false }: PremiumGateProps) {
+export function PremiumGate({ children, featureName, overlay = false, message }: PremiumGateProps) {
   const { isPremium, isLoading } = usePremiumStatus();
   const { colors, spacing, typography, borderRadius } = useTheme();
   const navigation = useNavigation();
@@ -54,51 +63,64 @@ export function PremiumGate({ children, featureName, overlay = false }: PremiumG
     return children ? <>{children}</> : null;
   }
 
-  // Overlay mode — show children dimmed with a lock banner on top
+  const banner = (
+    <View
+      style={[
+        styles.overlayBanner,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+          borderRadius: borderRadius.md,
+        },
+      ]}
+    >
+      <Icon name="lock-outline" size={18} color={colors.textPrimary} />
+      <Text
+        style={{
+          color: colors.textPrimary,
+          fontSize: typography.bodySmall,
+          fontWeight: '600',
+          marginHorizontal: spacing[3],
+          flex: 1,
+        }}
+      >
+        {message ?? (featureName ? `${featureName} ویژه‌ی پرمیوم است` : 'امکان پرمیوم')}
+      </Text>
+      <TouchableOpacity
+        onPress={handleUpgrade}
+        style={[
+          styles.unlockBtn,
+          { backgroundColor: colors.primary, borderRadius: borderRadius.sm },
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={`باز کردن ${featureName ?? 'امکان پرمیوم'}`}
+      >
+        <Text style={{ color: colors.textOnPrimary, fontSize: typography.label, fontWeight: '700' }}>
+          باز کردن
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Overlay mode with children — show them dimmed with the banner on top.
   if (overlay && children) {
     return (
       <View style={styles.overlayRoot}>
         <View style={styles.overlayDim} pointerEvents="none">
           {children}
         </View>
-        <View
-          style={[
-            styles.overlayBanner,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderRadius: borderRadius.md,
-            },
-          ]}
-        >
-          <Icon name="lock-outline" size={18} color={colors.textPrimary} />
-          <Text
-            style={{
-              color: colors.textPrimary,
-              fontSize: typography.bodySmall,
-              fontWeight: '600',
-              marginHorizontal: spacing[3],
-              flex: 1,
-            }}
-          >
-            {featureName ? `${featureName} ویژه‌ی پرمیوم است` : 'امکان پرمیوم'}
-          </Text>
-          <TouchableOpacity
-            onPress={handleUpgrade}
-            style={[
-              styles.unlockBtn,
-              { backgroundColor: colors.primary, borderRadius: borderRadius.sm },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={`باز کردن ${featureName ?? 'امکان پرمیوم'}`}
-          >
-            <Text style={{ color: colors.textOnPrimary, fontSize: typography.label, fontWeight: '700' }}>
-              باز کردن
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {banner}
       </View>
     );
+  }
+
+  // Overlay mode with no children — a compact, standalone contextual CTA
+  // banner for a section that already rendered its own free content
+  // above (Ask Rithmo/Forecast/Monthly Review/Doctor Report's Premium
+  // depth prompts): no locked card, no dimmed placeholder, just the
+  // banner + upgrade button under real content that's already visible.
+  if (overlay) {
+    return banner;
   }
 
   // Default: replace content with a locked card
@@ -139,8 +161,10 @@ export function PremiumGate({ children, featureName, overlay = false }: PremiumG
             marginBottom: spacing[4],
           }}
         >
-          ریتمو الگوهایی را که در زندگی روزمره به چشم نمی‌آیند، از روی داده‌های خودت پیدا می‌کند —
-          نه با میانگین دیگران، فقط با تاریخچه‌ی خودت.
+          {message ?? (
+            'ریتمو الگوهایی را که در زندگی روزمره به چشم نمی‌آیند، از روی داده‌های خودت پیدا می‌کند — ' +
+            'نه با میانگین دیگران، فقط با تاریخچه‌ی خودت.'
+          )}
         </Text>
 
         <TouchableOpacity

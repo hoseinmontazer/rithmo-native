@@ -190,10 +190,10 @@ export default function InsightsHomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const { data: periodsList, refetch: refetchPeriods } = usePeriods();
-  const { data: analytics,   refetch: refetchAnalytics } = useWellnessAnalytics(30);
-  const { data: cycleData,   refetch: refetchCycle }   = useCycleAnalysis();
+  const { data: analytics, refetch: refetchAnalytics } = useWellnessAnalytics(30);
+  const { data: cycleData, refetch: refetchCycle } = useCycleAnalysis();
   const { data: insightData, refetch: refetchInsights } = useInsights();
-  const { data: progress,    refetch: refetchProgress } = useProgress();
+  const { data: progress, refetch: refetchProgress } = useProgress();
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -367,11 +367,11 @@ export default function InsightsHomeScreen() {
             </View>
 
             <Card elevated={false} rounded="2xl" style={{ padding: spacing[4] }}>
-              <AvgMetricRow label="خواب"   value={avg.sleep_hours  ?? null} max={10} color={colors.primary}         iconName="weather-night" />
-              <AvgMetricRow label="خلق"    value={avg.mood_level   ?? null} max={5}  color={colors.luteal}          iconName="emoticon-outline" />
-              <AvgMetricRow label="انرژی"  value={avg.energy_level ?? null} max={10} color={colors.ovulation}       iconName="lightning-bolt-outline" />
-              <AvgMetricRow label="درد"    value={avg.pain_level   ?? null} max={10} color={colors.menstrual}       iconName="pill" />
-              <AvgMetricRow label="استرس"  value={avg.stress_level ?? null} max={10} color={colors.follicular}      iconName="meditation" />
+              <AvgMetricRow label="خواب" value={avg.sleep_hours ?? null} max={10} color={colors.primary} iconName="weather-night" />
+              <AvgMetricRow label="خلق" value={avg.mood_level ?? null} max={5} color={colors.luteal} iconName="emoticon-outline" />
+              <AvgMetricRow label="انرژی" value={avg.energy_level ?? null} max={10} color={colors.ovulation} iconName="lightning-bolt-outline" />
+              <AvgMetricRow label="درد" value={avg.pain_level ?? null} max={10} color={colors.menstrual} iconName="pill" />
+              <AvgMetricRow label="استرس" value={avg.stress_level ?? null} max={10} color={colors.follicular} iconName="meditation" />
             </Card>
           </View>
         )}
@@ -427,8 +427,8 @@ export default function InsightsHomeScreen() {
                         regScore > 0.75
                           ? colors.success
                           : regScore > 0.5
-                          ? colors.warning
-                          : colors.error
+                            ? colors.warning
+                            : colors.error
                       }
                       height={4}
                     />
@@ -494,14 +494,19 @@ export default function InsightsHomeScreen() {
           </Card>
         </TouchableOpacity>
 
-        {/* ══ PREMIUM DASHBOARD CTA ═════════════════════════════════════
-            Entry point to the Premium home now hosting Fertile Window
-            Intelligence (P1.1) — a separate screen, reached the same way
-            DeepInsights already is below. This is additive: it does not
-            replace the inline Cycle Change / Weekly Review cards just
-            below, which stay exactly where the existing test suite
-            (weeklyReviewContract / cycleChangeReviewContract) already
-            asserts they belong. */}
+        {/* ══ HEALTH INTELLIGENCE DASHBOARD CTA (P0.10) ═════════════════
+            The consolidated Personal Health Intelligence home (Daily
+            Insight, What Changed, strongest pattern, Forecast, Monthly
+            Review) — a separate screen, reached the same way DeepInsights
+            already is below. This is additive: it does not replace the
+            inline Cycle Change / Weekly Review cards just below, which
+            stay exactly where the existing test suite (weeklyReviewContract
+            / cycleChangeReviewContract) already asserts they belong.
+            No longer badged "ویژه پریمیوم" (docs/DECISIONS.md DEC-005):
+            the destination screen itself is free now — Forecast/Monthly
+            Review render real free content there, with Premium gating
+            only their own deeper sections internally. A blanket
+            "Premium exclusive" badge on the entry point would be false. */}
         <TouchableOpacity
           onPress={() => navigation.navigate('PremiumDashboard')}
           activeOpacity={0.85}
@@ -509,23 +514,15 @@ export default function InsightsHomeScreen() {
           accessibilityLabel="پنل هوش سلامت شخصی"
           style={{ marginBottom: spacing[4] }}
         >
-          <Card
-            elevated={false}
-            rounded="2xl"
-            style={[
-              styles.ctaCard,
-              { backgroundColor: colors.premiumBg, borderColor: colors.premiumBorder, padding: spacing[4] },
-            ]}
-          >
+          <Card elevated={false} rounded="2xl" style={[styles.ctaCard, { padding: spacing[4] }]}>
             <View style={styles.ctaHeaderRow}>
-              <Badge label="ویژه پریمیوم" variant="primary" />
-              <Icon name="arrow-left" size={18} color={colors.premium} />
+              <Icon name="arrow-left" size={18} color={colors.primary} />
             </View>
             <Text style={[styles.ctaTitle, { color: colors.textPrimary, fontSize: typography.lg, marginTop: spacing[2] }]}>
               پنل هوش سلامت شخصی
             </Text>
             <Text style={[styles.ctaBody, { color: colors.textSecondary, fontSize: typography.sm, marginTop: spacing[1] }]}>
-              بازه‌ی باروری تخمینی‌ات را بر اساس داده‌های خودت ببین.
+              چه چیزی تغییر کرده، چه الگویی شناخته شده، و چه چیزی احتمالاً پیش رو داری — همه در یک نگاه.
             </Text>
           </Card>
         </TouchableOpacity>

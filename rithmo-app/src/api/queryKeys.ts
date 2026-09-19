@@ -71,6 +71,9 @@ export const queryKeys = {
     insights: (includeInsufficient?: boolean) =>
       ['intelligence', 'insights', includeInsufficient ? 'all' : 'supported'] as const,
     progress: () => ['intelligence', 'progress'] as const,
+    forecast: () => ['intelligence', 'forecast'] as const,
+    monthlyReview: () => ['intelligence', 'monthlyReview'] as const,
+    doctorReport: () => ['intelligence', 'doctorReport'] as const,
     fertileWindow: () => ['intelligence', 'fertileWindow'] as const,
     healthChanges: () => ['intelligence', 'healthChanges'] as const,
     partnerToday: () => ['intelligence', 'partner', 'today'] as const,
@@ -99,6 +102,8 @@ export const queryKeys = {
     partner: () => ['aiReflection', 'partner'] as const,
     cycleChange: () => ['aiReflection', 'cycleChange'] as const,
     weeklyReview: () => ['aiReflection', 'weeklyReview'] as const,
+    monthlyReview: () => ['aiReflection', 'monthlyReview'] as const,
+    doctorReport: () => ['aiReflection', 'doctorReport'] as const,
   },
   support: {
     all: () => ['support'] as const,

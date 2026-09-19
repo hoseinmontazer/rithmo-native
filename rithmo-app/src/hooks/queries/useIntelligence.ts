@@ -13,6 +13,9 @@ import type {
   ProgressPayload,
   TodayPayload,
 } from '@types/intelligence.types';
+import type { ForecastPayload } from '@types/forecast.types';
+import type { MonthlyReviewPayload } from '@types/monthlyReview.types';
+import type { DoctorReportPayload } from '@types/doctorReport.types';
 import type { FertileWindowPayload } from '@types/fertileWindow.types';
 import type { HealthChangePayload } from '@types/healthChange.types';
 
@@ -50,10 +53,70 @@ export function useProgress(enabled = true) {
 }
 
 /**
+ * Personalized Symptom Forecast (P0.5) — free/Premium split
+ * (docs/DECISIONS.md DEC-005): every user gets the honest status
+ * (learning mode / no pattern yet / a real pattern found, plus
+ * `forecast_count` once free); only the projected date windows
+ * (`forecasts`) require Premium, gated internally by the payload itself
+ * (`premium_required`/`premium_teaser_fa`). Used to also disable the
+ * query entirely for a non-premium user, which would have kept a free
+ * user's screen empty even after the screen-level paywall is removed.
+ */
+export function useForecast(enabled = true) {
+  const { isAuthenticated } = useAuth();
+
+  return useQuery<ForecastPayload>({
+    queryKey: queryKeys.intelligence.forecast(),
+    queryFn: () => intelligenceService.getForecast(),
+    enabled: enabled && isAuthenticated,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Monthly Review's deterministic sections (P0.6) — free/Premium split
+ * (DEC-005): cycle stats, most-common symptoms, and biggest changes are
+ * free; cross-cycle `patterns` and `next_cycle_expectations` require
+ * Premium, gated internally by the payload. Distinct from
+ * useMonthlyReviewNarrative (the AI synthesis built on top of this same
+ * data, which stays fully Premium-gated — not part of this pass).
+ */
+export function useMonthlyReview(enabled = true) {
+  const { isAuthenticated } = useAuth();
+
+  return useQuery<MonthlyReviewPayload>({
+    queryKey: queryKeys.intelligence.monthlyReview(),
+    queryFn: () => intelligenceService.getMonthlyReview(),
+    enabled: enabled && isAuthenticated,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Doctor Health Report's deterministic sections (P0.8) — free/Premium
+ * split (DEC-005): report_period/tracking_coverage/data_sufficiency and
+ * observation.cycle_summary are free; the clinical-conversation content
+ * (symptom_patterns, pain_summary, recent_changes, medical_information,
+ * follow_up) requires Premium, gated internally by the payload. Distinct
+ * from useDoctorReportNarrative (the optional AI summary, which stays
+ * fully Premium-gated — not part of this pass).
+ */
+export function useDoctorReport(enabled = true) {
+  const { isAuthenticated } = useAuth();
+
+  return useQuery<DoctorReportPayload>({
+    queryKey: queryKeys.intelligence.doctorReport(),
+    queryFn: () => intelligenceService.getDoctorReport(),
+    enabled: enabled && isAuthenticated,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
  * Fertile Window Intelligence (P1.1) — Premium. Same gating contract as
- * the AI reflection hooks (useWeeklyReview etc.): disabled entirely for a
- * non-premium/unauthenticated user rather than fetched and hidden, so a
- * free user's client never receives Premium data at all.
+ * useForecast/useMonthlyReview/useDoctorReport: disabled entirely for a
+ * non-premium/unauthenticated user, so a free user's client never
+ * receives Premium data at all.
  */
 export function useFertileWindow(enabled = true) {
   const { isAuthenticated } = useAuth();

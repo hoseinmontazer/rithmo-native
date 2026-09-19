@@ -1,10 +1,13 @@
 /**
  * usePregnancyStatus / useStartPregnancy / useEndPregnancy
  *
- * Pregnancy is a premium feature — the status query is only enabled for an
- * authenticated, premium user (a free user can never have an active
- * pregnancy, since the backend gates creation behind IsPremiumUser too;
- * skipping the request avoids a guaranteed 402/403 on every Home render).
+ * Free for every authenticated user (docs/DECISIONS.md DEC-005 —
+ * Progressive Premium Value: pregnancy status/tracking and the Pregnancy
+ * Timeline have no deeper "premium" layer to withhold, so the backend
+ * gate was removed rather than split; these queries used to also disable
+ * themselves for a non-premium user, which would have silently kept a
+ * free user's screen empty even after the screen-level paywall was
+ * removed). Enabled for any authenticated user now.
  *
  * All gestational-week/day/trimester/due-date values come straight from
  * the API response — nothing here recomputes them. The backend remains
@@ -14,7 +17,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { pregnancyService } from '@api/services/pregnancyService';
 import { queryKeys } from '@api/queryKeys';
 import { useAuth } from '@hooks/useAuth';
-import { usePremiumStatus } from '@hooks/queries/useSubscription';
 import type { PregnancyStatus, StartPregnancyRequest } from '@types/pregnancy.types';
 import type { PregnancyTimelinePayload } from '@types/pregnancyTimeline.types';
 
@@ -29,31 +31,27 @@ function unwrap(responseData: unknown): PregnancyStatus {
 
 export function usePregnancyStatus() {
   const { isAuthenticated } = useAuth();
-  const { isPremium, isLoading: isPremiumLoading } = usePremiumStatus();
 
   return useQuery({
     queryKey: queryKeys.pregnancy.status(),
     queryFn: () => pregnancyService.getStatus().then((r) => unwrap(r.data)),
-    enabled: isAuthenticated && !isPremiumLoading && isPremium,
+    enabled: isAuthenticated,
   });
 }
 
 /**
- * Pregnancy Intelligence Mode + Timeline (P1.3) — Premium. Same gating
- * contract as usePregnancyStatus: disabled entirely for a
- * non-premium/unauthenticated user, so a free user's client never
- * receives the timeline. `active: false` (no active pregnancy) is a
- * normal successful response, not an error — the screen branches on it,
- * it never triggers a retry/error state.
+ * Pregnancy Intelligence Mode + Timeline (P1.3) — free (see module
+ * docstring above). `active: false` (no active pregnancy) is a normal
+ * successful response, not an error — the screen branches on it, it
+ * never triggers a retry/error state.
  */
 export function usePregnancyTimeline(enabled = true) {
   const { isAuthenticated } = useAuth();
-  const { isPremium, isLoading: isPremiumLoading } = usePremiumStatus();
 
   return useQuery<PregnancyTimelinePayload>({
     queryKey: queryKeys.pregnancy.timeline(),
     queryFn: () => pregnancyService.getTimeline().then((r) => r.data.data),
-    enabled: enabled && isAuthenticated && !isPremiumLoading && isPremium,
+    enabled: enabled && isAuthenticated,
   });
 }
 

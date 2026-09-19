@@ -11,6 +11,9 @@ import type {
   ProgressPayload,
   TodayPayload,
 } from '@types/intelligence.types';
+import type { ForecastPayload } from '@types/forecast.types';
+import type { MonthlyReviewPayload } from '@types/monthlyReview.types';
+import type { DoctorReportPayload } from '@types/doctorReport.types';
 import type { FertileWindowPayload } from '@types/fertileWindow.types';
 import type { HealthChangePayload } from '@types/healthChange.types';
 
@@ -90,6 +93,24 @@ export const intelligenceService = {
     apiClient
       .get(API_ENDPOINTS.INTELLIGENCE_PROGRESS)
       .then((r) => unwrap<ProgressPayload>(r)),
+
+  // Premium — P0.5/P0.6. Deterministic, not AI-narrated: see
+  // intelligence/domain/forecast.py and intelligence/services.py's
+  // monthly_review_payload() for what is and is not computed here.
+  getForecast: () =>
+    apiClient
+      .get(API_ENDPOINTS.INTELLIGENCE_FORECAST)
+      .then((r) => unwrap<ForecastPayload>(r)),
+
+  getMonthlyReview: () =>
+    apiClient
+      .get(API_ENDPOINTS.INTELLIGENCE_REVIEW_MONTHLY)
+      .then((r) => unwrap<MonthlyReviewPayload>(r)),
+
+  getDoctorReport: () =>
+    apiClient
+      .get(API_ENDPOINTS.INTELLIGENCE_DOCTOR_REPORT)
+      .then((r) => unwrap<DoctorReportPayload>(r)),
 
   // Premium — P1.1. Deterministic, no AI: see
   // intelligence/domain/fertility.py and services.fertile_window_payload()

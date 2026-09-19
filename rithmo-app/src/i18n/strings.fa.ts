@@ -42,6 +42,8 @@ export const navTitles = {
   // Insights
   InsightsHome: 'الگوهای من',
   PremiumDashboard: 'پنل هوش سلامت',
+  AskRithmo: 'از داده‌های من بپرس',
+  DoctorHealthReport: 'گزارش سلامت من',
   DeepInsights: 'تحلیل عمیق',
   LearningTimeline: 'چیزهایی که یاد گرفته‌ام',
 

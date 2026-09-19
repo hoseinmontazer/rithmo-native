@@ -38,15 +38,19 @@ describe('Pregnancy timeline endpoint', () => {
   });
 });
 
-describe('Pregnancy timeline premium gating', () => {
-  it('the hook is gated on the shared premium-status hook, not a bespoke check', () => {
+describe('Pregnancy timeline is free (docs/DECISIONS.md DEC-005)', () => {
+  it('the hook is gated on auth only, not premium status', () => {
     const src = read('hooks/queries/usePregnancy.ts');
-    expect(src).toMatch(/export function usePregnancyTimeline[^]*usePremiumStatus/);
+    expect(src).toMatch(/export function usePregnancyTimeline[^]*enabled:[^]*isAuthenticated/);
   });
 
-  it('is not fetched at all for a non-premium/unauthenticated user (enabled gate, not a client-side hide)', () => {
+  it('is fetched for any authenticated user — regression guard for the bug this fix closed', () => {
     const src = read('hooks/queries/usePregnancy.ts');
-    expect(src).toMatch(/export function usePregnancyTimeline[^]*enabled:[^]*isPremium/);
+    // This hook used to also require isPremium, which would have kept a
+    // free user's timeline query disabled forever even after the
+    // screen-level paywall was removed.
+    const fnBody = src.match(/export function usePregnancyTimeline[\s\S]*?\n}/)?.[0] ?? '';
+    expect(fnBody).not.toMatch(/isPremium/);
   });
 });
 

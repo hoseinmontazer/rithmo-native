@@ -107,8 +107,8 @@ android {
         applicationId "com.rithmo"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 4
-        versionName "1.0.6"
+        versionCode 5
+        versionName "1.0.7"
     }
     // PAYMENT_PROVIDER is decided here, at build time, per distribution
     // channel — never at runtime by asking the OS who installed the APK

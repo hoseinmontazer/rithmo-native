@@ -76,21 +76,21 @@ describe('Pregnancy entry routing', () => {
   });
 });
 
-describe('Pregnancy premium gating', () => {
-  it('wraps the screen content in the shared PremiumGate, not a bespoke paywall', () => {
+describe('Pregnancy is free (docs/DECISIONS.md DEC-005)', () => {
+  it('does not wrap the screen content in PremiumGate — no deeper layer to withhold', () => {
     const src = read('screens/pregnancy/PregnancyScreen.tsx');
-    expect(src).toMatch(/<PremiumGate/);
-    expect(src).not.toMatch(/UpgradeScreen/); // no duplicate/second paywall route dispatch here
+    expect(src).not.toMatch(/<PremiumGate/);
+    expect(src).not.toMatch(/UpgradeScreen/); // no paywall route dispatch here
   });
 
-  it('every pregnancy screen relies on the shared premium-status hook, not a private check', () => {
-    const files = ['screens/pregnancy/PregnancyScreen.tsx'];
-    for (const f of files) {
-      const src = read(f);
-      // Either directly via PremiumGate (which itself uses usePremiumStatus)
-      // or explicitly — never a hand-rolled subscription check.
-      expect(src.includes('PremiumGate') || src.includes('usePremiumStatus')).toBe(true);
-    }
+  it('the status/timeline queries are never disabled on premium status — only on auth', () => {
+    const src = read('hooks/queries/usePregnancy.ts');
+    // Regression guard for the actual bug this fix closed: these queries
+    // used to also require isPremium, which would have kept the free
+    // screen's data empty forever even after the screen-level gate was
+    // removed.
+    expect(src).not.toMatch(/isPremium/);
+    expect(src).toMatch(/enabled:\s*isAuthenticated/);
   });
 });
 

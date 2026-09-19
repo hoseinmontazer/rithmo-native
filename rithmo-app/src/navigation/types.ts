@@ -56,9 +56,17 @@ export type WellnessStackParamList = {
 // ── Insights Stack ────────────────────────────────────────────────────────────
 export type InsightsStackParamList = {
   InsightsHome:      undefined;
-  // The Premium home hosting Fertile Window Intelligence (P1.1).
-  // Premium-gated by the screen itself (PremiumGate), same as DeepInsights.
+  // P0.10 — the consolidated Personal Health Intelligence home. Free to
+  // open; only its genuinely Premium-only cards self-gate individually
+  // (see docs/DECISIONS.md DEC-005).
   PremiumDashboard:  undefined;
+  // P0.7 — question answering over the user's own tracked data. Free;
+  // deeper analysis on a given answer is gated per-response by the
+  // backend (premium_required), reached from PremiumDashboard.
+  AskRithmo:         undefined;
+  // P0.8 — the doctor conversation-prep report. Free; the deterministic
+  // facts always render, the cross-cycle depth self-gates per DEC-005.
+  DoctorHealthReport: undefined;
   DeepInsights:      undefined;
   // Owner-only by construction: InsightsTab is never mounted for a partner
   // role at all (see MainNavigator's `{!isPartner && ...}` gate), so this

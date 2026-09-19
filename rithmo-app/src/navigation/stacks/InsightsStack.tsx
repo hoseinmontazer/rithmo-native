@@ -6,6 +6,8 @@ import { useTheme } from '@hooks/useTheme';
 
 import InsightsHomeScreen from '@screens/insights/InsightsHomeScreen';
 import PremiumDashboardScreen from '@screens/insights/PremiumDashboardScreen';
+import AskRithmoScreen from '@screens/insights/AskRithmoScreen';
+import DoctorHealthReportScreen from '@screens/insights/DoctorHealthReportScreen';
 import DeepInsightsScreen from '@screens/insights/DeepInsightsScreen';
 import LearningTimelineScreen from '@screens/insights/LearningTimelineScreen';
 import KnowledgeHistoryScreen from '@screens/insights/KnowledgeHistoryScreen';
@@ -34,6 +36,16 @@ export function InsightsStack() {
         name="PremiumDashboard"
         component={PremiumDashboardScreen}
         options={{ title: navTitle('PremiumDashboard') }}
+      />
+      <Stack.Screen
+        name="AskRithmo"
+        component={AskRithmoScreen}
+        options={{ title: navTitle('AskRithmo') }}
+      />
+      <Stack.Screen
+        name="DoctorHealthReport"
+        component={DoctorHealthReportScreen}
+        options={{ title: navTitle('DoctorHealthReport') }}
       />
       <Stack.Screen
         name="DeepInsights"
