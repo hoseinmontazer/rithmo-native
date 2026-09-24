@@ -73,7 +73,7 @@ export interface EventProps {
 
   daily_log_opened: { is_edit?: boolean };
   /** How MANY fields were filled — never which, never the values. */
-  daily_log_submitted: { field_count?: number; had_symptoms?: boolean };
+  daily_log_submitted: { field_count?: number; had_symptoms?: boolean; had_context?: boolean };
 
   pattern_viewed: { insight_count?: number; maturity?: string };
 

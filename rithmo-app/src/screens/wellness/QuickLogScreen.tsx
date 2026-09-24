@@ -35,6 +35,9 @@ import {
   useWellnessLogs,
 } from '@hooks/queries/useWellness';
 import { usePeriods, useCycleAnalysis } from '@hooks/queries/usePeriods';
+import { useCreateContextEntry } from '@hooks/queries/useContextEntries';
+import { useTodayFeedback } from '@hooks/queries/useTodayFeedback';
+import { PremiumGate } from '@components/PremiumGate';
 import { Button, Card, Badge, CelebrationAnimation, AppIcon, SliderMetric } from '@components/ui';
 import { extractErrorMessage } from '@utils/errorHandler';
 import { toFa, faDate } from '@utils/persian';
@@ -42,10 +45,12 @@ import { todayISO } from '@utils/dateUtils';
 import { track } from '@analytics';
 import { MOODS } from '@utils/insightsEngine';
 import { QUICK_SYMPTOMS, parseSymptomCodes } from '@constants/symptoms';
+import { CONTEXT_TAGS } from '@constants/contextTags';
 import { symptomIcon, ICON_SIZE } from '@design-system/iconography';
 import icons, { type AppIconName } from '@assets/icons';
 import type { WellnessScreenProps } from '@navigation/types';
 import type { WellnessLog } from '@types/wellness.types';
+import type { ContextTag } from '@types/contextEntry.types';
 
 type Props = WellnessScreenProps<'QuickLog'>;
 
@@ -329,6 +334,11 @@ export default function QuickLogScreen() {
   const { data: periods } = usePeriods();
   const { data: cycleAnalysis } = useCycleAnalysis();
   const { mutateAsync: saveLog, isPending } = useCreateOrUpdateWellnessLog();
+  const { mutateAsync: createContextEntry } = useCreateContextEntry();
+  const {
+    requestFeedback, isLoading: isFeedbackLoading, isQuotaExhausted,
+    available: feedbackAvailable, feedback, quota: feedbackQuota,
+  } = useTodayFeedback();
   /**
    * The one prior real observation the 'building'-state day-over-day
    * comparison needs. Bounded to 2 so this stays a small, existing-shape
@@ -354,9 +364,39 @@ export default function QuickLogScreen() {
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
 
+  // Today 2.0: "امروز چیز متفاوتی بود؟" — separate from the WellnessLog
+  // notes above (which flow to Today AI Feedback as the approved
+  // user_note). A tag here describes a surrounding circumstance, never a
+  // symptom (those stay in selectedSymptoms/SymptomEntry, unchanged).
+  const [selectedContextTags, setSelectedContextTags] = useState<ContextTag[]>([]);
+  const [contextNote, setContextNote] = useState('');
+
+  /**
+   * Which of the four metric pickers the user has actually touched this
+   * session — the fix for the empty-submit/provenance bug: every picker
+   * starts at a plausible default the user never has to touch, so
+   * without this, a zero-interaction Save fabricated a full, indistinguishable-
+   * from-genuine WellnessLog row. Only touched fields are sent, so the
+   * server's own reported_fields provenance (see cycle_tracker/views/
+   * wellness_log.py) can finally tell "the user reported this" from
+   * "never asked" for THIS screen too — LogWellnessScreen's other metrics
+   * already had this distinction; QuickLog's four never did.
+   */
+  const [touched, setTouched] = useState({ mood: false, energy: false, pain: false, sleep: false });
+  const markTouched = useCallback((field: keyof typeof touched) => {
+    setTouched(prev => (prev[field] ? prev : { ...prev, [field]: true }));
+  }, []);
+
   // ── Post-save observation state ─────────────────────────────────────────────
   const [observation, setObservation] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  // Separate from `saved`: the celebration is a brief overlay, not the
+  // screen's whole post-save state — its dismiss handler used to call
+  // goBack() directly, which meant tapping it (or its 2.2s auto-dismiss)
+  // navigated straight back before the AI Feedback CTA below it was ever
+  // reachable. Now it only hides itself; goBack() is reached only via
+  // the explicit "بستن" button.
+  const [celebrationVisible, setCelebrationVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   // Pre-fill from existing log
@@ -375,6 +415,17 @@ export default function QuickLogScreen() {
       if (codes.length) {
         setSelectedSymptoms(codes);
       }
+      // A field already reported (per the server's own provenance) stays
+      // "touched" on reopen — otherwise re-saving an already-logged day
+      // would look untouched again and silently drop it from
+      // reported_fields on the next save.
+      const reported = Array.isArray(prefillSource.reported_fields) ? prefillSource.reported_fields : [];
+      setTouched({
+        mood: reported.includes('mood_level'),
+        energy: reported.includes('energy_level'),
+        pain: reported.includes('pain_level'),
+        sleep: reported.includes('sleep_hours'),
+      });
     }
   }, [prefillSource]);
 
@@ -415,6 +466,12 @@ export default function QuickLogScreen() {
     );
   }, []);
 
+  const toggleContextTag = useCallback((tag: ContextTag) => {
+    setSelectedContextTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  }, []);
+
   const goBack = useCallback(() => {
     if (navigation.canGoBack()) {
       navigation.goBack();
@@ -424,23 +481,50 @@ export default function QuickLogScreen() {
   // ── Save handler ────────────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
     try {
-      // Only send fields the user actually entered. The server applies model
-      // defaults for the rest (audit 2026-08-20, H1 — no fabricated values).
+      // Only send fields the user actually touched — the server applies
+      // model defaults for the rest and records provenance accordingly
+      // (see cycle_tracker/views/wellness_log.py's reported_fields). A
+      // picker the user never touched must never look identical to a
+      // deliberately-entered value.
       await saveLog({
-        mood_level: mood,
-        energy_level: energy * 2,
-        pain_level: Math.round(pain * 2.5),
-        sleep_hours: sleep,
+        ...(touched.mood ? { mood_level: mood } : {}),
+        ...(touched.energy ? { energy_level: energy * 2 } : {}),
+        ...(touched.pain ? { pain_level: Math.round(pain * 2.5) } : {}),
+        ...(touched.sleep ? { sleep_hours: sleep } : {}),
         symptoms: selectedSymptoms.join(','),
         notes,
       });
+
+      // Today 2.0: one ContextEntry per selected tag. The optional short
+      // elaboration (contextNote) attaches to the first tag only — never
+      // duplicated across rows, and never merged into the WellnessLog
+      // notes above (which is a separate, already-existing field with
+      // its own AI-feedback role). A lone note with no tag selected
+      // becomes a single "other" entry, so free text is never silently
+      // dropped.
+      const today = todayISO();
+      const tagsToSave: ContextTag[] = selectedContextTags.length > 0
+        ? selectedContextTags
+        : (contextNote.trim() ? ['other'] : []);
+      if (tagsToSave.length > 0) {
+        await Promise.all(
+          tagsToSave.map((tag, index) =>
+            createContextEntry({
+              date: today,
+              tag,
+              ...(index === 0 && contextNote.trim() ? { raw_text: contextNote.trim() } : {}),
+            })
+          )
+        );
+      }
 
       // COUNT of fields and a boolean for symptoms — never the values.
       // The whole point of the contract is that telemetry can answer "did
       // she finish the log" without knowing anything about her body.
       track('daily_log_submitted', {
-        field_count: 4 + (notes ? 1 : 0),
+        field_count: Object.values(touched).filter(Boolean).length + (notes ? 1 : 0),
         had_symptoms: selectedSymptoms.length > 0,
+        had_context: tagsToSave.length > 0,
       });
 
       const obs = buildPostLogObservation(
@@ -453,6 +537,7 @@ export default function QuickLogScreen() {
       );
       setObservation(obs);
       setSaved(true);
+      setCelebrationVisible(true);
 
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -461,13 +546,14 @@ export default function QuickLogScreen() {
       }).start();
 
       setTimeout(() => {
-        goBack();
+        setCelebrationVisible(false);
       }, 2200);
     } catch (err) {
       Alert.alert('خطا', extractErrorMessage(err));
     }
   }, [
-    mood, energy, pain, sleep, selectedSymptoms, notes,
+    mood, energy, pain, sleep, touched, selectedSymptoms, notes,
+    selectedContextTags, contextNote, createContextEntry,
     saveLog, dataState, personalAvgMood, personalAvgEnergy, priorSameSignal,
     fadeAnim, goBack,
   ]);
@@ -477,8 +563,8 @@ export default function QuickLogScreen() {
     return (
       <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
         <CelebrationAnimation
-          visible={saved}
-          onDismiss={goBack}
+          visible={celebrationVisible}
+          onDismiss={() => setCelebrationVisible(false)}
           title="ثبت شد"
           message={observation ?? undefined}
           type="success"
@@ -496,6 +582,65 @@ export default function QuickLogScreen() {
                 {observation}
               </Text>
             )}
+
+            {/* ── Today 2.0, Layer B: explicit-trigger AI Feedback ────── */}
+            <View style={{ width: '100%', marginTop: spacing[4] }}>
+              {!feedback && !isQuotaExhausted && (
+                <Button
+                  label={isFeedbackLoading ? 'در حال آماده‌سازی...' : 'دریافت بازخورد هوشمند'}
+                  onPress={() => requestFeedback()}
+                  loading={isFeedbackLoading}
+                  disabled={isFeedbackLoading}
+                  variant="secondary"
+                  fullWidth
+                />
+              )}
+
+              {isQuotaExhausted && (
+                <PremiumGate
+                  overlay
+                  featureName="بازخورد نامحدود"
+                  message="سقف بازخورد رایگان این هفته پر شده — با پرمیوم نامحدود دریافت کن."
+                />
+              )}
+
+              {feedback && !isFeedbackLoading && (
+                <Card elevated={false} rounded="2xl" style={{ padding: spacing[4], marginTop: spacing[3], width: '100%' }}>
+                  <Text style={{ color: colors.textPrimary, fontSize: typography.bodySmall, fontWeight: '600', lineHeight: 22 }}>
+                    {feedback.summary}
+                  </Text>
+                  {feedback.observations.map((obs, i) => (
+                    <Text key={i} style={{ color: colors.textSecondary, fontSize: typography.caption, lineHeight: 20, marginTop: spacing[1] }}>
+                      {`· ${obs}`}
+                    </Text>
+                  ))}
+                  {feedback.suggestion ? (
+                    <Text style={{ color: colors.textPrimary, fontSize: typography.bodySmall, fontWeight: '600', marginTop: spacing[3] }}>
+                      {feedback.suggestion}
+                    </Text>
+                  ) : null}
+                  {feedback.limitations.map((lim, i) => (
+                    <Text key={i} style={{ color: colors.textTertiary, fontSize: typography.micro, lineHeight: 16, marginTop: i === 0 ? spacing[3] : 2 }}>
+                      {lim}
+                    </Text>
+                  ))}
+                  {!feedbackQuota?.is_premium && typeof feedbackQuota?.remaining === 'number' && (
+                    <Badge
+                      label={`${toFa(feedbackQuota.remaining)} بازخورد رایگان باقی‌مانده این هفته`}
+                      variant="neutral"
+                      style={{ marginTop: spacing[3], alignSelf: 'flex-start' }}
+                    />
+                  )}
+                </Card>
+              )}
+
+              {feedbackAvailable === false && !isFeedbackLoading && !isQuotaExhausted && (
+                <Text style={{ color: colors.textTertiary, fontSize: typography.xs, textAlign: 'center', marginTop: spacing[2] }}>
+                  الان نتوانستم بازخوردی آماده کنم.
+                </Text>
+              )}
+            </View>
+
             <TouchableOpacity
               onPress={goBack}
               style={{
@@ -599,7 +744,7 @@ export default function QuickLogScreen() {
                 return (
                   <TouchableOpacity
                     key={m.level}
-                    onPress={() => setMood(m.level)}
+                    onPress={() => { setMood(m.level); markTouched('mood'); }}
                     activeOpacity={0.75}
                     style={styles.moodItem}
                     accessibilityLabel={`خلق: ${m.label}`}
@@ -655,7 +800,7 @@ export default function QuickLogScreen() {
               value={energy}
               min={1}
               max={5}
-              onChange={setEnergy}
+              onChange={(v) => { setEnergy(v); markTouched('energy'); }}
               iconColor={colors.primary}
               unit={ENERGY_OPTIONS[energy - 1]?.label}
             />
@@ -664,7 +809,7 @@ export default function QuickLogScreen() {
               label="درد"
               options={PAIN_OPTIONS}
               value={pain}
-              onChange={setPain}
+              onChange={(v) => { setPain(v); markTouched('pain'); }}
               accentColor={colors.primary}
             />
           </Card>
@@ -677,7 +822,7 @@ export default function QuickLogScreen() {
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                 <TouchableOpacity
-                  onPress={() => setSleep(s => Math.max(3, Math.round((s - 0.5) * 2) / 2))}
+                  onPress={() => { setSleep(s => Math.max(3, Math.round((s - 0.5) * 2) / 2)); markTouched('sleep'); }}
                   disabled={sleep <= 3}
                   style={[
                     styles.sleepStepBtn,
@@ -692,7 +837,7 @@ export default function QuickLogScreen() {
                   {toFa(sleep)} ساعت
                 </Text>
                 <TouchableOpacity
-                  onPress={() => setSleep(s => Math.min(12, Math.round((s + 0.5) * 2) / 2))}
+                  onPress={() => { setSleep(s => Math.min(12, Math.round((s + 0.5) * 2) / 2)); markTouched('sleep'); }}
                   disabled={sleep >= 12}
                   style={[
                     styles.sleepStepBtn,
@@ -764,6 +909,74 @@ export default function QuickLogScreen() {
                 );
               })}
             </View>
+          </View>
+
+          {/* ── Today 2.0: context tags (optional) ──────────────────── */}
+          <View style={{ marginBottom: spacing[6] }}>
+            <Text style={[styles.sectionSubtitle, { color: colors.textPrimary, fontSize: textRoles.cardTitle.fontSize, fontWeight: textRoles.cardTitle.fontWeight, lineHeight: textRoles.cardTitle.lineHeight, marginBottom: spacing[2] }]}>
+              امروز چیز متفاوتی بود؟ <Text style={{ color: colors.textTertiary }}>(اختیاری)</Text>
+            </Text>
+            <View style={[styles.chipWrap, { gap: spacing[2] }]}>
+              {CONTEXT_TAGS.map(ctx => {
+                const active = selectedContextTags.includes(ctx.code);
+                return (
+                  <TouchableOpacity
+                    key={ctx.code}
+                    onPress={() => toggleContextTag(ctx.code)}
+                    activeOpacity={0.7}
+                    style={[
+                      styles.symptomChip,
+                      {
+                        borderRadius: borderRadius.pill,
+                        backgroundColor: active ? colors.primary + '18' : colors.surfaceSecondary,
+                        borderColor: active ? colors.primary : colors.border,
+                        borderWidth: active ? 1.5 : 1,
+                        paddingHorizontal: spacing[3],
+                        paddingVertical: spacing[1],
+                      },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={ctx.label}
+                  >
+                    <Text
+                      style={[
+                        styles.symptomChipText,
+                        {
+                          color: active ? colors.primary : colors.textSecondary,
+                          fontSize: typography.xs,
+                          fontWeight: active ? '700' : '500',
+                        },
+                      ]}
+                    >
+                      {ctx.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {/* Always visible — never hidden behind selecting "مورد دیگری". */}
+            <TextInput
+              style={[
+                styles.notesInputArea,
+                {
+                  backgroundColor: colors.surfaceSecondary,
+                  borderColor: colors.border,
+                  borderRadius: borderRadius.md,
+                  color: colors.textPrimary,
+                  fontSize: typography.sm,
+                  padding: spacing[3],
+                  marginTop: spacing[2],
+                  minHeight: 44,
+                },
+              ]}
+              placeholder="توضیح کوتاه (اختیاری)"
+              placeholderTextColor={colors.textTertiary}
+              value={contextNote}
+              onChangeText={setContextNote}
+              multiline
+              maxLength={500}
+            />
           </View>
 
           {/* ── Notes (optional, compact) ───────────────────────────── */}

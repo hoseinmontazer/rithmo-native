@@ -52,10 +52,15 @@ export interface WellnessLog {
 // Fields the server assigns a model default for when the client omits them
 // (WellnessLog model defaults). Optional on the request so callers only send
 // what they actually collected — QuickLog used to hardcode fabricated values
-// here (audit 2026-08-20, finding H1).
+// here (audit 2026-08-20, finding H1). H1's fix originally covered only the
+// 8 LogWellnessScreen-only fields below; QuickLogScreen's own four fields
+// (mood/energy/pain/sleep) were left required here even after QuickLog
+// itself was updated to only send touched ones (Today 2.0) — completing
+// the type to match.
 type ServerDefaultedLogFields =
   | 'stress_level' | 'anxiety_level' | 'focus_level' | 'exercise_minutes'
-  | 'nutrition_quality' | 'caffeine_intake' | 'alcohol_intake' | 'smoking';
+  | 'nutrition_quality' | 'caffeine_intake' | 'alcohol_intake' | 'smoking'
+  | 'mood_level' | 'energy_level' | 'pain_level' | 'sleep_hours';
 
 export type CreateWellnessLogRequest = Omit<
   WellnessLog,

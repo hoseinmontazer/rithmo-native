@@ -37,6 +37,10 @@ export const queryKeys = {
     today: () => ['wellness', 'today'] as const,
     weeklySummary: () => ['wellness', 'weeklySummary'] as const,
   },
+  contextEntries: {
+    all: () => ['contextEntries'] as const,
+    byDate: (date: string) => ['contextEntries', 'byDate', date] as const,
+  },
   notifications: {
     all: () => ['notifications'] as const,
     unread: () => ['notifications', 'unread'] as const,

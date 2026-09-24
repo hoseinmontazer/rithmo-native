@@ -21,10 +21,20 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { screen } from '@theme/spacing';
-import { useCreateOrUpdateWellnessLog, useWellnessLog } from '@hooks/queries/useWellness';
+import { useCreateOrUpdateWellnessLog, useUpdateWellnessLog, useWellnessLog } from '@hooks/queries/useWellness';
+import {
+  useContextEntriesForDate,
+  useCreateContextEntry,
+  useDeleteContextEntry,
+} from '@hooks/queries/useContextEntries';
 import { Button, Input, Card, SliderMetric } from '@components/ui';
 import { extractErrorMessage } from '@utils/errorHandler';
+import { todayISO } from '@utils/dateUtils';
+import { SYMPTOMS, parseSymptomCodes } from '@constants/symptoms';
+import { CONTEXT_TAGS } from '@constants/contextTags';
+import { symptomIcon, ICON_SIZE } from '@design-system/iconography';
 import type { WellnessScreenProps } from '@navigation/types';
+import type { ContextTag } from '@types/contextEntry.types';
 
 type Props = WellnessScreenProps<'LogWellness'>;
 
@@ -40,7 +50,9 @@ export default function LogWellnessScreen() {
 
   const logId = route.params?.logId;
   const { data: existing } = useWellnessLog(logId ?? 0);
-  const { mutateAsync: saveLog, isPending } = useCreateOrUpdateWellnessLog();
+  const { mutateAsync: saveLog, isPending: isCreating } = useCreateOrUpdateWellnessLog();
+  const { mutateAsync: updateLog, isPending: isUpdating } = useUpdateWellnessLog();
+  const isPending = isCreating || isUpdating;
 
   const [form, setForm] = useState({
     stress_level: 5,
@@ -57,6 +69,14 @@ export default function LogWellnessScreen() {
     focus_level: 5,
     notes: '',
   });
+
+  // Closing the historical-edit gap: this was the only screen that could
+  // edit a past day, and it had no symptom UI at all — a day's symptoms,
+  // once logged via QuickLog, could never be edited. Reuses SymptomEntry
+  // exactly as QuickLogScreen does; no new storage.
+  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
+
+  const logDate = existing?.date ?? todayISO();
 
   useEffect(() => {
     if (existing) {
@@ -75,6 +95,10 @@ export default function LogWellnessScreen() {
         focus_level: clamp(existing.focus_level ?? 5, 1, 10),
         notes: existing.notes ?? '',
       });
+      const codes = existing.symptom_codes?.length
+        ? existing.symptom_codes
+        : parseSymptomCodes(existing.symptoms);
+      setSelectedSymptoms(codes);
     }
   }, [existing]);
 
@@ -82,14 +106,57 @@ export default function LogWellnessScreen() {
     setForm(prev => ({ ...prev, [key]: value }));
   }, []);
 
+  const toggleSymptom = useCallback((code: string) => {
+    setSelectedSymptoms(prev =>
+      prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
+    );
+  }, []);
+
   const handleSave = useCallback(async () => {
     try {
-      await saveLog(form);
+      // Editing an existing (possibly historical) log goes through the
+      // update-by-id endpoint — the create/upsert-by-date endpoint this
+      // screen used to always call deliberately rejects any date more
+      // than a day old (see WellnessLogView.create()), so saving a past
+      // day's edits through it silently wrote a brand-new log for TODAY
+      // instead of updating the day being edited. Only a fresh "new
+      // report" (no logId) still goes through the create path, which is
+      // always for today.
+      if (logId) {
+        await updateLog({ id: logId, data: { ...form, symptoms: selectedSymptoms.join(',') } });
+      } else {
+        await saveLog({ ...form, symptoms: selectedSymptoms.join(',') });
+      }
       navigation.goBack();
     } catch (err) {
       Alert.alert('خطا', extractErrorMessage(err));
     }
-  }, [form, saveLog, navigation]);
+  }, [form, selectedSymptoms, logId, saveLog, updateLog, navigation]);
+
+  // ── Today 2.0: context entries for this exact day ────────────────────
+  const { data: contextEntries } = useContextEntriesForDate(logDate);
+  const { mutateAsync: createContextEntry } = useCreateContextEntry();
+  const { mutateAsync: deleteContextEntry } = useDeleteContextEntry();
+  const [addingTag, setAddingTag] = useState<ContextTag | null>(null);
+
+  const handleAddContextTag = useCallback(async (tag: ContextTag) => {
+    setAddingTag(tag);
+    try {
+      await createContextEntry({ date: logDate, tag });
+    } catch (err) {
+      Alert.alert('خطا', extractErrorMessage(err));
+    } finally {
+      setAddingTag(null);
+    }
+  }, [createContextEntry, logDate]);
+
+  const handleRemoveContextEntry = useCallback(async (id: number) => {
+    try {
+      await deleteContextEntry(id);
+    } catch (err) {
+      Alert.alert('خطا', extractErrorMessage(err));
+    }
+  }, [deleteContextEntry]);
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
@@ -296,6 +363,123 @@ export default function LogWellnessScreen() {
             </View>
           </Card>
 
+          {/* ── Symptoms (closes the historical symptom-edit gap) ────── */}
+          <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+            <View style={styles.sectionHeader}>
+              <Icon name="pulse" size={20} color={colors.menstrual} />
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, marginLeft: spacing[2] }]}>
+                علائم
+              </Text>
+            </View>
+            <View style={[styles.chipWrap, { gap: spacing[2], marginTop: spacing[3] }]}>
+              {SYMPTOMS.map(sym => {
+                const active = selectedSymptoms.includes(sym.code);
+                return (
+                  <TouchableOpacity
+                    key={sym.code}
+                    onPress={() => toggleSymptom(sym.code)}
+                    activeOpacity={0.7}
+                    style={[
+                      styles.chip,
+                      {
+                        borderRadius: borderRadius.pill,
+                        backgroundColor: active ? colors.primary + '18' : colors.surfaceSecondary,
+                        borderColor: active ? colors.primary : colors.border,
+                        borderWidth: active ? 1.5 : 1,
+                      },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={sym.label}
+                  >
+                    <Icon
+                      name={symptomIcon(sym.code)}
+                      size={ICON_SIZE.xs}
+                      color={active ? colors.primary : colors.textSecondary}
+                    />
+                    <Text style={{ color: active ? colors.primary : colors.textSecondary, fontSize: typography.xs, fontWeight: active ? '700' : '500', marginEnd: 6 }}>
+                      {sym.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </Card>
+
+          {/* ── Today 2.0: context entries for this day ─────────────── */}
+          <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[4], padding: spacing[4] }}>
+            <View style={styles.sectionHeader}>
+              <Icon name="calendar-alert" size={20} color={colors.accent} />
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontSize: typography.base, marginLeft: spacing[2] }]}>
+                امروز چیز متفاوتی بود؟
+              </Text>
+            </View>
+
+            {Boolean(contextEntries?.length) && (
+              <View style={[styles.chipWrap, { gap: spacing[2], marginTop: spacing[3] }]}>
+                {contextEntries!.map(entry => {
+                  const label = CONTEXT_TAGS.find(t => t.code === entry.tag)?.label ?? entry.tag;
+                  return (
+                    <View
+                      key={entry.id}
+                      style={[
+                        styles.chip,
+                        {
+                          borderRadius: borderRadius.pill,
+                          backgroundColor: colors.primary + '18',
+                          borderColor: colors.primary,
+                          borderWidth: 1.5,
+                        },
+                      ]}
+                    >
+                      <Text style={{ color: colors.primary, fontSize: typography.xs, fontWeight: '700', marginEnd: 6 }}>
+                        {label}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => handleRemoveContextEntry(entry.id)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityLabel={`حذف ${label}`}
+                      >
+                        <Icon name="close" size={14} color={colors.primary} />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            <Text style={[styles.subtitle, { color: colors.textTertiary, fontSize: typography.xs, marginTop: spacing[3], marginBottom: spacing[1] }]}>
+              افزودن مورد جدید
+            </Text>
+            <View style={[styles.chipWrap, { gap: spacing[2] }]}>
+              {CONTEXT_TAGS.map(ctx => (
+                <TouchableOpacity
+                  key={ctx.code}
+                  onPress={() => handleAddContextTag(ctx.code)}
+                  disabled={addingTag === ctx.code}
+                  activeOpacity={0.7}
+                  style={[
+                    styles.chip,
+                    {
+                      borderRadius: borderRadius.pill,
+                      backgroundColor: colors.surfaceSecondary,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                      opacity: addingTag === ctx.code ? 0.5 : 1,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={ctx.label}
+                >
+                  <Icon name="plus" size={ICON_SIZE.xs} color={colors.textSecondary} />
+                  <Text style={{ color: colors.textSecondary, fontSize: typography.xs, fontWeight: '500', marginEnd: 6 }}>
+                    {ctx.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Card>
+
           {/* ── Section 4: Notes ─────────────────────────────────────── */}
           <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[4], padding: spacing[4] }}>
             <View style={styles.sectionHeader}>
@@ -372,5 +556,17 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontWeight: '700',
+  },
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  chip: {
+    minHeight: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
 });

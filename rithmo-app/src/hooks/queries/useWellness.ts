@@ -57,6 +57,14 @@ export function useUpdateWellnessLog() {
     onSuccess: (updated) => {
       queryClient.setQueryData(queryKeys.wellness.detail(updated.id), updated);
       queryClient.invalidateQueries({ queryKey: queryKeys.wellness.all() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.wellness.today() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.wellness.streaks() });
+      queryClient.invalidateQueries({ queryKey: ['wellness', 'analytics'] });
+      // Same reasoning as useCreateOrUpdateWellnessLog above: editing a
+      // past day's symptoms/metrics changes what the pattern engine knows
+      // just as much as a new log would, so the same intelligence caches
+      // need invalidating here too.
+      queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.all() });
     },
   });
 }

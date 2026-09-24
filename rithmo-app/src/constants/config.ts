@@ -82,6 +82,10 @@ export const API_ENDPOINTS = {
   WELLNESS_TODAY: '/api/wellness/today/',
   WELLNESS_WEEKLY_SUMMARY: '/api/wellness/weekly-summary/',
 
+  // Today 2.0 — contextual events (illness/medication/... tags, optional
+  // short note). Independent of /wellness/: multiple entries per day.
+  CONTEXT_ENTRIES: '/api/context-entries/',
+
   // Notifications
   NOTIFICATIONS: '/api/notifications/notifications/',
   NOTIFICATIONS_UNREAD: '/api/notifications/notifications/unread/',
@@ -141,6 +145,9 @@ export const API_ENDPOINTS = {
   AI_MONTHLY_REVIEW: '/api/ai/monthly-review/',
   AI_ASK_RITHMO: '/api/ai/ask-rithmo/',
   AI_DOCTOR_REPORT: '/api/ai/doctor-report/',
+  // Today 2.0 AI Feedback — free for every user (quota-limited, not
+  // premium-gated); distinct from the unrelated legacy AI_FEEDBACK above.
+  AI_TODAY_FEEDBACK: '/api/ai/today-feedback/',
 
   // Support (user-facing tickets; internal notes are server-side only)
   SUPPORT_TICKETS: '/api/support/tickets/',
