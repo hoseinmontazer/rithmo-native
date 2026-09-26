@@ -55,8 +55,14 @@ export interface RequestZibalPaymentRequest {
  * amount.
  */
 export interface ZibalPlan {
-  plan:        'monthly' | 'quarterly';
-  amount_rial: number;
+  plan:                 'monthly' | 'quarterly';
+  amount_rial:          number;
+  // Present only while an admin-configured promotional discount is
+  // currently active for this plan (subscriptions.models.Plan.discount_*)
+  // — the plan's regular, pre-promo price, for a "was / now" display.
+  // Omitted entirely when there's no active promo (never sent equal to
+  // amount_rial).
+  original_amount_rial?: number;
 }
 
 /**
@@ -65,14 +71,30 @@ export interface ZibalPlan {
  * payment_url is just gateway.zibal.ir/start/{track_id}; opening it (with
  * the required Referer header) is this app's job, done in
  * ZibalPaymentScreen.
+ *
+ * A 100%-off admin promo or discount code activates immediately,
+ * server-side, with no payment page at all — status is "free" and
+ * track_id/payment_url are both omitted (see request_zibal_payment's own
+ * docstring). A discriminated union on `status` so
+ * UpgradeScreen.handleZibalUpgrade's branch on it also narrows
+ * payment_url to a definite string on the non-free side, rather than
+ * needing a separate runtime check.
  */
-export interface RequestZibalPaymentResponse {
-  order_ref:    string;
-  track_id:     number;
-  amount_rial:  number;
-  plan:         string;
-  payment_url:  string;
+export interface RequestZibalPaymentPaidResponse {
+  order_ref:   string;
+  track_id:    number;
+  amount_rial: number;
+  plan:        string;
+  payment_url: string;
+  status?:     undefined;
 }
+export interface RequestZibalPaymentFreeResponse {
+  order_ref:   string;
+  amount_rial: 0;
+  plan:        string;
+  status:      'free';
+}
+export type RequestZibalPaymentResponse = RequestZibalPaymentPaidResponse | RequestZibalPaymentFreeResponse;
 
 export const subscriptionService = {
   getStatus: () =>

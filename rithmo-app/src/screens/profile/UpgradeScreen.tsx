@@ -228,10 +228,14 @@ export default function UpgradeScreen() {
 
   // The Zibal prices actually configured server-side right now — never a
   // fabricated Toman figure while this is loading or if a plan has no
-  // price configured (see useZibalPlans).
+  // price configured (see useZibalPlans). original_amount_rial is present
+  // only while an admin-configured promotional discount is active for
+  // that plan (subscriptions.models.Plan.discount_*) — a real, visible,
+  // code-free offer, distinct from a redeemable Discount code, which has
+  // no UI here at all.
   const zibalPlansQuery = useZibalPlans(isZibal);
-  const zibalRialByPlan: Record<string, number> = Object.fromEntries(
-    (zibalPlansQuery.data ?? []).map((p) => [p.plan, p.amount_rial]),
+  const zibalPriceByPlan: Record<string, { rial: number; originalRial?: number }> = Object.fromEntries(
+    (zibalPlansQuery.data ?? []).map((p) => [p.plan, { rial: p.amount_rial, originalRial: p.original_amount_rial }]),
   );
 
   // What the plan-selector cards actually render. On a Bazaar install
@@ -251,13 +255,21 @@ export default function UpgradeScreen() {
       })
     : isZibal
       ? ZIBAL_PLAN_IDS.map((id) => {
-          const rial = zibalRialByPlan[id];
+          const entry = zibalPriceByPlan[id];
+          const rial = entry?.rial;
           const toman = rial != null ? Math.round(rial / 10) : null;
+          const isFree = rial === 0;
+          const hasPromo = entry?.originalRial != null;
+          const originalToman = entry?.originalRial != null ? Math.round(entry.originalRial / 10) : null;
           return {
             id,
             label:  ZIBAL_PLAN_LABEL[id],
-            price:  toman != null ? toFa(toman, { grouped: true }) : '…',
+            price:  toman == null ? '…' : isFree ? 'رایگان' : toFa(toman, { grouped: true }),
             period: toman != null ? ZIBAL_PERIOD_LABEL[id] : '',
+            badge:  hasPromo ? (isFree ? 'پیشنهاد ویژه — رایگان' : 'تخفیف ویژه') : undefined,
+            savings: hasPromo && originalToman != null
+              ? `بجای ${toFa(originalToman, { grouped: true })} تومان`
+              : undefined,
           };
         })
       : PLANS;
@@ -465,8 +477,19 @@ export default function UpgradeScreen() {
   const handleZibalUpgrade = useCallback(async (planId: string) => {
     if (planId !== 'monthly' && planId !== 'quarterly') { return; } // shouldn't happen — kept in sync above
     const res = await subscriptionService.requestZibalPayment({ plan: planId });
+    // A 100%-off admin promo or discount code activates immediately,
+    // server-side — see request_zibal_payment's own docstring. There is
+    // no payment page to open at all (payment_url is omitted), so this
+    // must not navigate to the WebView screen; it never gets a callback
+    // URL to watch for and would just show a blank/broken page.
+    if (res.data.status === 'free') {
+      track('zibal_free_activation', {});
+      await queryClient.invalidateQueries({ queryKey: queryKeys.subscription.status() });
+      Alert.alert('فعال شد', 'اشتراک ویژه‌ی شما با موفقیت و به‌صورت رایگان فعال شد.');
+      return;
+    }
     navigation.navigate('ZibalPayment', { paymentUrl: res.data.payment_url });
-  }, [navigation]);
+  }, [navigation, queryClient]);
 
   const handleUpgrade = useCallback(async () => {
     track('subscription_action_started', { plan: selectedPlan });

@@ -37,6 +37,7 @@ export type EventName =
   | 'subscription_restored'
   | 'subscription_restore_failed'
   | 'zibal_payment_finished'
+  | 'zibal_free_activation'
   | 'knowledge_impression'
   | 'knowledge_open'
   | 'knowledge_source_open'
@@ -95,6 +96,15 @@ export interface EventProps {
    * GET /api/subscriptions/status/ refetch triggered right after this.
    */
   zibal_payment_finished: Record<string, never>;
+
+  /**
+   * A Zibal checkout activated immediately, server-side, with no
+   * payment page ever opened — either a 100%-off admin plan promo or a
+   * discount code (see request_zibal_payment's own docstring). Distinct
+   * from zibal_payment_finished, which is specifically about the WebView
+   * flow reaching the callback URL — this event has no WebView at all.
+   */
+  zibal_free_activation: Record<string, never>;
 
   /** item_id/category/value are identifiers or bounded enums — never the
    * generated title/summary/body text itself. Mirrors the backend
