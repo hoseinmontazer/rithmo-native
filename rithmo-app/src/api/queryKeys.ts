@@ -41,6 +41,11 @@ export const queryKeys = {
     all: () => ['contextEntries'] as const,
     byDate: (date: string) => ['contextEntries', 'byDate', date] as const,
   },
+  checkinSession: {
+    // Single key — there is exactly one addressable session ("today's"),
+    // by design (no session-id parameter anywhere in the API).
+    today: () => ['checkinSession', 'today'] as const,
+  },
   notifications: {
     all: () => ['notifications'] as const,
     unread: () => ['notifications', 'unread'] as const,

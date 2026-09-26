@@ -10,6 +10,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import { navigationRef, onNavigationContainerReady } from './navigationRef';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '@store/authStore';
 import { AuthNavigator } from './AuthNavigator';
@@ -99,6 +100,10 @@ export function RootNavigator() {
 
   return (
     <NavigationContainer
+      ref={navigationRef}
+      // Today 2.1 Phase E — flushes a notification-tap navigation queued
+      // before this container existed (cold start). See navigationRef.ts.
+      onReady={onNavigationContainerReady}
       // One place records the active route, so no screen has to remember to
       // report itself and none of them can disagree about the route name.
       onStateChange={(state) => {

@@ -69,6 +69,7 @@ import { DailyReflectionCard } from './components/DailyReflectionCard';
 import { KnowledgeCard } from './components/KnowledgeCard';
 import { HeroRingCard } from './components/HeroRingCard';
 import { QuickCheckInWidget } from './components/QuickCheckInWidget';
+import { DailyCheckInCard } from './components/DailyCheckInCard';
 
 type Props = HomeScreenProps<'Home'>;
 
@@ -159,6 +160,9 @@ export default function HomeScreen() {
   }, [navigation]);
   const goToQuickLogCategory = useCallback((category: string) => {
     navigation.navigate('LogTab' as any, { screen: 'QuickLog', params: { initialCategory: category } } as any);
+  }, [navigation]);
+  const goToAdaptiveCheckIn = useCallback(() => {
+    navigation.navigate('LogTab' as any, { screen: 'AdaptiveCheckIn' } as any);
   }, [navigation]);
   const goToCycle = useCallback(() => navigation.navigate('CycleTab' as any), [navigation]);
   const goToInsights = useCallback(() => navigation.navigate('InsightsTab' as any), [navigation]);
@@ -313,6 +317,13 @@ export default function HomeScreen() {
             {(!pregnancy?.has_active_pregnancy || state?.cycle?.is_known) && (
               <QuickCheckInWidget onPressItem={goToQuickLogCategory} />
             )}
+            {/* Today 2.1 — the one primary entry point for the adaptive
+                check-in. Additive: QuickCheckInWidget above still routes
+                into the existing QuickLogScreen form unchanged, and
+                CheckInPrompt below (the existing passive nudge) is also
+                unchanged — see docs/features/today-2.1-design.md
+                Decision 1. */}
+            <DailyCheckInCard onPress={goToAdaptiveCheckIn} />
           </View>
         )}
 
@@ -360,10 +371,15 @@ export default function HomeScreen() {
         )}
 
         {/* ── Proactive check-in — at most one per day, only when the
-            backend's own eligibility rules found a real reason to ask. */}
+            backend's own eligibility rules found a real reason to ask.
+            Today 2.1 Phase E: CheckInPrompt itself is unmodified — its
+            "missing_data" answer's "log" CTA now opens the adaptive
+            check-in instead of the old full form, converging this entry
+            point onto the same CheckInSession every other path uses. See
+            docs/features/today-2.1-design.md Phase E. */}
         {!todayLoading && !todayError && today?.check_in ? (
           <View style={{ marginTop: spacing[4] }}>
-            <CheckInPrompt checkIn={today.check_in} onGoFullLog={goToQuickLog} />
+            <CheckInPrompt checkIn={today.check_in} onGoFullLog={goToAdaptiveCheckIn} />
           </View>
         ) : null}
 

@@ -8,6 +8,7 @@ import QuickLogScreen from '@screens/wellness/QuickLogScreen';
 import WellnessDashboardScreen from '@screens/wellness/WellnessDashboardScreen';
 import LogWellnessScreen from '@screens/wellness/LogWellnessScreen';
 import MedicationsScreen from '@screens/wellness/MedicationsScreen';
+import AdaptiveCheckInScreen from '@screens/wellness/AdaptiveCheckInScreen';
 
 const Stack = createNativeStackNavigator<WellnessStackParamList>();
 
@@ -28,6 +29,7 @@ export function WellnessStack() {
       <Stack.Screen name="WellnessDashboard" component={WellnessDashboardScreen} options={{ title: navTitle('WellnessDashboard') }} />
       <Stack.Screen name="LogWellness"       component={LogWellnessScreen}       options={{ title: navTitle('LogWellness') }} />
       <Stack.Screen name="Medications"       component={MedicationsScreen}       options={{ title: navTitle('Medications') }} />
+      <Stack.Screen name="AdaptiveCheckIn"   component={AdaptiveCheckInScreen}   options={{ title: navTitle('AdaptiveCheckIn'), headerShown: false }} />
     </Stack.Navigator>
   );
 }

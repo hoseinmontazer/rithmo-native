@@ -51,6 +51,9 @@ export type WellnessStackParamList = {
   WellnessDashboard: undefined;
   LogWellness:       { logId?: number };   // legacy full-form (keep for backward compat)
   Medications:       undefined;
+  // Today 2.1 Phase D — the adaptive one-question-at-a-time check-in.
+  // Always operates on today (server-authoritative) — no params.
+  AdaptiveCheckIn:   undefined;
 };
 
 // ── Insights Stack ────────────────────────────────────────────────────────────

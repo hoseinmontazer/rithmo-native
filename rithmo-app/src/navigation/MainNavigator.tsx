@@ -7,7 +7,7 @@
  * "Patterns" is the Insights hub — data-state-aware in Phase 1,
  *   populated with cross-cycle intelligence in Phase 2+.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import type { MainTabParamList } from './types';
@@ -25,6 +25,7 @@ import { textRoles } from '@theme/typography';
 import { useTheme } from '@hooks/useTheme';
 import { useRole } from '@hooks/useRole';
 import { usePushTokenRegistration } from '@hooks/usePushTokenRegistration';
+import { onMainNavigatorReady } from './navigationRef';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -108,6 +109,15 @@ export function MainNavigator() {
   // A no-op until the native Firebase setup exists (see the hook's own
   // docstring); safe to mount unconditionally.
   usePushTokenRegistration();
+
+  // Today 2.1 Phase E: a notification tap that cold-started the app is
+  // queued until the tab navigator (and so LogTab) actually exists — which
+  // is only once the role gate below has opened. See navigationRef.ts.
+  useEffect(() => {
+    if (isResolved) {
+      onMainNavigatorReady();
+    }
+  }, [isResolved]);
 
   // Do not mount the tab navigator until the role is known.
   //

@@ -38,6 +38,7 @@ export const navTitles = {
   WellnessDashboard: 'تاریخچه سلامت',
   LogWellness: 'ثبت کامل',
   Medications: 'داروها',
+  AdaptiveCheckIn: 'چک‌این روزانه',
 
   // Insights
   InsightsHome: 'الگوهای من',

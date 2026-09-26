@@ -1,9 +1,23 @@
 /**
  * API base URL.
  * Both dev and production point to the live Rithmo API.
- * Change the DEV_API_URL below if you run a local backend.
+ *
+ * LOCAL_BACKEND_OVERRIDE exists only for device verification against a
+ * local/throwaway backend (e.g. `adb reverse` + a server on 127.0.0.1) —
+ * every prior device-verification pass had to hand-edit DEV_API_URL's
+ * string value directly and remember to revert it, which is exactly the
+ * kind of change a `git diff` easily misses. Editing this ONE named
+ * constant instead makes the change obvious and greppable, and never
+ * touches PROD_API_URL or affects a release build at all: __DEV__ is
+ * false there, so DEV_API_URL (and this override) is never even read —
+ * see src/__tests__/config.test.ts, which fails CI if this is left set.
+ *
+ * Usage: temporarily set this to e.g. 'http://127.0.0.1:8000', verify,
+ * then set it back to null before committing.
  */
-const DEV_API_URL = 'https://api.rithmo.ir';
+const LOCAL_BACKEND_OVERRIDE: string | null = null;
+
+const DEV_API_URL = LOCAL_BACKEND_OVERRIDE || 'https://api.rithmo.ir';
 const PROD_API_URL = 'https://api.rithmo.ir';
 
 export const API_BASE_URL = __DEV__ ? DEV_API_URL : PROD_API_URL;
@@ -70,6 +84,12 @@ export const API_ENDPOINTS = {
   INTELLIGENCE_TTC: '/api/intelligence/ttc/',
   INTELLIGENCE_PARTNER_TODAY: '/api/intelligence/partner/today/',
   INTELLIGENCE_PARTNER_ACTION: '/api/intelligence/partner/action/',
+  // Today 2.1 Phase B/D — the adaptive daily check-in session. Deliberately
+  // separate from INTELLIGENCE_CHECKIN above, which is the older, unrelated
+  // single-question CheckIn nudge (intelligence.CheckIn) — see
+  // docs/features/today-2.1-design.md Decision 1.
+  CHECKIN_SESSION_TODAY: '/api/intelligence/checkin-session/today/',
+  CHECKIN_SESSION_ANSWER: '/api/intelligence/checkin-session/answer/',
 
   // Ovulation — nested under analytics/, not a top-level router (there was
   // never a bare "/api/ovulation/" route; this pointed at a 404).
