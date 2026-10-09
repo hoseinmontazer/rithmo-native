@@ -31,6 +31,12 @@ export type EventName =
   | 'period_logged'
   | 'partner_home_viewed'
   | 'partner_support_action_viewed'
+  | 'partner_today_state'
+  | 'partner_support_action_taken'
+  | 'partner_support_action_recorded'
+  | 'support_receipt_viewed'
+  | 'support_receipt_reacted'
+  | 'support_receipt_dismissed'
   | 'subscription_viewed'
   | 'subscription_action_started'
   | 'subscription_restore_started'
@@ -53,6 +59,15 @@ export type EventPropValue = string | number | boolean | null;
  * Per-event property shapes. Every field is an identifier, a bounded enum,
  * or a count.
  */
+/** The four PartnerAction values. Role is never sent: the server derives it. */
+export type PartnerSupportAction = 'message' | 'checked_in' | 'time_together' | 'gave_space';
+
+/** The Partner Today state shown, once per transition. */
+export type PartnerTodayAnalyticsState =
+  | 'usable' | 'stale' | 'low_data' | 'first_use' | 'not_shared' | 'no_partner' | 'error';
+
+export type NotificationOpenSource = 'list' | 'push';
+
 export interface EventProps {
   app_opened: { cold_start?: boolean };
   screen_viewed: { route: string };
@@ -83,6 +98,15 @@ export interface EventProps {
 
   partner_home_viewed: { has_partner?: boolean; is_shared?: boolean };
   partner_support_action_viewed: { theme?: string };
+  partner_today_state: { state: PartnerTodayAnalyticsState };
+  /** The partner SELECTED the action (before anything is persisted). */
+  partner_support_action_taken: { action: PartnerSupportAction };
+  /** Fired only after the server confirmed the record. */
+  partner_support_action_recorded: { action: PartnerSupportAction; deduplicated: boolean };
+  /** Owner side (P3). Enums only; never any content. */
+  support_receipt_viewed: { kind: 'checked_in' | 'time_together' };
+  support_receipt_reacted: { kind: 'checked_in' | 'time_together'; reaction: 'heart' | 'thanks' | 'hug' };
+  support_receipt_dismissed: { kind: 'checked_in' | 'time_together' };
 
   subscription_viewed: { is_active?: boolean; feature_name?: string };
   subscription_action_started: { plan?: string };
@@ -116,7 +140,7 @@ export interface EventProps {
   knowledge_dismiss:     { item_id: number; category: string };
   knowledge_feedback:    { item_id: number; value: 'helpful' | 'not_relevant' };
 
-  notification_opened: { notification_type?: string };
+  notification_opened: { notification_type?: string; source?: NotificationOpenSource };
 }
 
 /** The wire shape sent to `/api/analytics/events/`. */

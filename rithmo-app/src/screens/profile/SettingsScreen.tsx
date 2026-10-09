@@ -173,7 +173,7 @@ export default function SettingsScreen() {
         />
         <PrefRow
           iconSource={icons.wellness}
-          label="یادآوری سلامت"
+          label="یادآوری چک‌این روزانه"
           prefKey="push_wellness_reminder"
           value={prefs?.push_wellness_reminder ?? false}
           onToggle={togglePref}

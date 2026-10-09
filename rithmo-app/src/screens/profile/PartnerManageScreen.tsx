@@ -35,7 +35,8 @@ type ShareSettingKey =
   | 'share_period_status'
   | 'share_upcoming_period'
   | 'share_mood'
-  | 'share_wellness_status';
+  | 'share_wellness_status'
+  | 'show_partner_support';
 
 const SHARE_SETTING_ROWS: { key: ShareSettingKey; label: string; hint: string }[] = [
   { key: 'share_period_status', label: 'وضعیت و فاز چرخه', hint: 'روز چرخه، فاز فعلی و تاریخ‌های ثبت‌شده‌ی دوره' },
@@ -568,6 +569,37 @@ export default function PartnerManageScreen() {
                 loading={accepting}
                 disabled={!codeToAccept.trim()}
                 fullWidth
+              />
+            </View>
+          </View>
+        </View>
+      )}
+      {/* ── What the owner sees from the partner (P3) - her own preference,
+          not data shared with the partner. On by default; only small
+          gestures ever appear, and "give space" never does. ─────────────── */}
+      {hasPartner && !isPartner && shareSettings && (
+        <View style={{ marginBottom: spacing[5] }}>
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 20, overflow: 'hidden' },
+            ]}
+          >
+            <View style={{ padding: spacing[4], flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flex: 1, marginRight: spacing[3] }}>
+                <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '700', marginBottom: 2 }}>
+                  نشونه‌های کوچیک شریکت
+                </Text>
+                <Text style={{ color: colors.textSecondary, fontSize: typography.xs, lineHeight: 16 }}>
+                  گاهی شریکت یه حرکت کوچیک برایت می‌فرستد. لازم نیست جواب بدهی. اگر نمی‌خواهی ببینی، خاموشش کن.
+                </Text>
+              </View>
+              <Switch
+                value={shareSettings.show_partner_support}
+                onValueChange={(value) => handleToggleSetting('show_partner_support', value)}
+                disabled={updatingSettings}
+                trackColor={{ true: colors.primary, false: colors.borderSubtle }}
+                thumbColor={colors.surface}
               />
             </View>
           </View>

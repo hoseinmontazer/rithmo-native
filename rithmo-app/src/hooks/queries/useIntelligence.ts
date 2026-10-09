@@ -13,6 +13,7 @@ import type {
   ProgressPayload,
   TodayPayload,
 } from '@types/intelligence.types';
+import type { PartnerActionRecord, SupportReceipt, SupportReaction } from '@types/intelligence.types';
 import type { ForecastPayload } from '@types/forecast.types';
 import type { MonthlyReviewPayload } from '@types/monthlyReview.types';
 import type { DoctorReportPayload } from '@types/doctorReport.types';
@@ -267,9 +268,48 @@ export function useDismissCheckIn() {
   });
 }
 
-/** Partner Mode's own data — nothing here is ever read back by the owner. */
+/**
+ * Records a support action the partner CHOSE (P2). The server resolves the
+ * actor and the recipient; success means "recorded", never "done" or "sent".
+ * Nothing here is shown to the owner.
+ */
 export function useLogPartnerAction() {
-  return useMutation<{ action: string }, Error, string>({
-    mutationFn: (action) => intelligenceService.logPartnerAction(action),
+  return useMutation<PartnerActionRecord, Error, string | { action: string; origin: 'chip' | 'check_in' }>({
+    mutationFn: (arg) =>
+      typeof arg === 'string'
+        ? intelligenceService.logPartnerAction(arg)
+        : intelligenceService.logPartnerAction(arg.action, arg.origin),
+  });
+}
+
+/**
+ * The owner's ONE small supportive receipt, or null. Not a feed: no list, no
+ * count, no refetch interval and no push - it is read when Home is opened.
+ * Failures collapse to "nothing to show"; a receipt is never worth an error.
+ */
+export function useSupportReceipt() {
+  const { isAuthenticated } = useAuth();
+  return useQuery<SupportReceipt | null>({
+    queryKey: queryKeys.intelligence.supportReceipt(),
+    queryFn: () => intelligenceService.getSupportReceipt(),
+    enabled: isAuthenticated,
+    retry: false,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useReactToSupportReceipt() {
+  const queryClient = useQueryClient();
+  return useMutation<{ reaction: SupportReaction }, Error, { id: number; reaction: SupportReaction }>({
+    mutationFn: ({ id, reaction }) => intelligenceService.reactToSupportReceipt(id, reaction),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.supportReceipt() }),
+  });
+}
+
+export function useDismissSupportReceipt() {
+  const queryClient = useQueryClient();
+  return useMutation<null, Error, number>({
+    mutationFn: (id) => intelligenceService.dismissSupportReceipt(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.supportReceipt() }),
   });
 }

@@ -7,6 +7,8 @@ export interface Notification {
   message: string;
   is_read: boolean;
   created_at: string;
+  related_id?: string | number | null;
+  related_type?: string | null;
 }
 
 export interface UnreadNotificationsResponse {

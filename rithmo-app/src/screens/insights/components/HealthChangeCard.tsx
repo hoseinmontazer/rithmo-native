@@ -95,7 +95,7 @@ export const HealthChangeCard = memo(function HealthChangeCard() {
       <Card style={[styles.card, { padding: spacing[4] }]}>
         <CardHeader />
         <Text style={{ color: colors.textSecondary, fontSize: typography.bodySmall, lineHeight: 20 }}>
-          {data.coverage_message_fa ?? 'در حال حاضر تغییر معناداری نسبت به الگوی معمول شما دیده نمی‌شود.'}
+          {data.coverage_message_fa ?? 'در حال حاضر تغییر معناداری نسبت به الگوی معمولت دیده نمی‌شود.'}
         </Text>
       </Card>
     );

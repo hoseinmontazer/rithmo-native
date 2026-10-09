@@ -51,6 +51,26 @@ export function phaseLabel(raw?: string | null): string {
   return phaseLabels[raw.toLowerCase()] ?? phaseLabels.unknown;
 }
 
+/**
+ * The phase to SHOW for "where am I in my cycle".
+ *
+ * The backend's `pattern_phase` is the biological bucket used for grouping
+ * observations and collapses to "unknown" whenever the user is past the
+ * predicted period (late/overdue) - but "unknown" is a truthy string, so
+ * `pattern_phase || phase` rendered «نامشخص» exactly when the user most
+ * needs a real answer. A lifecycle state (expected/late/overdue) in `phase`
+ * is a genuine, deterministic answer and wins; otherwise a known
+ * pattern_phase; otherwise whatever `phase` says (possibly unknown).
+ */
+const LIFECYCLE_PHASES = new Set(['expected', 'late', 'overdue']);
+export function displayPhase(phase?: string | null, patternPhase?: string | null): string | null {
+  const p = (phase ?? '').toLowerCase();
+  if (LIFECYCLE_PHASES.has(p)) { return p; }
+  const pp = (patternPhase ?? '').toLowerCase();
+  if (pp && pp !== 'unknown') { return pp; }
+  return phase || patternPhase || null;
+}
+
 /** Everyday phase wording, e.g. «هفته‌های پیش از دوره». */
 export function phasePlainLabel(raw?: string | null): string {
   if (!raw) { return phasePlainLabels.unknown; }
@@ -77,7 +97,7 @@ export function phaseDescription(
     case 'menstrual':
       return day ? `روز ${day} دوره‌ات` : 'در روزهای دوره‌ای';
     case 'follicular':
-      return 'نیمه اول چرخه — بدنت در حال آماده‌شدن است.';
+      return 'نیمه اول چرخه، بعد از پایان دوره.';
     case 'ovulation':
       return 'روز تخمین‌زده‌شده‌ی تخمک‌گذاری.';
     case 'luteal':

@@ -118,7 +118,7 @@ describe('AdaptiveCheckInScreen — server-authoritative, no domain-logic duplic
 
   it('shows a completed state (not a silent redirect) when the server reports completion', () => {
     expect(src).toMatch(/session\.completed/);
-    expect(src).toMatch(/ثبت شد/);
+    expect(src).toMatch(/checkInAcknowledgement\(session\.summary\)/);
   });
 
   it('handles the initial-load error state with retry, and does not lose the session on network failure', () => {

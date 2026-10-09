@@ -98,7 +98,7 @@ export const CheckInPrompt = memo(function CheckInPrompt({ checkIn, onGoFullLog,
           </>
         ) : (
           <Text style={{ color: colors.primary, fontSize: typography.caption, textAlign: 'center' }}>
-            {checkIn.state === 'answered' ? 'ممنون — این در تحلیل بعدی لحاظ می‌شه.' : 'باشه، دیگه نمی‌پرسیم.'}
+            {checkIn.state === 'answered' ? 'ممنون، ثبت شد.' : 'باشه، دیگه نمی‌پرسیم.'}
           </Text>
         )}
       </Card>

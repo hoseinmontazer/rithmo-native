@@ -7,6 +7,8 @@ import HomeScreen from '@screens/home/HomeScreen';
 import PartnerHomeScreen from '@screens/home/PartnerHomeScreen';
 import InsightDetailScreen from '@screens/home/InsightDetailScreen';
 import KnowledgeDetailScreen from '@screens/home/KnowledgeDetailScreen';
+import PartnerGuideScreen from '@screens/home/PartnerGuideScreen';
+import { guideSectionTitle } from '@screens/home/partnerGuideContent';
 import { useRole } from '@hooks/useRole';
 import NotificationsScreen from '@screens/notifications/NotificationsScreen';
 
@@ -52,6 +54,13 @@ export function HomeStack() {
         name="KnowledgeDetail"
         component={KnowledgeDetailScreen}
         options={{ title: navTitle('KnowledgeDetail') }}
+      />
+      {/* Partner Guide: static content, no owner data, no endpoint. The
+          title follows the section so the header says where you are. */}
+      <Stack.Screen
+        name="PartnerGuide"
+        component={PartnerGuideScreen}
+        options={({ route }) => ({ title: guideSectionTitle(route.params?.section) })}
       />
     </Stack.Navigator>
   );

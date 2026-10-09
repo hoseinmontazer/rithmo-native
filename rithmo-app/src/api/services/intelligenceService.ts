@@ -1,4 +1,5 @@
 import { apiClient } from '@api/client';
+import { todayISO } from '@utils/dateUtils';
 import { API_ENDPOINTS } from '@constants/config';
 import type {
   ActionStatus,
@@ -11,6 +12,7 @@ import type {
   ProgressPayload,
   TodayPayload,
 } from '@types/intelligence.types';
+import type { PartnerActionRecord, SupportReceipt, SupportReaction } from '@types/intelligence.types';
 import type { ForecastPayload } from '@types/forecast.types';
 import type { MonthlyReviewPayload } from '@types/monthlyReview.types';
 import type { DoctorReportPayload } from '@types/doctorReport.types';
@@ -35,7 +37,7 @@ function unwrap<T>(r: { data: unknown }): T {
 export const intelligenceService = {
   getToday: () =>
     apiClient
-      .get(API_ENDPOINTS.INTELLIGENCE_TODAY)
+      .get(API_ENDPOINTS.INTELLIGENCE_TODAY, { params: { date: todayISO() } })
       .then((r) => unwrap<TodayPayload>(r)),
 
   getInsights: (includeInsufficient = false) =>
@@ -70,10 +72,27 @@ export const intelligenceService = {
       .post(`${API_ENDPOINTS.INTELLIGENCE_CHECKIN}${checkinId}/dismiss/`)
       .then((r) => unwrap<CheckIn>(r)),
 
-  logPartnerAction: (action: string) =>
+  /** `origin: 'check_in'` marks an action logged by answering the daily
+   * check-in, which can never become an owner receipt. */
+  logPartnerAction: (action: string, origin: 'chip' | 'check_in' = 'chip') =>
     apiClient
-      .post(API_ENDPOINTS.INTELLIGENCE_PARTNER_ACTION, { action })
-      .then((r) => unwrap<{ action: string }>(r)),
+      .post(API_ENDPOINTS.INTELLIGENCE_PARTNER_ACTION, { action, origin })
+      .then((r) => unwrap<PartnerActionRecord>(r)),
+
+  getSupportReceipt: () =>
+    apiClient
+      .get(API_ENDPOINTS.INTELLIGENCE_SUPPORT_RECEIPT)
+      .then((r) => unwrap<SupportReceipt | null>(r)),
+
+  reactToSupportReceipt: (id: number, reaction: SupportReaction) =>
+    apiClient
+      .post(`${API_ENDPOINTS.INTELLIGENCE_SUPPORT_RECEIPT}${id}/react/`, { reaction })
+      .then((r) => unwrap<{ reaction: SupportReaction }>(r)),
+
+  dismissSupportReceipt: (id: number) =>
+    apiClient
+      .post(`${API_ENDPOINTS.INTELLIGENCE_SUPPORT_RECEIPT}${id}/dismiss/`)
+      .then((r) => unwrap<null>(r)),
 
   submitFeedback: (
     actionId: number,

@@ -23,6 +23,7 @@
  * actually present in the root state, not merely until the container is.
  */
 import { createNavigationContainerRef } from '@react-navigation/native';
+import type { NotificationTarget } from './notificationTarget';
 
 export const navigationRef = createNavigationContainerRef();
 
@@ -31,59 +32,85 @@ export const navigationRef = createNavigationContainerRef();
 const MAX_TAIL_ATTEMPTS = 10;
 const TAIL_RETRY_MS = 100;
 
-let pendingAdaptiveCheckIn = false;
+/** Where each target lives: the tab that must exist, and how to reach it. */
+const TARGET_ROUTES: Record<NotificationTarget, { tab: string; params?: Record<string, unknown> }> = {
+  // Owner-only tab: a partner account has no LogTab, so this gives up.
+  adaptive_checkin: { tab: 'LogTab', params: { screen: 'AdaptiveCheckIn' } },
+  // Available to both roles (ProfileStack > PartnerMessages > MessagesStack).
+  messages: {
+    tab: 'ProfileTab',
+    params: { screen: 'PartnerMessages', params: { screen: 'MessagesList' } },
+  },
+  // Same route name for both roles (HomeStack picks PartnerHome vs Home by
+  // role), so an owner simply lands on their own Home.
+  partner_home: { tab: 'HomeTab', params: { screen: 'Home' } },
+};
+
+let pendingTarget: NotificationTarget | null = null;
 let tailAttempts = 0;
 let tailTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** True only once the tab navigator that owns `LogTab` is mounted and
- * registered — never merely because the container exists. */
-function isAdaptiveCheckInReachable(): boolean {
+/** True only once the tab navigator that owns the target's tab is mounted
+ * and registered - never merely because the container exists. */
+function isTargetReachable(target: NotificationTarget): boolean {
   if (!navigationRef.isReady()) {
     return false;
   }
   const root = navigationRef.getRootState();
-  return !!root?.routeNames?.includes('LogTab');
+  return !!root?.routeNames?.includes(TARGET_ROUTES[target].tab);
 }
 
-function performNavigateToAdaptiveCheckIn(): void {
+function performNavigate(target: NotificationTarget): void {
   try {
-    navigationRef.navigate('LogTab' as never, { screen: 'AdaptiveCheckIn' } as never);
+    const { tab, params } = TARGET_ROUTES[target];
+    navigationRef.navigate(tab as never, params as never);
   } catch {
-    // Never worth crashing the app over a notification tap — same
+    // Never worth crashing the app over a notification tap - same
     // "never throws" convention as App.tsx's other fire-and-forget calls.
   }
 }
 
-/** Navigates now if possible; otherwise queues and flushes it once. */
+/** Navigates now if possible; otherwise leaves it queued. */
 function tryFlush(): boolean {
-  if (!pendingAdaptiveCheckIn || !isAdaptiveCheckInReachable()) {
+  const target = pendingTarget;
+  if (!target || !isTargetReachable(target)) {
     return false;
   }
-  pendingAdaptiveCheckIn = false;
+  pendingTarget = null;
   if (tailTimer) {
     clearTimeout(tailTimer);
     tailTimer = null;
   }
-  performNavigateToAdaptiveCheckIn();
+  performNavigate(target);
   return true;
 }
 
 /**
- * Navigate to Today 2.1's adaptive check-in — the ONE thing a
- * notification tap does, converging with the exact same route
- * `DailyCheckInCard`'s manual entry point already uses
- * (`LogTab` -> `AdaptiveCheckIn`). If the target isn't mounted yet (cold
- * start), the intent is queued and flushed by the two hooks below.
+ * Navigate to a notification's destination. If the target isn't mounted yet
+ * (cold start), the intent is queued (latest wins) and flushed by the two
+ * hooks below.
  */
-export function navigateToAdaptiveCheckIn(): void {
-  if (isAdaptiveCheckInReachable()) {
-    performNavigateToAdaptiveCheckIn();
+export function navigateToNotificationTarget(target: NotificationTarget | null): void {
+  if (!target) {
     return;
   }
-  pendingAdaptiveCheckIn = true;
+  if (isTargetReachable(target)) {
+    performNavigate(target);
+    return;
+  }
+  pendingTarget = target;
 }
 
-/** NavigationContainer's `onReady`. Only an opportunistic attempt — at
+/**
+ * Today 2.1's adaptive check-in - converges with the exact same route
+ * `DailyCheckInCard`'s manual entry point already uses
+ * (`LogTab` -> `AdaptiveCheckIn`).
+ */
+export function navigateToAdaptiveCheckIn(): void {
+  navigateToNotificationTarget('adaptive_checkin');
+}
+
+/** NavigationContainer's `onReady`. Only an opportunistic attempt - at
  * this point the tab navigator usually does not exist yet, so a queued
  * intent is kept (not dropped) for onMainNavigatorReady to flush. */
 export function onNavigationContainerReady(): void {
@@ -92,25 +119,25 @@ export function onNavigationContainerReady(): void {
 
 /**
  * Called by MainNavigator once its role gate has opened and the tab
- * navigator is rendered — the earliest moment `LogTab` can exist. Retries
- * briefly (bounded) to cover the tick before the navigator registers its
- * state, then gives up and clears the intent: if `LogTab` still isn't
- * there, this account cannot reach the check-in at all (e.g. a partner
- * account, which has no LogTab), and the tap simply leaves them on Home.
+ * navigator is rendered - the earliest moment the target tab can exist.
+ * Retries briefly (bounded) to cover the tick before the navigator registers
+ * its state, then gives up and clears the intent: if the tab still isn't
+ * there, this account cannot reach the target at all (e.g. a partner
+ * account has no LogTab), and the tap simply leaves them on Home.
  */
 export function onMainNavigatorReady(): void {
-  if (!pendingAdaptiveCheckIn) {
+  if (!pendingTarget) {
     return;
   }
   tailAttempts = 0;
   const attempt = () => {
     tailTimer = null;
-    if (tryFlush() || !pendingAdaptiveCheckIn) {
+    if (tryFlush() || !pendingTarget) {
       return;
     }
     tailAttempts += 1;
     if (tailAttempts >= MAX_TAIL_ATTEMPTS) {
-      pendingAdaptiveCheckIn = false;
+      pendingTarget = null;
       return;
     }
     tailTimer = setTimeout(attempt, TAIL_RETRY_MS);

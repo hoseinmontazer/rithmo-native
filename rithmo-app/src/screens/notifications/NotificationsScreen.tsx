@@ -15,6 +15,8 @@ import { NotificationItem } from '@components/notifications/NotificationItem';
 import { toFa } from '@utils/persian';
 import type { Notification } from '@types/notification.types';
 import { track } from '@analytics';
+import { resolveNotificationTarget } from '@navigation/notificationTarget';
+import { navigateToNotificationTarget } from '@navigation/navigationRef';
 
 export default function NotificationsScreen() {
   const { colors, spacing, typography } = useTheme();
@@ -30,8 +32,12 @@ export default function NotificationsScreen() {
   }, [refetch]);
 
   const handlePress = useCallback((n: Notification) => {
-    track('notification_opened', { notification_type: n.notification_type });
+    track('notification_opened', { notification_type: n.notification_type, source: 'list' });
     if (!n.is_read) {markRead(n.id);}
+    // Same resolver as push taps. Null (most types) leaves the user here.
+    // The shared navigationRef is used because the targets live in other
+    // tabs; it is try/caught inside and never throws.
+    navigateToNotificationTarget(resolveNotificationTarget(n));
   }, [markRead]);
 
   const renderItem = useCallback(

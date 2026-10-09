@@ -18,7 +18,7 @@
  *                 choice, never an error screen.
  *   success     → support context
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -28,7 +28,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { screen } from '@theme/spacing';
@@ -41,9 +41,22 @@ import { usePartnerReflection } from '@hooks/queries/usePartnerReflection';
 import { CheckInPrompt } from './components/CheckInPrompt';
 import { PartnerReflectionCard } from './components/PartnerReflectionCard';
 import { SupportActionRow } from './components/SupportActionRow';
+import { PartnerGuideEntry } from './components/PartnerGuideEntry';
 import { track } from '@analytics';
 import { toFa, faDate } from '@utils/persian';
-import { Card, SectionHeading, Reveal, LoadingState, Button, AppIcon } from '@components/ui';
+import { partnerResponseLine } from './supportReceipt';
+import { Card, SectionHeading, Reveal, LoadingState, ErrorState, Button, AppIcon } from '@components/ui';
+import { resolvePartnerHomeState } from './partnerHomeState';
+import {
+  resolvePartnerTodayContent,
+  wellbeingFreshnessLine,
+  sharedCategoryLabels,
+  secondaryThemes,
+  FIRST_USE_COPY,
+  LOW_DATA_COPY,
+  type PartnerTodayContentState,
+} from './partnerTodayContent';
+import type { PartnerTodayAnalyticsState } from '@analytics/types';
 import icons, { type AppIconName } from '@assets/icons';
 import { ACTION_ICONS } from '@design-system/iconography';
 
@@ -195,7 +208,8 @@ export default function PartnerHomeScreen() {
    * the username only when no name has been set.
    */
   const partnerName = profile?.first_name || user?.username || '';
-  const { data, isLoading, refetch } = usePartnerToday();
+  const { data, isLoading, isError, error, refetch } = usePartnerToday();
+  const viewState = resolvePartnerHomeState({ data, isLoading, isError });
   // Cheap: same query key PartnerReflectionCard itself uses, so this is a
   // cache read, not a second request — only used here to decide whether
   // the deterministic fallback cards below should show.
@@ -210,28 +224,72 @@ export default function PartnerHomeScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  // Whether a partner is linked and whether anything is shared — never any
+  // Whether a partner is linked and whether anything is shared - never any
   // of her data. `theme` is the coarse support bucket the server already
   // authorises this partner to see.
-  useEffect(() => {
-    if (!data) { return; }
-    track('partner_home_viewed', {
-      has_partner: data.status !== 'no_partner',
-      is_shared: data.status === 'success',
-    });
-    if (data.status === 'success' && data.data.themes[0]) {
-      track('partner_support_action_viewed', { theme: data.data.themes[0] });
-    }
-  }, [data]);
+  //
+  // Fired once per screen focus, keyed on the first settled response - NOT on
+  // every refetch/invalidation (the old effect depended on `data`, whose
+  // identity changes on each background refetch). A failed request does not
+  // fire it: there is no real answer to report.
+  const viewedRef = useRef(false);
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  const settled = Boolean(data);
+  useFocusEffect(
+    useCallback(() => {
+      const current = dataRef.current;
+      if (settled && current && !viewedRef.current) {
+        viewedRef.current = true;
+        track('partner_home_viewed', {
+          has_partner: current.status !== 'no_partner',
+          is_shared: current.status === 'success',
+        });
+        if (current.status === 'success' && current.data.themes[0]) {
+          track('partner_support_action_viewed', { theme: current.data.themes[0] });
+        }
+      }
+      // Leaving the screen re-arms it for the next focus.
+      return () => { viewedRef.current = false; };
+    }, [settled]),
+  );
+
+  // One event per state TRANSITION while the screen is focused (a retry that
+  // recovers is a real transition; a background refetch that changes nothing
+  // is not). Names the state only - never any content.
+  const analyticsState: PartnerTodayAnalyticsState | null = (() => {
+    if (viewState === 'loading') { return null; }
+    if (viewState === 'error') { return 'error'; }
+    if (!data) { return null; }
+    if (data.status === 'no_partner') { return 'no_partner'; }
+    if (data.status === 'not_shared') { return 'not_shared'; }
+    return resolvePartnerTodayContent(data.data);
+  })();
+  const firedStateRef = useRef<PartnerTodayAnalyticsState | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      if (analyticsState && firedStateRef.current !== analyticsState) {
+        firedStateRef.current = analyticsState;
+        track('partner_today_state', { state: analyticsState });
+      }
+      return () => { firedStateRef.current = null; };
+    }, [analyticsState]),
+  );
 
   const dateStr = faDate(new Date());
 
   const body = (() => {
-    if (isLoading) {
+    if (viewState === 'loading') {
       return <LoadingState />;
     }
 
-    if (!data || data.status === 'no_partner') {
+    // A failed request is NOT "not connected": no connect CTA, no claim
+    // about the link. Only retry.
+    if (viewState === 'error' || !data) {
+      return <ErrorState error={error} onRetry={() => { refetch().catch(() => undefined); }} />;
+    }
+
+    if (data.status === 'no_partner') {
       return (
         <StateMessage
           icon="collaborate"
@@ -261,13 +319,114 @@ export default function PartnerHomeScreen() {
     }
 
     const payload = data.data;
+    const contentState: PartnerTodayContentState = resolvePartnerTodayContent(payload);
     const primaryTheme = payload.themes[0] ?? 'unknown';
     const copy = THEME_COPY[primaryTheme] ?? THEME_COPY.unknown;
+    const freshnessLine = wellbeingFreshnessLine(payload.freshness, payload.sharing.wellbeing);
+    const extraThemes = secondaryThemes(payload.themes);
+    const sharedLabels = sharedCategoryLabels(payload.sharing);
+    // Quiet = nothing real to act on (neutral themes only).
+    const isQuiet = payload.themes.every((t) => t === 'steady' || t === 'unknown');
+    const responseLine = partnerResponseLine(payload.support_response);
+
+    // Shared by every success state: Partner Mode's own daily check-in and the
+    // plain statement of what this summary is not.
+    const checkInBlock = payload.check_in ? (
+      <View style={{ marginBottom: spacing[5] }}>
+        <CheckInPrompt
+          checkIn={payload.check_in}
+          onAnswered={(value) => {
+            if (payload.check_in?.kind === 'partner_support' && value === 'acted') {
+              // Bookkeeping only: answering the check-in is not a gesture
+              // aimed at her, so it can never become an owner receipt.
+              logPartnerAction({ action: 'checked_in', origin: 'check_in' });
+            }
+          }}
+        />
+      </View>
+    ) : null;
+    const disclaimerBlock = (
+      <>
+        {sharedLabels.length > 0 ? (
+          <Text
+            style={{
+              color: colors.textTertiary,
+              fontSize: typography.caption,
+              lineHeight: 19,
+              textAlign: 'center',
+              paddingHorizontal: spacing[2],
+              marginBottom: spacing[2],
+            }}
+          >
+            {`آنچه می‌بینی را خودش انتخاب کرده: ${sharedLabels.join(' · ')}`}
+          </Text>
+        ) : null}
+        <Text
+          style={{
+            color: colors.textTertiary,
+            fontSize: typography.caption,
+            lineHeight: 19,
+            textAlign: 'center',
+            paddingHorizontal: spacing[2],
+          }}
+        >
+          {payload.disclaimer_fa}
+        </Text>
+      </>
+    );
+
+    // First use / low data: a deliberate, calm state - NOT an error and not
+    // "disconnected". Nothing is invented; the always-available support
+    // actions stay, exactly as in the not_shared state.
+    if (contentState === 'first_use' || contentState === 'low_data') {
+      const stateCopy = contentState === 'first_use' ? FIRST_USE_COPY : LOW_DATA_COPY;
+      return (
+        <>
+          <StateMessage icon="collaborate" title={stateCopy.title} body={stateCopy.body} />
+          <View style={{ marginTop: spacing[5], marginBottom: spacing[5] }}>
+            <SupportActionRow />
+          </View>
+          {checkInBlock}
+          {disclaimerBlock}
+        </>
+      );
+    }
 
     return (
       <>
+        {contentState === 'stale' && freshnessLine ? (
+          <View
+            style={{
+              marginBottom: spacing[4],
+              paddingVertical: spacing[2],
+              paddingHorizontal: spacing[3],
+              borderRadius: borderRadius.md,
+              backgroundColor: colors.surfaceSecondary,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <Icon name="clock-outline" size={16} color={colors.textSecondary} />
+            <Text style={{ color: colors.textSecondary, fontSize: typography.caption, flex: 1 }}>
+              {freshnessLine}
+            </Text>
+          </View>
+        ) : null}
         {/* ── What may be going on ─────────────────────────────────── */}
         <SectionHeading title="امروز" />
+        {contentState !== 'stale' && freshnessLine ? (
+          <Text
+            style={{
+              color: colors.textTertiary,
+              fontSize: typography.caption,
+              marginTop: -spacing[2],
+              marginBottom: spacing[3],
+            }}
+          >
+            {freshnessLine}
+          </Text>
+        ) : null}
         <View style={{ marginBottom: spacing[5] }}>
           <Reveal>
             <Card>
@@ -325,6 +484,23 @@ export default function PartnerHomeScreen() {
                   ) : null}
                 </View>
               ) : null}
+
+              {extraThemes.length > 0 ? (
+                <View style={[styles.cycleStrip, { borderTopColor: colors.borderSubtle, flexDirection: 'column' }]}>
+                  {extraThemes.map((theme) => {
+                    const extra = THEME_COPY[theme];
+                    if (!extra) { return null; }
+                    return (
+                      <View key={theme} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <AppIcon source={icons[extra.icon]} size={18} />
+                        <Text style={{ color: colors.textSecondary, fontSize: typography.caption, flex: 1 }}>
+                          {extra.title}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : null}
             </Card>
           </Reveal>
         </View>
@@ -335,6 +511,13 @@ export default function PartnerHomeScreen() {
             exists — payload.suggested_action is already null otherwise,
             per the backend's own "no context = no fake suggestion" rule. */}
         <SupportActionRow suggestedAction={payload.suggested_action} />
+        {/* P3: the owner's one-tap reaction, tiny and past tense. Not a log. */}
+        {responseLine ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -spacing[3], marginBottom: spacing[5] }}>
+            <Icon name={responseLine.icon} size={16} color={colors.primary} />
+            <Text style={{ color: colors.textSecondary, fontSize: typography.caption }}>{responseLine.text}</Text>
+          </View>
+        ) : null}
 
         {/* ── AI-synthesised reflection (premium) — when available, this
             already covers what the general-context/suggestion cards
@@ -351,7 +534,10 @@ export default function PartnerHomeScreen() {
             exists yet — this is exactly the content that fills the
             silence while a real deviation hasn't been established.
             Skipped while the AI reflection above already said this. */}
-        {!hasReflection && payload.general_context && payload.general_context.length > 0 && (
+        {/* One educational block at a time. With a REAL signal on screen the
+            action list below is the useful thing; the generic phase
+            education only fills the quiet state. */}
+        {!hasReflection && isQuiet && payload.general_context && payload.general_context.length > 0 && (
           <View style={{ marginBottom: spacing[5] }}>
             <Reveal delay={60}>
               <Card>
@@ -373,7 +559,7 @@ export default function PartnerHomeScreen() {
 
         {/* ── How to support — skipped while the AI reflection already
             covered this, same reasoning as the general-context card. ── */}
-        {!hasReflection && payload.suggestions.length > 0 && (
+        {!hasReflection && !isQuiet && payload.suggestions.length > 0 && (
           <>
             <SectionHeading title="چطور می‌توانی همراهش باشی" />
             <View style={{ marginBottom: spacing[5] }}>
@@ -407,32 +593,10 @@ export default function PartnerHomeScreen() {
           </>
         )}
 
-        {/* ── Proactive check-in — Partner Mode's own, at most one per
-            day, built only from the same already-filtered themes above. */}
-        {payload.check_in ? (
-          <View style={{ marginBottom: spacing[5] }}>
-            <CheckInPrompt
-              checkIn={payload.check_in}
-              onAnswered={(value) => {
-                if (payload.check_in?.kind === 'partner_support' && value === 'acted') {
-                  logPartnerAction('checked_in');
-                }
-              }}
-            />
-          </View>
-        ) : null}
+        {/* ── Proactive check-in and the plain statement of what this is not. */}
+        {checkInBlock}
 
-        <Text
-          style={{
-            color: colors.textTertiary,
-            fontSize: typography.caption,
-            lineHeight: 19,
-            textAlign: 'center',
-            paddingHorizontal: spacing[2],
-          }}
-        >
-          {payload.disclaimer_fa}
-        </Text>
+        {disclaimerBlock}
       </>
     );
   })();
@@ -537,6 +701,34 @@ export default function PartnerHomeScreen() {
             امروز چطور می‌توانی همراهش باشی
           </Text>
         </View>
+
+        {viewState === 'stale' && (
+          <TouchableOpacity
+            onPress={() => { refetch().catch(() => undefined); }}
+            accessibilityRole="button"
+            accessibilityLabel="تلاش دوباره برای به‌روزرسانی"
+            style={{
+              marginBottom: spacing[4],
+              paddingVertical: spacing[2],
+              paddingHorizontal: spacing[3],
+              borderRadius: borderRadius.md,
+              backgroundColor: colors.surfaceSecondary,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <Icon name="refresh" size={16} color={colors.textSecondary} />
+            <Text style={{ color: colors.textSecondary, fontSize: typography.caption, flex: 1 }}>
+              به‌روزرسانی انجام نشد؛ اطلاعات قبلی نمایش داده می‌شود. تلاش دوباره
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Partner Guide: useful with no link, no shared data and no new
+            notification, so it is shown in EVERY state and never waits for
+            the request above. Static content; it reads nothing about her. */}
+        <PartnerGuideEntry />
 
         {body}
       </ScrollView>

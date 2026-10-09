@@ -86,9 +86,13 @@ describe('QuickLog empty-submit / provenance fix', () => {
   });
 
   it('wires the Today AI Feedback CTA', () => {
-    expect(src).toMatch(/useTodayFeedback/);
-    expect(src).toMatch(/requestFeedback/);
-    expect(src).toMatch(/isQuotaExhausted/);
+    // The CTA now lives in the shared block (also used by the check-in
+    // completion) so there is exactly one implementation of it.
+    expect(src).toMatch(/<TodayFeedbackBlock/);
+    const block = read('components/TodayFeedbackBlock.tsx');
+    expect(block).toMatch(/useTodayFeedback/);
+    expect(block).toMatch(/requestFeedback/);
+    expect(block).toMatch(/isQuotaExhausted/);
   });
 });
 

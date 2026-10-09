@@ -21,9 +21,10 @@ describe('Today Feedback endpoint', () => {
     expect(API_ENDPOINTS.AI_TODAY_FEEDBACK).not.toBe(API_ENDPOINTS.AI_FEEDBACK);
   });
 
-  it('the service POSTs with no date parameter (always the server\'s own today)', () => {
+  it('the service POSTs only the device-local date (the server bounds it to +-1 day; no content)', () => {
     const src = read('api/services/todayFeedbackService.ts');
-    expect(src).toMatch(/apiClient[^]*\.post<TodayFeedbackResponse>\(API_ENDPOINTS\.AI_TODAY_FEEDBACK\)/);
+    expect(src).toMatch(/\.post<TodayFeedbackResponse>\(API_ENDPOINTS\.AI_TODAY_FEEDBACK, \{ date: todayISO\(\) \}\)/);
+    expect(src).not.toMatch(/user_note/);
   });
 });
 
@@ -49,7 +50,8 @@ describe('useTodayFeedback', () => {
 
 describe('Today Feedback UI', () => {
   it('QuickLogScreen shows the feedback summary/observations/suggestion/limitations and remaining quota', () => {
-    const src = read('screens/wellness/QuickLogScreen.tsx');
+    const src = read('components/TodayFeedbackBlock.tsx');
+    expect(read('screens/wellness/QuickLogScreen.tsx')).toMatch(/<TodayFeedbackBlock/);
     expect(src).toMatch(/feedback\.summary/);
     expect(src).toMatch(/feedback\.observations\.map/);
     expect(src).toMatch(/feedback\.suggestion/);
@@ -58,7 +60,7 @@ describe('Today Feedback UI', () => {
   });
 
   it('a quota-exhausted state renders the premium upsell, not a bare error', () => {
-    const src = read('screens/wellness/QuickLogScreen.tsx');
+    const src = read('components/TodayFeedbackBlock.tsx');
     expect(src).toMatch(/isQuotaExhausted[^]*PremiumGate/);
   });
 });

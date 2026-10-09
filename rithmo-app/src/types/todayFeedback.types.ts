@@ -20,9 +20,17 @@ export interface TodayFeedbackQuota {
   remaining: number | null;
 }
 
+/** Deterministic result built from the same facts when the AI path gives
+ * nothing (backend ai_gateway/today_feedback_fallback.py). */
+export interface TodayFeedbackFallback {
+  observations: string[];
+  suggestion: string | null;
+}
+
 export interface TodayFeedbackResponse {
   available: boolean;
   feedback?: TodayFeedback;
+  fallback?: TodayFeedbackFallback;
   quota: TodayFeedbackQuota;
   /** Present only on a 429 (quota exhausted). */
   message?: string;

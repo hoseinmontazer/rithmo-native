@@ -148,6 +148,13 @@ export interface LearningProgressPayload {
   required: number;
 }
 
+/** Backend-computed yesterday->today comparison (or null). Structured on
+ * purpose: the client words it. `up` = today's value is higher. */
+export interface ContinuityPayload {
+  signal: 'mood' | 'energy' | 'pain' | 'sleep' | 'stress';
+  direction: 'up' | 'down';
+}
+
 export interface PersonalStatePayload {
   today: string;
   maturity: Maturity;
@@ -218,6 +225,7 @@ export interface TodayPayload {
   insights: Insight[];
   actions: GuidedAction[];
   noticing: NoticingPayload | null;
+  continuity?: ContinuityPayload | null;
 }
 
 export interface ProgressPayload {
@@ -274,6 +282,50 @@ export interface PartnerTodayPayload {
   };
   disclaimer_fa: string;
   check_in: CheckIn | null;
+  /**
+   * Partner 2.0 P1 freshness / data-quality contract. All three are additive
+   * and optional: a server that predates P1 omits them, and the client then
+   * treats the payload as plain usable content (see partnerTodayContent.ts).
+   */
+  /** The server's calendar date for this payload (ISO yyyy-mm-dd). */
+  as_of?: string;
+  /**
+   * What the partner can be told right now: `ready` = real shared context,
+   * `low_data` = the owner has recorded something but nothing usable is
+   * shared/derivable yet, `no_data` = nothing recorded at all yet.
+   */
+  data_state?: 'ready' | 'low_data' | 'no_data';
+  /** P3: the owner's one-tap reaction to the partner's latest gesture (last
+   * 24h, this relationship), or null. Just the reaction and which gesture. */
+  support_response?: { reaction: SupportReaction; action: string } | null;
+  freshness?: {
+    /** How current the owner's wellbeing logging is; null when wellbeing is
+     * not shared. A coarse bucket - never a date or a count. */
+    wellbeing: 'today' | 'recent' | 'stale' | 'none' | null;
+  };
+}
+
+/** What recording a support action returns: the record, never owner data. */
+export interface PartnerActionRecord {
+  action: string;
+  /** Server timestamp of the record. */
+  recorded_at: string;
+  /** True when the server folded this into an identical recent call. */
+  deduplicated: boolean;
+}
+
+/** The two gestures an owner can ever see. `gave_space` and `message` never
+ * produce a receipt (see backend intelligence/support_receipts.py). */
+export type SupportReceiptKind = 'checked_in' | 'time_together';
+export type SupportReaction = 'heart' | 'thanks' | 'hug';
+
+/** The owner's ONE small receipt. Carries the gesture kind and nothing else:
+ * no names, no context, no health data. */
+export interface SupportReceipt {
+  id: number;
+  kind: SupportReceiptKind;
+  state: 'new' | 'seen';
+  created_at: string;
 }
 
 export type PartnerTodayResponse =

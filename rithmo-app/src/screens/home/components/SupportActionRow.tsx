@@ -1,71 +1,51 @@
 /**
- * SupportActionRow — Partner Mode's own, always-available interaction.
+ * SupportActionRow - Partner Mode's own, always-available interaction.
  *
  * Unlike CheckInPrompt (eligibility-gated, tied to a specific reason),
- * this never depends on anything the owner shared — it's the "no shared
- * data ≠ no useful experience" floor: a partner with zero context still
+ * this never depends on anything the owner shared - it's the "no shared
+ * data = no useful experience" floor: a partner with zero context still
  * has something real to do here, every time.
  *
- * Each action has its own contract (ACTION_CONTRACTS below) — tapping
- * never just logs and says "ثبت شد": it shows real, per-action guidance,
- * and for "message" it links to the actual existing owner↔partner chat
- * (`PartnerMessages` → `Conversation`, already built — see ProfileScreen's
- * own note on that route). Nothing here auto-sends anything or claims a
- * message was delivered; the action is "I intend to reach out", and
- * "give space" explicitly has NO owner-visible effect at all — selecting
- * it must never trigger anything the owner can see, which is the whole
- * point of the action.
+ * Partner 2.0 P2 - what a tap means: the partner CHOSE an action and the
+ * server RECORDED that choice against their link. Contracts and the submit
+ * logic live in supportActions.ts. So:
+ *   - success ("ثبت شد") appears only after the server confirmed;
+ *   - a failure shows an honest error with retry and leaves no local
+ *     success state behind;
+ *   - a repeated tap while a request is in flight does nothing, and the
+ *     server folds an identical tap seconds later into the same record;
+ *   - "message" records the intention and then offers the real
+ *     conversation, with an editable draft. Nothing is sent for the user,
+ *     and no message is claimed to exist;
+ *   - nothing here is shown to the owner (that is a later phase).
  *
- * `suggestedAction`, when set (a real theme exists — see
+ * `suggestedAction`, when set (a real theme exists - see
  * intelligence/partner.py's own "no context = no fake suggestion" rule),
  * highlights one of the four buttons rather than replacing them; the
  * other three remain equally available.
- *
- * Multiple actions may be logged in one visit — tapping one shows its
- * guidance without disabling the row, since "sent a message" and "gave
- * space" are not mutually exclusive choices.
  */
 import React, { memo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { Card, PressScale, Reveal } from '@components/ui';
 import { useLogPartnerAction } from '@hooks/queries/useIntelligence';
+import { useProfile } from '@hooks/queries/useProfile';
+import { track } from '@analytics';
+import { ACTION_VISIBILITY_NOTE_FA } from '../supportReceipt';
+import {
+  SUPPORT_ACTIONS,
+  MESSAGE_PREFILL_FA,
+  RECORDED_LABEL_FA,
+  FAILED_LABEL_FA,
+  RETRY_LABEL_FA,
+  resolveChatTarget,
+  runSupportAction,
+  type ActionContract,
+} from '../supportActions';
 
-interface ActionContract {
-  value: string;
-  label: string;
-  /** Shown immediately after tapping — the real "what happens now",
-   * never a generic "ثبت شد". */
-  guidance_fa: string;
-  /** Only "message" has one today — a real navigation, not a promise
-   * the app can't keep. */
-  ctaLabel?: string;
-}
-
-const ACTIONS: ActionContract[] = [
-  {
-    value: 'message',
-    label: 'یه پیام کوتاه بفرست',
-    guidance_fa: 'یک پیام کوتاه و بدون انتظار پاسخ خاص، معمولاً شروع خوبی است.',
-    ctaLabel: 'شروع گفتگو',
-  },
-  {
-    value: 'checked_in',
-    label: 'یادآوری کن کنارشی',
-    guidance_fa: 'لازم نیست چیزی را حل کنی — گاهی فقط حضور داشتن کافی است.',
-  },
-  {
-    value: 'time_together',
-    label: 'براش وقت بذار',
-    guidance_fa: 'حتی یک زمان کوتاه برای کنار هم بودن می‌تواند ارزشمند باشد.',
-  },
-  {
-    value: 'gave_space',
-    label: 'بهش فضا بده',
-    guidance_fa: 'گاهی بهترین همراهی این است که بدون فشار یا انتظار پاسخ، کمی فضا بدهی.',
-  },
-];
+const ACTIONS = SUPPORT_ACTIONS;
 
 interface Props {
   title?: string;
@@ -82,18 +62,42 @@ export const SupportActionRow = memo(function SupportActionRow({
   const { colors, spacing, borderRadius, typography } = useTheme();
   const navigation = useNavigation<any>();
   const { mutate: logAction, isPending } = useLogPartnerAction();
+  const { data: profile } = useProfile();
+  // Set only AFTER the server recorded the choice; never optimistic.
   const [active, setActive] = useState<ActionContract | null>(null);
+  const [failed, setFailed] = useState<ActionContract | null>(null);
 
   const act = (contract: ActionContract) => {
-    if (isPending) { return; }
-    logAction(contract.value, { onSuccess: () => setActive(contract) });
+    setFailed(null);
+    runSupportAction({
+      pending: isPending,
+      contract,
+      log: (action, cb) => logAction(action, cb),
+      track: (event, props) => track(event as any, props as any),
+      onRecorded: (c) => { setFailed(null); setActive(c); },
+      onFailed: (c) => { setActive(null); setFailed(c); },
+    });
   };
 
   const openChat = () => {
-    // Same cross-tab hop PartnerHomeScreen already uses for PartnerManage —
-    // PartnerMessages resolves the single linked conversation on its own,
-    // no partnerId to pass. This opens the compose surface; it does not
-    // send anything on its own.
+    // Straight into the real conversation with an editable draft. Opening it
+    // sends nothing; the partner sends (or doesn't) with the normal send
+    // button. `initial: false` keeps the inbox underneath for "back".
+    const target = resolveChatTarget(profile?.partners as any);
+    if (target) {
+      navigation.navigate(
+        'ProfileTab' as never,
+        {
+          screen: 'PartnerMessages',
+          params: {
+            screen: 'Conversation',
+            params: { ...target, prefill: MESSAGE_PREFILL_FA },
+            initial: false,
+          },
+        } as never,
+      );
+      return;
+    }
     navigation.navigate('ProfileTab' as never, { screen: 'PartnerMessages' } as never);
   };
 
@@ -152,11 +156,42 @@ export const SupportActionRow = memo(function SupportActionRow({
         })}
       </View>
 
+      {failed && (
+        <View style={[styles.guidanceBox, { borderTopColor: colors.borderSubtle, marginTop: spacing[3], paddingTop: spacing[3] }]}>
+          <Text style={{ color: colors.error, fontSize: typography.caption, lineHeight: 19 }}>
+            {FAILED_LABEL_FA}
+          </Text>
+          <PressScale
+            onPress={() => act(failed)}
+            disabled={isPending}
+            style={[styles.ctaBtn, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md, marginTop: spacing[2] }]}
+            accessibilityRole="button"
+            accessibilityLabel={RETRY_LABEL_FA}
+          >
+            <Text style={{ color: colors.textPrimary, fontSize: typography.caption, fontWeight: '700' }}>
+              {RETRY_LABEL_FA}
+            </Text>
+          </PressScale>
+        </View>
+      )}
+
       {active && (
         <Reveal distance={6}>
           <View style={[styles.guidanceBox, { borderTopColor: colors.borderSubtle, marginTop: spacing[3], paddingTop: spacing[3] }]}>
-            <Text style={{ color: colors.textSecondary, fontSize: typography.caption, lineHeight: 19 }}>
+            <View style={styles.recordedRow}>
+              <Icon name="check" size={14} color={colors.textTertiary} />
+              <Text style={{ color: colors.textTertiary, fontSize: typography.caption }}>
+                {RECORDED_LABEL_FA}
+              </Text>
+            </View>
+            <Text style={{ color: colors.textSecondary, fontSize: typography.caption, lineHeight: 19, marginTop: 4 }}>
               {active.guidance_fa}
+            </Text>
+            {/* Honest about who can see what: some gestures give her a small,
+                optional note; "give space" is private; a message goes only
+                when you send it. */}
+            <Text style={{ color: colors.textTertiary, fontSize: typography.caption, lineHeight: 18, marginTop: 4 }}>
+              {ACTION_VISIBILITY_NOTE_FA[active.value]}
             </Text>
             {active.ctaLabel && (
               <PressScale
@@ -182,4 +217,5 @@ const styles = StyleSheet.create({
   actionBtn: { paddingHorizontal: 14, paddingVertical: 8 },
   guidanceBox: { borderTopWidth: StyleSheet.hairlineWidth },
   ctaBtn: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 8 },
+  recordedRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });

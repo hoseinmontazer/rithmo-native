@@ -1,4 +1,5 @@
 import { apiClient } from '@api/client';
+import { todayISO } from '@utils/dateUtils';
 import { API_ENDPOINTS } from '@constants/config';
 import type { CheckInSessionState, SubmitCheckInAnswerParams } from '@types/checkinSession.types';
 
@@ -19,7 +20,7 @@ export const checkinSessionService = {
    */
   getToday: () =>
     apiClient
-      .get(API_ENDPOINTS.CHECKIN_SESSION_TODAY)
+      .get(API_ENDPOINTS.CHECKIN_SESSION_TODAY, { params: { date: todayISO() } })
       .then((r) => unwrap(r)),
 
   /**
@@ -32,6 +33,6 @@ export const checkinSessionService = {
    */
   submitAnswer: (params: SubmitCheckInAnswerParams) =>
     apiClient
-      .post(API_ENDPOINTS.CHECKIN_SESSION_ANSWER, params)
+      .post(API_ENDPOINTS.CHECKIN_SESSION_ANSWER, { ...params, date: params.date ?? todayISO() })
       .then((r) => unwrap(r)),
 };

@@ -34,6 +34,17 @@ export interface CheckInQuestion {
 
 export type CheckInSessionStatus = 'in_progress' | 'completed' | 'abandoned';
 
+/** Present only once the session is completed: which kinds of answers were
+ * recorded (kinds only, never values) and whether today has a wellness log
+ * (what Today Feedback needs). */
+export type CheckInRecordedKind =
+  | 'mood' | 'energy' | 'pain' | 'sleep' | 'stress' | 'symptoms' | 'context' | 'note';
+
+export interface CheckInCompletionSummary {
+  recorded: CheckInRecordedKind[];
+  has_log_today: boolean;
+}
+
 export interface CheckInSessionState {
   session_id: number;
   date: string;
@@ -42,6 +53,7 @@ export interface CheckInSessionState {
   max_questions: number;
   completed: boolean;
   question: CheckInQuestion | null;
+  summary?: CheckInCompletionSummary;
 }
 
 export interface SubmitCheckInAnswerParams {

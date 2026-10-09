@@ -28,7 +28,8 @@ describe('navigationRef — the plumbing notification routing needs', () => {
   });
 
   it('routes to the exact same route DailyCheckInCard\'s manual entry uses', () => {
-    expect(src).toMatch(/navigate\('LogTab' as never, \{ screen: 'AdaptiveCheckIn' \} as never\)/);
+    expect(src).toMatch(/adaptive_checkin: \{ tab: 'LogTab', params: \{ screen: 'AdaptiveCheckIn' \} \}/);
+    expect(src).toMatch(/navigationRef\.navigate\(tab as never, params as never\)/);
   });
 
   it('never constructs a question locally — it only opens the screen that itself fetches the server session', () => {
@@ -37,7 +38,7 @@ describe('navigationRef — the plumbing notification routing needs', () => {
   });
 
   it('queues the navigation intent for a cold start rather than dropping it', () => {
-    expect(src).toMatch(/pendingAdaptiveCheckIn/);
+    expect(src).toMatch(/pendingTarget/);
     expect(src).toMatch(/onNavigationContainerReady/);
   });
 
@@ -65,7 +66,8 @@ describe('MainNavigator — flushes the cold-start intent only once LogTab can e
 
   it('the navigationRef only navigates once LogTab is present in the root state', () => {
     const ref = read('navigation/navigationRef.ts');
-    expect(ref).toMatch(/routeNames\?\.includes\('LogTab'\)/);
+    expect(ref).toMatch(/routeNames\?\.includes\(TARGET_ROUTES\[target\]\.tab\)/);
+    expect(ref).toMatch(/tab: 'LogTab'/);
   });
 });
 
@@ -82,14 +84,15 @@ describe('pushNotifications — routes a real tap, not a foreground arrival', ()
     expect(onMessageBlock).not.toMatch(/routeNotificationTap/);
   });
 
-  it('only routes for the wellness_reminder type — deliberately narrow, not a general router', () => {
-    expect(src).toMatch(/data\?\.notification_type/);
-    expect(src).toMatch(/type === 'wellness_reminder'/);
+  it('routes through the shared resolver (Partner P0 widened this from wellness_reminder only)', () => {
+    expect(src).toMatch(/data\.notification_type/);
+    expect(src).toMatch(/resolveNotificationTarget\(/);
+    expect(src).toMatch(/target === 'adaptive_checkin'/);
   });
 
   it('reads only the notification_type field — never a question, answer, or health value from the payload', () => {
-    const routerFn = src.slice(src.indexOf('function routeNotificationTap'), src.indexOf('function routeNotificationTap') + 500);
-    expect(routerFn).toMatch(/data\?\.notification_type/);
+    const routerFn = src.slice(src.indexOf('function routeNotificationTap'), src.indexOf('export async function requestUserPermission'));
+    expect(routerFn).toMatch(/data\.notification_type/);
     expect(routerFn).not.toMatch(/mood|pain|symptom|question_id/i);
   });
 
@@ -109,7 +112,7 @@ describe('pushNotifications — routes a real tap, not a foreground arrival', ()
   });
 
   it('calls the same navigateToAdaptiveCheckIn used by the manual entry path — one convergent implementation', () => {
-    expect(src).toMatch(/import \{ navigateToAdaptiveCheckIn \} from '@navigation\/navigationRef'/);
+    expect(src).toMatch(/import \{ navigateToAdaptiveCheckIn, navigateToNotificationTarget \} from '@navigation\/navigationRef'/);
   });
 });
 

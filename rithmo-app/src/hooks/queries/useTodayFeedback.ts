@@ -43,6 +43,8 @@ export function useTodayFeedback() {
     // asked yet" and "asked and got no feedback" render identically.
     available: mutation.isSuccess ? mutation.data?.available : undefined,
     feedback: mutation.data?.available ? mutation.data.feedback : undefined,
+    // Present when the AI path gave nothing but the facts could be worded.
+    fallback: mutation.data && !mutation.data.available ? mutation.data.fallback : undefined,
     quota: mutation.data?.quota ?? quotaFromError,
     reset: mutation.reset,
   };

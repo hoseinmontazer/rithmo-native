@@ -1,30 +1,39 @@
 import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import { AppState, PermissionsAndroid, Platform } from 'react-native';
-import { navigateToAdaptiveCheckIn } from '@navigation/navigationRef';
+import { navigateToAdaptiveCheckIn, navigateToNotificationTarget } from '@navigation/navigationRef';
+import { resolveNotificationTarget } from '../navigation/notificationTarget';
 
 /**
- * Today 2.1 Phase E — notification-type -> screen routing.
+ * Notification-tap routing.
  *
- * `data.notification_type` is already sent by the backend for every
- * notification (see notifications/push_service.py::send_notification_push
- * — no payload change was needed for this phase). Only `wellness_reminder`
- * routes anywhere; every other type is left exactly as before (a no-op,
- * same as prior to this phase) — this is deliberately narrow, not a
- * general-purpose notification router, since Phase E's scope is Today
- * 2.1 integration only.
+ * Every push `data` payload carries notification_id, notification_type,
+ * related_id, related_type and (for partner features) an explicit `target`.
+ * The destination is decided by the ONE shared resolver
+ * (navigation/notificationTarget.ts), which the in-app NotificationsScreen
+ * also uses, so a push tap and a list tap always land in the same place.
+ * Unknown types resolve to null and are a no-op.
  *
- * The mobile client never inspects anything beyond this one type string
- * to decide where to navigate — no question, answer, or health data ever
- * rides in the notification payload (see the backend's own payload,
- * unchanged by this phase), and no question is ever constructed here;
- * navigateToAdaptiveCheckIn() opens the exact same server-authoritative
- * screen the manual entry point uses, which re-fetches
- * GET /api/intelligence/checkin-session/today/ itself.
+ * No question, answer, or health data ever rides in the payload, and nothing
+ * here is constructed from it: the destination screens fetch their own
+ * server-authoritative data. A stale target (e.g. the partner link was since
+ * removed) is handled by those screens' own empty states.
  */
 // A single tap can reach this runtime through two paths (see the AppState
 // listener in setupNotificationListeners), so routing is deduped by the
-// FCM message id — one tap, one navigation.
+// FCM message id - one tap, one navigation, one analytics event.
 let lastRoutedMessageId: string | null = null;
+
+/** Fire-and-forget; analytics must never break (or block loading of) routing. */
+function trackPushOpened(notificationType: string): void {
+  try {
+    // Required lazily so this module's routing stays loadable without the
+    // analytics/network stack (and so a failure there cannot affect a tap).
+    const { track } = require('@analytics');
+    track('notification_opened', { notification_type: notificationType, source: 'push' });
+  } catch {
+    // ignore
+  }
+}
 
 function routeNotificationTap(remoteMessage: FirebaseMessagingTypes.RemoteMessage | null | undefined): void {
   if (!remoteMessage) {
@@ -34,10 +43,28 @@ function routeNotificationTap(remoteMessage: FirebaseMessagingTypes.RemoteMessag
   if (messageId !== null && messageId === lastRoutedMessageId) {
     return;
   }
-  const type = remoteMessage.data?.notification_type;
-  if (type === 'wellness_reminder') {
-    lastRoutedMessageId = messageId;
-    navigateToAdaptiveCheckIn();
+  const data = remoteMessage.data ?? {};
+  const type = typeof data.notification_type === 'string' ? data.notification_type : undefined;
+  const target = resolveNotificationTarget({
+    notification_type: type,
+    related_type: typeof data.related_type === 'string' ? data.related_type : undefined,
+    target: typeof data.target === 'string' ? data.target : undefined,
+  });
+  if (!type && !target) {
+    return;
+  }
+  lastRoutedMessageId = messageId;
+  if (type) {
+    trackPushOpened(type);
+  }
+  try {
+    if (target === 'adaptive_checkin') {
+      navigateToAdaptiveCheckIn();
+    } else if (target) {
+      navigateToNotificationTarget(target);
+    }
+  } catch {
+    // A failed navigation must never crash a notification tap.
   }
 }
 

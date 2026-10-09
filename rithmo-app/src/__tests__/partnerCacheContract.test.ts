@@ -61,6 +61,14 @@ describe('partner mutations clear every cache that reads partner state', () => {
     });
   }
 
+  it('the shared helper also clears the messages caches (active-partner scoped server-side)', () => {
+    const helper = source.slice(
+      source.indexOf('function invalidatePartnerState'),
+      source.indexOf('export function useAcceptInvitation'),
+    );
+    expect(helper).toMatch(/queryKeys\.messages\.all\(\)/);
+  });
+
   it('the shared helper really clears both roots', () => {
     const helper = source.slice(
       source.indexOf('function invalidatePartnerState'),

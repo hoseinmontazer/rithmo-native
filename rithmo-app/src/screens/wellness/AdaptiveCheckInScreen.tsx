@@ -30,7 +30,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { screen } from '@theme/spacing';
@@ -44,6 +44,8 @@ import {
   useSubmitCheckInAnswer,
 } from '@hooks/queries/useCheckInSession';
 import { renderModeForQuestion } from './checkinQuestionRenderers';
+import { canOfferTodayFeedback, checkInAcknowledgement, checkInHomeHint } from './checkinAcknowledgement';
+import { TodayFeedbackBlock } from '@components/TodayFeedbackBlock';
 import { SYMPTOMS } from '@constants/symptoms';
 import { CONTEXT_TAGS } from '@constants/contextTags';
 import type { CheckInQuestion, CheckInQuestionOption } from '@types/checkinSession.types';
@@ -55,6 +57,18 @@ export default function AdaptiveCheckInScreen() {
   const { data: session, isLoading, isError, error, refetch } = useCheckInSessionToday();
   const submitAnswer = useSubmitCheckInAnswer();
   const reconcile = useReconcileCheckInSession();
+
+  // This screen is the root of its tab stack, so leaving it does not unmount
+  // it and a plain mount-time fetch never runs again. Re-ask the server every
+  // time the screen regains focus, otherwise a question served before the user
+  // logged something elsewhere (Quick Log, another entry point) is shown stale
+  // and an already-recorded dimension is offered again.
+  useFocusEffect(
+    useCallback(() => {
+      if (!submitAnswer.isPending) { refetch(); }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [refetch]),
+  );
 
   const currentQuestionId = session?.question?.id ?? null;
 
@@ -150,11 +164,17 @@ export default function AdaptiveCheckInScreen() {
             <Icon name="check" size={36} color={colors.primary} />
           </View>
           <Text style={[styles.completedTitle, { color: colors.textPrimary, fontSize: typography.xl, marginTop: spacing[3] }]}>
-            ثبت شد
+            ممنون
           </Text>
           <Text style={[styles.completedMessage, { color: colors.textSecondary, fontSize: typography.bodySmall, marginTop: spacing[2] }]}>
-            مرسی که امروزت رو ثبت کردی.
+            {checkInAcknowledgement(session.summary)}
           </Text>
+          {checkInHomeHint(session.summary) ? (
+            <Text style={[styles.completedMessage, { color: colors.textTertiary, fontSize: typography.caption, marginTop: spacing[1] }]}>
+              {checkInHomeHint(session.summary)}
+            </Text>
+          ) : null}
+          {canOfferTodayFeedback(session.summary) && <TodayFeedbackBlock />}
           <Button
             label="برگشت به امروز"
             onPress={goBack}
@@ -207,6 +227,11 @@ export default function AdaptiveCheckInScreen() {
           <Text style={[styles.questionText, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
             {question.text_fa}
           </Text>
+          {session.question_number === 1 ? (
+            <Text style={{ color: colors.textTertiary, fontSize: typography.caption, marginTop: spacing[2] }}>
+              جواب‌هات توی صفحهٔ خانه نشون داده می‌شه.
+            </Text>
+          ) : null}
 
           <View style={{ marginTop: spacing[6] }}>
             {renderMode === 'single_select' && (
@@ -378,7 +403,7 @@ export default function AdaptiveCheckInScreen() {
                       fontSize: typography.sm,
                     },
                   ]}
-                  placeholder="چیز دیگه‌ای هست که دوست داری ثبت کنی؟"
+                  placeholder="اینجا بنویس..."
                   placeholderTextColor={colors.textTertiary}
                   value={freeText}
                   onChangeText={setFreeText}

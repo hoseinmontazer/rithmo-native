@@ -28,7 +28,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { toFa } from '@utils/persian';
-import { phasePlainLabel } from '@i18n';
+import { phasePlainLabel, displayPhase } from '@i18n';
 import type { CycleContextPayload } from '@types/intelligence.types';
 
 interface Props {
@@ -75,7 +75,7 @@ export const CycleContextStrip = memo(function CycleContextStrip({
 
   // Everyday wording, derived from the phase used for grouping. Falls back
   // to the served phase so a lifecycle state (late / overdue) still reads.
-  const phaseText = phasePlainLabel(cycle.pattern_phase || cycle.phase);
+  const phaseText = phasePlainLabel(displayPhase(cycle.phase, cycle.pattern_phase));
 
   // Only shown when there is a real prediction. A missing one is silence,
   // never a guess.

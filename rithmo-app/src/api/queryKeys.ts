@@ -80,6 +80,7 @@ export const queryKeys = {
     insights: (includeInsufficient?: boolean) =>
       ['intelligence', 'insights', includeInsufficient ? 'all' : 'supported'] as const,
     progress: () => ['intelligence', 'progress'] as const,
+    supportReceipt: () => ['intelligence', 'supportReceipt'] as const,
     forecast: () => ['intelligence', 'forecast'] as const,
     monthlyReview: () => ['intelligence', 'monthlyReview'] as const,
     doctorReport: () => ['intelligence', 'doctorReport'] as const,

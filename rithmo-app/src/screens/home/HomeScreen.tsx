@@ -70,6 +70,9 @@ import { KnowledgeCard } from './components/KnowledgeCard';
 import { HeroRingCard } from './components/HeroRingCard';
 import { QuickCheckInWidget } from './components/QuickCheckInWidget';
 import { DailyCheckInCard } from './components/DailyCheckInCard';
+import { SupportReceiptCard } from './components/SupportReceiptCard';
+import { TodayRecordedCard } from './components/TodayRecordedCard';
+import { visibleActions } from './visibleActions';
 
 type Props = HomeScreenProps<'Home'>;
 
@@ -125,13 +128,13 @@ export default function HomeScreen() {
   const learningMode = today?.learning_mode ?? false;
 
   const { primaryAction, secondaryActions } = useMemo(() => {
-    const actions: GuidedAction[] = today?.actions ?? [];
+    const actions: GuidedAction[] = visibleActions(today?.actions, today?.state);
     return {
       primaryAction: actions.find((a) => a.slot === 'primary') ?? null,
       // Everything that is not the headline, in a stable order.
       secondaryActions: actions.filter((a) => a.slot !== 'primary'),
     };
-  }, [today?.actions]);
+  }, [today?.actions, today?.state]);
 
   // ── Analytics ─────────────────────────────────────────────────────────────
   const reportedRef = useRef<string | null>(null);
@@ -161,6 +164,8 @@ export default function HomeScreen() {
   const goToQuickLogCategory = useCallback((category: string) => {
     navigation.navigate('LogTab' as any, { screen: 'QuickLog', params: { initialCategory: category } } as any);
   }, [navigation]);
+  const checkInPromptOffersAdaptive =
+    !todayLoading && !todayError && today?.check_in?.kind === 'missing_data' && today.check_in.state === 'shown';
   const goToAdaptiveCheckIn = useCallback(() => {
     navigation.navigate('LogTab' as any, { screen: 'AdaptiveCheckIn' } as any);
   }, [navigation]);
@@ -314,6 +319,15 @@ export default function HomeScreen() {
               onPress={pregnancy?.has_active_pregnancy ? goToPregnancy : goToCycle}
               onStartTracking={goToLogPeriod}
             />
+            {/* The visible half of the check-in loop: only what was actually
+                recorded today, in words (renders nothing otherwise).
+                Placed directly under the hero so the answer is on screen
+                without scrolling. */}
+            <TodayRecordedCard
+              values={state?.today_values}
+              symptoms={state?.today_symptoms}
+              continuity={today?.continuity}
+            />
             {(!pregnancy?.has_active_pregnancy || state?.cycle?.is_known) && (
               <QuickCheckInWidget onPressItem={goToQuickLogCategory} />
             )}
@@ -323,7 +337,15 @@ export default function HomeScreen() {
                 CheckInPrompt below (the existing passive nudge) is also
                 unchanged — see docs/features/today-2.1-design.md
                 Decision 1. */}
-            <DailyCheckInCard onPress={goToAdaptiveCheckIn} />
+            {/* One prompt to log, not two - but ONLY when the proactive prompt is
+                itself the way into the adaptive check-in (a live missing_data
+                prompt, whose "log" button opens it). Any other prompt kind or
+                state (answered, dismissed, a deviation question...) leaves
+                this card as the only way to start or resume the check-in. */}
+            {!checkInPromptOffersAdaptive ? <DailyCheckInCard onPress={goToAdaptiveCheckIn} /> : null}
+            {/* P3: the owner's ONE small receipt of a partner's gesture.
+                Renders nothing unless one exists (not a feed). */}
+            <SupportReceiptCard />
           </View>
         )}
 
@@ -387,9 +409,13 @@ export default function HomeScreen() {
             Secondary, below the personal story; renders null with no
             content yet (never for entitlement — free users see this
             too). See KnowledgeCard's own header. */}
-        <View style={{ marginTop: spacing[4] }}>
-          <KnowledgeCard onOpenDetail={goToKnowledgeDetail} />
-        </View>
+        {/* At most one of "a proactive check-in" or "something to learn":
+            generic education yields to a real prompt for today. */}
+        {!today?.check_in ? (
+          <View style={{ marginTop: spacing[4] }}>
+            <KnowledgeCard onOpenDetail={goToKnowledgeDetail} />
+          </View>
+        ) : null}
 
         {/* ── 3. Secondary actions — subordinate rows ───────────────── */}
         {!todayLoading && secondaryActions.length > 0 ? (

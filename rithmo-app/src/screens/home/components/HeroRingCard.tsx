@@ -37,7 +37,7 @@ import { useTheme } from '@hooks/useTheme';
 import { textRoles } from '@theme/typography';
 import { toFa, faDateShort } from '@utils/persian';
 import { todayISO } from '@utils/dateUtils';
-import { phasePlainLabel, phaseDescription } from '@i18n';
+import { phasePlainLabel, phaseDescription, displayPhase } from '@i18n';
 import { Card, PressScale } from '@components/ui';
 import { usePeriods } from '@hooks/queries/usePeriods';
 import { useSelectedDateStore } from '@store/selectedDateStore';
@@ -241,11 +241,11 @@ export const HeroRingCard = memo(function HeroRingCard({
       ? 'در حال قاعدگی'
       : cycle.is_fertile_window
         ? 'پنجرهٔ باروری'
-        : phasePlainLabel(cycle.pattern_phase || cycle.phase);
+        : phasePlainLabel(displayPhase(cycle.phase, cycle.pattern_phase));
     // A real sentence, not the tag repeated as the headline — phaseDescription
     // already exists for exactly this (CycleAnalysisScreen uses it too), so
     // this reuses it rather than re-deriving phase copy a second time.
-    title = phaseDescription(cycle.pattern_phase || cycle.phase, cycle.cycle_day, cycle.days_until_next_period);
+    title = phaseDescription(displayPhase(cycle.phase, cycle.pattern_phase), cycle.cycle_day, cycle.days_until_next_period);
     sub = knownTotal
       ? `${toFa(daysUntil as number)} روز تا دورهٔ بعد.`
       : 'هنوز برای پیش‌بینی طول چرخه، داده‌ی کافی نیست.';

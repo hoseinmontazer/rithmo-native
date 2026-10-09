@@ -5,6 +5,8 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@api/queryKeys';
 import { useTheme } from '@hooks/useTheme';
 import { useConversation, useSendMessage } from '@hooks/queries/useNotifications';
 import { useAuth } from '@hooks/useAuth';
@@ -22,12 +24,14 @@ export default function ConversationScreen() {
   const route = useRoute<Props['route']>();
   const { colors, spacing, borderRadius } = useTheme();
   const { userId } = useAuth();
-  const { partnerId } = route.params;
+  const { partnerId, prefill } = route.params;
 
   const { data: messages, isLoading, isError, error, refetch } = useConversation(partnerId);
   const { mutateAsync: sendMessage, isPending: sending } = useSendMessage();
 
-  const [text, setText] = useState('');
+  // `prefill` (from a support action) only seeds the box as an editable draft;
+  // sending stays an explicit tap on send.
+  const [text, setText] = useState(prefill ?? '');
   /**
    * Pull-to-refresh.
    *
@@ -46,6 +50,12 @@ export default function ConversationScreen() {
   const listRef = useRef<FlatList>(null);
   const isMountedRef = useRef(true);
   useEffect(() => () => { isMountedRef.current = false; }, []);
+  // The server marks messages read when the conversation is fetched; refresh
+  // the list and unread count on leaving so the unread dot does not go stale.
+  const queryClient = useQueryClient();
+  useEffect(() => () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
+  }, [queryClient]);
 
   // Rendered as an INVERTED list (below): index 0 is the newest message and
   // sits at the visual bottom, so opening the conversation is already

@@ -178,19 +178,6 @@ export const AccrualLedger = memo(function AccrualLedger({ state }: Props) {
         </View>
       ) : null}
 
-      {/* ── Why it matters, stated once ─────────────────────────────── */}
-      {isLearning && learningToShow.length === 0 ? (
-        <Text
-          style={{
-            color: colors.textSecondary,
-            fontSize: typography.caption,
-            lineHeight: 18,
-            marginTop: spacing[3],
-          }}
-        >
-          هر روز که ثبت می‌کنی، تصویر شخصی‌ات کامل‌تر می‌شود.
-        </Text>
-      ) : null}
     </View>
   );
 });

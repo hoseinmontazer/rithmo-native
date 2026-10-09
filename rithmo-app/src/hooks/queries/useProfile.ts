@@ -90,10 +90,15 @@ export function useGenerateInvitationCode() {
  * "not connected to anyone" — from the same row in the database.
  *
  * Any mutation that links or unlinks must clear both.
+ *
+ * Messages are scoped to the ACTIVE partner server-side, so a link change also
+ * changes what the list / conversation / unread endpoints return; clear them
+ * too (`messages.all()` is the prefix of conversation + unread).
  */
 function invalidatePartnerState(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: queryKeys.profile.all() });
   queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.all() });
+  queryClient.invalidateQueries({ queryKey: queryKeys.messages.all() });
 }
 
 export function useAcceptInvitation() {

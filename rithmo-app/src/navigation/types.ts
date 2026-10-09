@@ -1,6 +1,7 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { Insight } from '@types/intelligence.types';
+import type { PartnerGuideSection } from '@screens/home/partnerGuideContent';
 
 // ── Auth Stack ────────────────────────────────────────────────────────────────
 export type AuthStackParamList = {
@@ -35,6 +36,10 @@ export type HomeStackParamList = {
   // aren't already client-side, unlike InsightDetail's insight object),
   // so only the id is passed.
   KnowledgeDetail: { itemId: number };
+  // Partner Guide (راهنمای همراهی): static, reviewed content that reads nothing
+  // about the owner. Reached only from PartnerHomeScreen's guide card; it has
+  // no owner-data dependency, so it is safe for any role to open.
+  PartnerGuide:    { section: PartnerGuideSection };
 };
 
 // ── Cycle Stack ───────────────────────────────────────────────────────────────
@@ -101,7 +106,8 @@ export type ProfileStackParamList = {
 // ── Messages Stack ────────────────────────────────────────────────────────────
 export type MessagesStackParamList = {
   MessagesList: undefined;
-  Conversation: { partnerId: string; partnerName: string };
+  /** `prefill` is an editable DRAFT for the message box - never auto-sent. */
+  Conversation: { partnerId: string; partnerName: string; prefill?: string };
 };
 
 // ── Onboarding Stack ──────────────────────────────────────────────────────────

@@ -84,6 +84,8 @@ export const API_ENDPOINTS = {
   INTELLIGENCE_TTC: '/api/intelligence/ttc/',
   INTELLIGENCE_PARTNER_TODAY: '/api/intelligence/partner/today/',
   INTELLIGENCE_PARTNER_ACTION: '/api/intelligence/partner/action/',
+  // Partner 2.0 P3 - the owner's one small receipt and reactions.
+  INTELLIGENCE_SUPPORT_RECEIPT: '/api/intelligence/support/receipt/',
   // Today 2.1 Phase B/D — the adaptive daily check-in session. Deliberately
   // separate from INTELLIGENCE_CHECKIN above, which is the older, unrelated
   // single-question CheckIn nudge (intelligence.CheckIn) — see

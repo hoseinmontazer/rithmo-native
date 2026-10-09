@@ -27,21 +27,20 @@ import {
   StyleSheet,
   Animated,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { useCreatePeriod } from '@hooks/queries/usePeriods';
-import { profileService } from '@api/services/profileService';
+import { usePatchProfile } from '@hooks/queries/useProfile';
+import { persistOnboardingProfile, type OnboardingRole } from './onboardingProfile';
 import { formatDateISO } from '@utils/dateUtils';
-import type { UpdateProfileRequest } from '@types/profile.types';
 import { ONBOARDING_ROLE_KEY } from '@hooks/useRole';
 import { track } from '@analytics';
 
 const ONBOARDING_KEY = 'onboarding_complete';
-
-type OnboardingRole = 'owner' | 'partner';
 
 // ── Step option picker ────────────────────────────────────────────────────────
 
@@ -150,6 +149,9 @@ interface OnboardingScreenProps {
 export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const { colors, spacing, typography, borderRadius } = useTheme();
   const { mutateAsync: createPeriod } = useCreatePeriod();
+  // Applies the PATCH response to the profile cache + auth store, so role
+  // resolution (useRole) sees the new user_role immediately.
+  const { mutateAsync: patchProfile } = usePatchProfile();
 
   const [role, setRole] = useState<OnboardingRole | null>(null);
 
@@ -176,23 +178,24 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
 
   const finish = useCallback(async (finalRole: OnboardingRole, createFirstPeriod: boolean, periodAgo: number | null) => {
     setSaving(true);
+    // 1. Persist role + onboarding preferences to UserProfile, through the
+    // cache-applying mutation. A partner MUST succeed here: the server role
+    // decides which app they get, so a swallowed failure would silently hand
+    // a partner the owner app. Owner stays non-blocking.
+    const { canComplete } = await persistOnboardingProfile(
+      finalRole,
+      { intent, regularity, hasSymptoms },
+      patchProfile,
+    );
+    if (!canComplete) {
+      setSaving(false);
+      Alert.alert(
+        'ذخیره انجام نشد',
+        'اتصال برقرار نشد. اینترنتت را بررسی کن و دوباره تلاش کن.',
+      );
+      return;
+    }
     try {
-      // 1. Persist role + onboarding preferences to UserProfile.
-      const profileUpdates: UpdateProfileRequest = {
-        user_role: finalRole,
-        onboarding_completed: true,
-      };
-      if (finalRole === 'owner') {
-        if (intent) profileUpdates.onboarding_intent = intent;
-        if (regularity) profileUpdates.onboarding_regularity = regularity;
-        if (hasSymptoms) profileUpdates.onboarding_symptoms = hasSymptoms;
-      }
-      try {
-        await profileService.patchProfile(profileUpdates);
-      } catch {
-        // Non-blocking: ensure onboarding completes even if the patch fails.
-      }
-
       // 2. Create the first period record (owners only).
       if (createFirstPeriod && periodAgo !== null) {
         const startDate = daysAgoToISO(periodAgo);
@@ -214,7 +217,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
     } finally {
       setSaving(false);
     }
-  }, [intent, regularity, hasSymptoms, createPeriod, onComplete]);
+  }, [intent, regularity, hasSymptoms, createPeriod, patchProfile, onComplete]);
 
   const handleComplete = useCallback(() => {
     if (role === 'partner') {
@@ -226,13 +229,20 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
   }, [role, periodDaysAgo, finish]);
 
   const handleSkip = useCallback(async () => {
-    // Skipping keeps the user on the default (owner) experience.
+    if (saving) { return; }
+    // A role already chosen at step 1 is honoured: skipping the remaining
+    // questions completes THAT path (same persisted PATCH, same failure
+    // handling). With no role chosen, keep the default (owner) experience.
+    if (role === 'partner') {
+      await finish('partner', false, null);
+      return;
+    }
     await AsyncStorage.multiSet([
       [ONBOARDING_KEY, '1'],
       [ONBOARDING_ROLE_KEY, 'owner'],
     ]);
     onComplete();
-  }, [onComplete]);
+  }, [role, saving, finish, onComplete]);
 
   const accent = colors.primary;
   const ctaLabel = role === 'partner' && step === 2 ? 'شروع ریتمو' : 'ادامه';

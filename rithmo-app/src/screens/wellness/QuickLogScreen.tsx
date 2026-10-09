@@ -36,8 +36,7 @@ import {
 } from '@hooks/queries/useWellness';
 import { usePeriods, useCycleAnalysis } from '@hooks/queries/usePeriods';
 import { useCreateContextEntry } from '@hooks/queries/useContextEntries';
-import { useTodayFeedback } from '@hooks/queries/useTodayFeedback';
-import { PremiumGate } from '@components/PremiumGate';
+import { TodayFeedbackBlock } from '@components/TodayFeedbackBlock';
 import { Button, Card, Badge, CelebrationAnimation, AppIcon, SliderMetric } from '@components/ui';
 import { extractErrorMessage } from '@utils/errorHandler';
 import { toFa, faDate } from '@utils/persian';
@@ -48,6 +47,7 @@ import { QUICK_SYMPTOMS, parseSymptomCodes } from '@constants/symptoms';
 import { CONTEXT_TAGS } from '@constants/contextTags';
 import { symptomIcon, ICON_SIZE } from '@design-system/iconography';
 import icons, { type AppIconName } from '@assets/icons';
+import { QUICK_LOG_MOOD_HEADING } from './quickLogLabels';
 import type { WellnessScreenProps } from '@navigation/types';
 import type { WellnessLog } from '@types/wellness.types';
 import type { ContextTag } from '@types/contextEntry.types';
@@ -335,11 +335,7 @@ export default function QuickLogScreen() {
   const { data: cycleAnalysis } = useCycleAnalysis();
   const { mutateAsync: saveLog, isPending } = useCreateOrUpdateWellnessLog();
   const { mutateAsync: createContextEntry } = useCreateContextEntry();
-  const {
-    requestFeedback, isLoading: isFeedbackLoading, isQuotaExhausted,
-    available: feedbackAvailable, feedback, quota: feedbackQuota,
-  } = useTodayFeedback();
-  /**
+    /**
    * The one prior real observation the 'building'-state day-over-day
    * comparison needs. Bounded to 2 so this stays a small, existing-shape
    * request (the same `useWellnessLogs` hook `DeepInsightsScreen`/
@@ -583,63 +579,7 @@ export default function QuickLogScreen() {
               </Text>
             )}
 
-            {/* ── Today 2.0, Layer B: explicit-trigger AI Feedback ────── */}
-            <View style={{ width: '100%', marginTop: spacing[4] }}>
-              {!feedback && !isQuotaExhausted && (
-                <Button
-                  label={isFeedbackLoading ? 'در حال آماده‌سازی...' : 'دریافت بازخورد هوشمند'}
-                  onPress={() => requestFeedback()}
-                  loading={isFeedbackLoading}
-                  disabled={isFeedbackLoading}
-                  variant="secondary"
-                  fullWidth
-                />
-              )}
-
-              {isQuotaExhausted && (
-                <PremiumGate
-                  overlay
-                  featureName="بازخورد نامحدود"
-                  message="سقف بازخورد رایگان این هفته پر شده — با پرمیوم نامحدود دریافت کن."
-                />
-              )}
-
-              {feedback && !isFeedbackLoading && (
-                <Card elevated={false} rounded="2xl" style={{ padding: spacing[4], marginTop: spacing[3], width: '100%' }}>
-                  <Text style={{ color: colors.textPrimary, fontSize: typography.bodySmall, fontWeight: '600', lineHeight: 22 }}>
-                    {feedback.summary}
-                  </Text>
-                  {feedback.observations.map((obs, i) => (
-                    <Text key={i} style={{ color: colors.textSecondary, fontSize: typography.caption, lineHeight: 20, marginTop: spacing[1] }}>
-                      {`· ${obs}`}
-                    </Text>
-                  ))}
-                  {feedback.suggestion ? (
-                    <Text style={{ color: colors.textPrimary, fontSize: typography.bodySmall, fontWeight: '600', marginTop: spacing[3] }}>
-                      {feedback.suggestion}
-                    </Text>
-                  ) : null}
-                  {feedback.limitations.map((lim, i) => (
-                    <Text key={i} style={{ color: colors.textTertiary, fontSize: typography.micro, lineHeight: 16, marginTop: i === 0 ? spacing[3] : 2 }}>
-                      {lim}
-                    </Text>
-                  ))}
-                  {!feedbackQuota?.is_premium && typeof feedbackQuota?.remaining === 'number' && (
-                    <Badge
-                      label={`${toFa(feedbackQuota.remaining)} بازخورد رایگان باقی‌مانده این هفته`}
-                      variant="neutral"
-                      style={{ marginTop: spacing[3], alignSelf: 'flex-start' }}
-                    />
-                  )}
-                </Card>
-              )}
-
-              {feedbackAvailable === false && !isFeedbackLoading && !isQuotaExhausted && (
-                <Text style={{ color: colors.textTertiary, fontSize: typography.xs, textAlign: 'center', marginTop: spacing[2] }}>
-                  الان نتوانستم بازخوردی آماده کنم.
-                </Text>
-              )}
-            </View>
+            <TodayFeedbackBlock />
 
             <TouchableOpacity
               onPress={goBack}
@@ -731,7 +671,7 @@ export default function QuickLogScreen() {
           {/* ── Mood: illustrated scale ──────────────────────────────── */}
           <Card elevated={false} style={{ padding: spacing[4], paddingTop: spacing[4] + 8, marginBottom: spacing[6] }}>
             <Text style={[styles.pickerLabel, { color: colors.textPrimary, fontSize: textRoles.cardTitle.fontSize, fontWeight: textRoles.cardTitle.fontWeight, lineHeight: textRoles.cardTitle.lineHeight, marginBottom: spacing[3] }]}>
-              خلق
+              {QUICK_LOG_MOOD_HEADING}
             </Text>
             {/* Circular badges, the selected one enlarged and lifted above
                 the row — the artwork already carries its own colour per

@@ -42,6 +42,7 @@ import { TodayInsightCard } from '../home/components/TodayInsightCard';
 import { CycleChangeCard } from './components/CycleChangeCard';
 import { WeeklyReviewCard } from './components/WeeklyReviewCard';
 import { PremiumGate } from '@components/PremiumGate';
+import { regularityBand, regularityPercent } from '@utils/regularity';
 import type { CycleAnalysis } from '@types/period.types';
 import type { Insight } from '@types/intelligence.types';
 import type { InsightsScreenProps } from '@navigation/types';
@@ -219,7 +220,8 @@ export default function InsightsHomeScreen() {
   // legacy (never sent by the current API) — keep as fallback only.
   const cd = cycleData as CycleAnalysis | undefined;
   const avgCycle = cd?.average_cycle_length ?? cd?.average_cycle ?? null;
-  const regScore = cd?.regularity_score;
+  // The backend score is already a percent (0-100); see utils/regularity.
+  const regPercent = regularityPercent(cd?.regularity_score);
 
   const insights = insightData?.insights ?? [];
   const learningMode = insightData?.learning_mode ?? false;
@@ -287,7 +289,7 @@ export default function InsightsHomeScreen() {
             ریتمو · الگوهای شخصی
           </Text>
           <Text style={[styles.heroTitle, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
-            الگوی بدن شما
+            الگوی بدنت
           </Text>
           <Text style={[styles.heroSub, { color: colors.textSecondary, fontSize: typography.sm }]}>
             محاسبه‌شده از داده‌های واقعی خودت — نه میانگین جمعیت
@@ -408,8 +410,8 @@ export default function InsightsHomeScreen() {
                   انتظام
                 </Text>
                 <Text style={[styles.regularityValue, { color: colors.textPrimary, fontSize: typography['2xl'] }]}>
-                  {regScore != null ? toFa(Math.round(regScore * 100)) : '—'}
-                  {regScore != null && (
+                  {regPercent != null ? toFa(regPercent) : '—'}
+                  {regPercent != null && (
                     <Text style={[styles.regularityPct, { color: colors.textSecondary, fontSize: typography.base }]}>
                       ٪
                     </Text>
@@ -418,15 +420,15 @@ export default function InsightsHomeScreen() {
                 <Text style={[styles.regularityLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
                   امتیاز انتظام
                 </Text>
-                {regScore != null && (
+                {regPercent != null && (
                   <View style={{ marginTop: spacing[2] }}>
                     <ProgressBar
-                      value={regScore}
-                      max={1}
+                      value={regPercent}
+                      max={100}
                       color={
-                        regScore > 0.75
+                        regularityBand(regPercent) === 'good'
                           ? colors.success
-                          : regScore > 0.5
+                          : regularityBand(regPercent) === 'fair'
                             ? colors.warning
                             : colors.error
                       }

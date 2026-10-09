@@ -31,6 +31,9 @@ export interface ShareSettings {
   share_upcoming_period: boolean;
   share_mood: boolean;
   share_wellness_status: boolean;
+  /** Owner-side PREFERENCE (P3): see the small gestures a partner chooses to
+   * send. Not data shared with the partner. */
+  show_partner_support: boolean;
 }
 
 export interface PartnerInfo {
