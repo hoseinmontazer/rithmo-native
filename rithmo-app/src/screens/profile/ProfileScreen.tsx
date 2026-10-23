@@ -355,6 +355,9 @@ export default function ProfileScreen() {
       </View>
 
       {/* ── 3. Luxury Premium Banner ──────────────────────────────────── */}
+      {/* Hidden while Premium is free by policy, unless the user holds a real
+          subscription they may still need to manage. */}
+      {(!premium?.premium_free_mode || premium?.is_active) && (
       <PressScale
         onPress={() => navigation.navigate('Upgrade', {})}
         accessibilityRole="button"
@@ -417,6 +420,7 @@ export default function ProfileScreen() {
           </View>
         </Card>
       </PressScale>
+      )}
 
       {/* ── 4. Pregnancy Mode ─────────────────────────────────────────── */}
       {isCycleOwner && (

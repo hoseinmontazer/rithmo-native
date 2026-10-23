@@ -34,7 +34,8 @@ import { useTheme } from '@hooks/useTheme';
 import { screen } from '@theme/spacing';
 import { usePeriods, useCycleAnalysis } from '@hooks/queries/usePeriods';
 import { useWellnessAnalytics } from '@hooks/queries/useWellness';
-import { Card, Badge, Reveal } from '@components/ui';
+import { usePremiumStatus } from '@hooks/queries/useSubscription';
+import { Card, Badge, Reveal, ErrorState } from '@components/ui';
 import { toFa } from '@utils/persian';
 import { useInsights, useProgress } from '@hooks/queries/useIntelligence';
 import { track } from '@analytics';
@@ -179,6 +180,7 @@ function AvgMetricRow({
 // ─────────────────────────────────────────────────────────────────────────────
 export default function InsightsHomeScreen() {
   const { colors, spacing, typography } = useTheme();
+  const { isPremiumFree } = usePremiumStatus();
   const navigation = useNavigation<Props['navigation']>();
   // Cross-tab, same pattern HomeScreen already uses for Pregnancy/QuickLog —
   // InsightDetail lives on HomeStack (owner-only there), not on this stack.
@@ -190,11 +192,17 @@ export default function InsightsHomeScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
 
-  const { data: periodsList, refetch: refetchPeriods } = usePeriods();
-  const { data: analytics, refetch: refetchAnalytics } = useWellnessAnalytics(30);
-  const { data: cycleData, refetch: refetchCycle } = useCycleAnalysis();
-  const { data: insightData, refetch: refetchInsights } = useInsights();
+  const { data: periodsList, refetch: refetchPeriods, error: periodsError } = usePeriods();
+  const { data: analytics, refetch: refetchAnalytics, error: analyticsError } = useWellnessAnalytics(30);
+  const { data: cycleData, refetch: refetchCycle, error: cycleError } = useCycleAnalysis();
+  const { data: insightData, refetch: refetchInsights, error: insightsError } = useInsights();
   const { data: progress, refetch: refetchProgress } = useProgress();
+
+  // A failed load must not look like "no data yet": show the error with a
+  // retry when nothing at all could be loaded and at least one request failed.
+  const loadError = periodsError ?? analyticsError ?? cycleError ?? insightsError ?? null;
+  const nothingLoaded = !periodsList && !analytics && !cycleData && !insightData;
+  const loadFailed = !!loadError && nothingLoaded;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -283,6 +291,8 @@ export default function InsightsHomeScreen() {
           />
         }
       >
+        {loadFailed ? <ErrorState error={loadError} onRetry={onRefresh} /> : null}
+
         {/* ══ HERO HEADER ══════════════════════════════════════════════ */}
         <View style={[styles.heroSection, { paddingTop: spacing[4], marginBottom: spacing[6] }]}>
           <Text style={[styles.overLine, { color: colors.textTertiary, fontSize: typography.xs }]}>
@@ -564,7 +574,8 @@ export default function InsightsHomeScreen() {
             ]}
           >
             <View style={styles.ctaHeaderRow}>
-              <Badge label="ویژه پریمیوم" variant="primary" />
+              {/* No "Premium" badge while the feature is free by policy. */}
+              {isPremiumFree ? <View /> : <Badge label="ویژه پریمیوم" variant="primary" />}
               <Icon name="arrow-left" size={18} color={colors.premium} />
             </View>
 

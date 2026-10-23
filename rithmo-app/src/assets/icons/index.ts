@@ -54,6 +54,14 @@ const icons = {
   moodAngel:        require('./angel.png'),
   moodHappy:        require('./happy.png'),
 
+  // Quick check-in row on Home (ثبت سریع) — supplied by the project owner,
+  // downscaled to 192px. Source/licence to be confirmed, see ICONS8-LICENCE.txt.
+  // (Weight deliberately has no artwork here: the supplied one implied weight loss.)
+  quickMood:        require('./quick-mood.png'),
+  quickEnergy:      require('./quick-energy.png'),
+  quickWater:       require('./quick-water.png'),
+  quickSymptoms:    require('./quick-symptoms.png'),
+
   // Misc
   search:           require('./search.png'),
 } as const;

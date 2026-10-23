@@ -102,7 +102,24 @@ export async function getFCMToken() {
   }
 }
 
-export function setupNotificationListeners() {
+/**
+ * Registers the push listeners. Never throws: when Firebase is not configured
+ * (a build without google-services, a missing config file) messaging() throws
+ * synchronously, and this runs from App's mount effect, so an unguarded throw
+ * would take the whole app down instead of only disabling push.
+ */
+export function setupNotificationListeners(): () => void {
+  try {
+    return registerNotificationListeners();
+  } catch (error) {
+    if (__DEV__) {
+      console.log('[pushNotifications] Firebase messaging unavailable; push listeners skipped.', error);
+    }
+    return () => {};
+  }
+}
+
+function registerNotificationListeners(): () => void {
   // Listen to foreground notifications
   const unsubscribe = messaging().onMessage(async remoteMessage => {
     console.log('A new FCM message arrived in the foreground!', JSON.stringify(remoteMessage));
@@ -161,7 +178,8 @@ export function setupNotificationListeners() {
         );
         routeNotificationTap(remoteMessage);
       }
-    });
+    })
+    .catch(() => {});
 
   return () => {
     unsubscribe();

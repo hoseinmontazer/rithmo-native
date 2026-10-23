@@ -549,7 +549,7 @@ export default function QuickLogScreen() {
         setCelebrationVisible(false);
       }, 2200);
     } catch (err) {
-      Alert.alert('خطا', extractErrorMessage(err));
+      Alert.alert('ذخیره نشد', `${extractErrorMessage(err)}\nاطلاعاتت هنوز اینجاست؛ دوباره امتحان کن.`);
     }
   }, [
     mood, energy, pain, sleep, touched, selectedSymptoms, notes,
@@ -658,6 +658,7 @@ export default function QuickLogScreen() {
             </View>
             <TouchableOpacity
               onPress={goBack}
+              accessibilityRole="button"
               style={[
                 styles.closeBtn,
                 {
@@ -994,8 +995,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   closeBtn: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1047,13 +1048,13 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   sleepStepBtn: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   symptomChip: {
-    minHeight: 34,
+    minHeight: 40,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

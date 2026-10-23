@@ -5,6 +5,7 @@ import { ONBOARDING_ROLE_KEY } from '@hooks/useRole';
 import { authService } from '@api/services/authService';
 import { onSessionExpired } from '@api/client';
 import { secureStorage } from '@utils/secureStorage';
+import { deregisterPushTokenBestEffort } from '@utils/pushTokenCleanup';
 import type { AuthUser, LoginRequest, StoredTokens } from '@types/auth.types';
 
 interface AuthState {
@@ -129,6 +130,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
+    // While the session is still valid: stop pushes to this device for the
+    // departing account. Best effort and time-boxed; never blocks sign-out.
+    await deregisterPushTokenBestEffort();
     await secureStorage.clearTokens();
     // Everything tied to the departing identity goes with the tokens.
     // See clearIdentityState() for why this is not optional.

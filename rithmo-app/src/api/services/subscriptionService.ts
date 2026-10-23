@@ -7,6 +7,14 @@ export interface SubscriptionStatus {
   is_active:          boolean;
   provider?:          'stripe' | 'bazaar' | 'zibal';
   current_period_end: string | null;
+  /**
+   * Feature entitlement (backend policy). `is_active` stays the raw billing
+   * fact; gate features on `entitled` (see usePremiumStatus). Optional so an
+   * older backend that omits it falls back to `is_active`.
+   */
+  entitled?:          boolean;
+  /** True while Premium features are free by policy, not by purchase. */
+  premium_free_mode?: boolean;
 }
 
 export interface VerifyBazaarPurchaseRequest {

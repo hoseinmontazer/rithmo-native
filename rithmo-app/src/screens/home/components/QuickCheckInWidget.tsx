@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
-import { StyleSheet, View, Text, ScrollView } from 'react-native';
-import { Smile, Zap, Droplets, Activity, Scale } from 'lucide-react-native';
+import { Image, ImageSourcePropType, StyleSheet, View, Text } from 'react-native';
+import { Scale } from 'lucide-react-native';
+import icons from '@assets/icons';
 import { PressScale } from '@components/ui';
 import { useTheme } from '@hooks/useTheme';
 import { typography } from '@theme/typography';
@@ -8,16 +9,20 @@ import { typography } from '@theme/typography';
 interface CheckInItem {
   id: string;
   label: string;
-  icon: React.ElementType;
+  /** Artwork. Weight has none: see `ICON_WEIGHT` below. */
+  icon?: ImageSourcePropType;
   screen: string;
 }
 
-const ITEMS = [
-  { id: 'mood', label: 'حالت', icon: Smile, screen: 'Mood' },
-  { id: 'energy', label: 'انرژی', icon: Zap, screen: 'Energy' },
-  { id: 'water', label: 'آب', icon: Droplets, screen: 'Water' },
-  { id: 'symptoms', label: 'نشانه‌ها', icon: Activity, screen: 'Symptoms' },
-  { id: 'weight', label: 'وزن', icon: Scale, screen: 'Weight' },
+const ITEMS: CheckInItem[] = [
+  { id: 'mood', label: 'حالت', icon: icons.quickMood, screen: 'Mood' },
+  { id: 'energy', label: 'انرژی', icon: icons.quickEnergy, screen: 'Energy' },
+  { id: 'water', label: 'آب', icon: icons.quickWater, screen: 'Water' },
+  { id: 'symptoms', label: 'نشانه‌ها', icon: icons.quickSymptoms, screen: 'Symptoms' },
+  // Neutral scale glyph (lucide, already a dependency). The supplied weight
+  // artwork carried a red down-arrow, which reads as a weight-LOSS goal; the
+  // check-in only records a number, so it must not imply a direction.
+  { id: 'weight', label: 'وزن', screen: 'Weight' },
 ];
 
 interface Props {
@@ -45,7 +50,18 @@ export const QuickCheckInWidget = memo(function QuickCheckInWidget({ onPressItem
               accessibilityRole="button"
               accessibilityLabel={`ثبت ${item.label}`}
             >
-              <item.icon size={26} color={colors.primaryDark} strokeWidth={2.25} />
+              {/* Decorative: the label below and the button label name it. */}
+              {item.icon ? (
+                <Image
+                  source={item.icon}
+                  style={styles.iconImage}
+                  resizeMode="contain"
+                  accessibilityIgnoresInvertColors
+                  importantForAccessibility="no"
+                />
+              ) : (
+                <Scale size={28} color={colors.primaryDark} strokeWidth={2.25} />
+              )}
             </PressScale>
             <Text style={[styles.label, { color: colors.textSecondary }]}>
               {item.label}
@@ -58,6 +74,10 @@ export const QuickCheckInWidget = memo(function QuickCheckInWidget({ onPressItem
 });
 
 const styles = StyleSheet.create({
+  iconImage: {
+    width: 34,
+    height: 34,
+  },
   container: {
     paddingVertical: 4,
   },

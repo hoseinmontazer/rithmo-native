@@ -71,3 +71,20 @@ The Pulsar Color icons were downloaded from Icons8's own delivery CDN
 `src/design-system/pulsarIcons.ts` (for example `sad` -> `mood-1.png`).
 The artwork itself is unmodified: it is not recoloured, redrawn, or
 recombined, and it is not presented as original work.
+
+
+Quick check-in icons (not Icons8) — licence pending
+---------------------------------------------------
+
+`quick-mood.png`, `quick-energy.png`, `quick-water.png` and
+`quick-symptoms.png` were supplied by the project owner (originals:
+dial.png, power.png, water-drop.png, orientation.png), resized to 192x192
+and otherwise unmodified. The files carry no author, source or licence:
+their only embedded metadata is "Software: www.inkscape.org". Their
+provenance is therefore UNKNOWN, not "free". Do not ship them to a store
+until the owner confirms where they were downloaded and under which
+licence (and adds any required attribution here).
+
+A fifth supplied file (weight-loss.png, a scale with a red down-arrow) was
+NOT used: the arrow implies a weight-loss goal. The weight shortcut uses the
+neutral lucide `Scale` glyph instead.

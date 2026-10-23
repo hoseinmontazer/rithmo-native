@@ -57,6 +57,10 @@ export const notificationService = {
   updatePushToken: (id: number, data: UpdatePushTokenRequest) =>
     apiClient.put<PushToken>(`${API_ENDPOINTS.PUSH_TOKENS}${id}/`, data),
 
+  // Logout: ask the backend to stop pushing to this device token for this account.
+  deregisterPushToken: (token: string) =>
+    apiClient.post<void>(`${API_ENDPOINTS.PUSH_TOKENS}deregister/`, { token }),
+
   deletePushToken: (id: number) =>
     apiClient.delete<void>(`${API_ENDPOINTS.PUSH_TOKENS}${id}/`),
 

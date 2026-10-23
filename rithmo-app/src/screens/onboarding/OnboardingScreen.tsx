@@ -252,7 +252,13 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
       {/* Progress + Skip */}
       <View style={[styles.topBar, { paddingHorizontal: spacing[5], paddingTop: spacing[4] }]}>
         <ProgressDots current={step} total={totalSteps} accent={accent} />
-        <TouchableOpacity onPress={handleSkip}>
+        <TouchableOpacity
+          onPress={handleSkip}
+          accessibilityRole="button"
+          accessibilityLabel="رد کردن مقدمه"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={{ minHeight: 44, justifyContent: 'center' }}
+        >
           <Text style={{ color: colors.textSecondary, fontSize: typography.sm, fontWeight: '500' }}>
             رد کردن
           </Text>
@@ -427,7 +433,8 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
               </View>
               <TouchableOpacity
                 onPress={() => { setPeriodDaysAgo(null); finish('owner', true, null); }}
-                style={{ marginTop: 12, paddingVertical: 10, alignItems: 'center' }}
+                accessibilityRole="button"
+                style={{ marginTop: 12, minHeight: 44, justifyContent: 'center', alignItems: 'center' }}
               >
                 <Text style={{ color: colors.textTertiary, fontSize: typography.sm }}>
                   رد کردن این مرحله
@@ -445,6 +452,10 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
           <TouchableOpacity
             onPress={goToNextStep}
             disabled={step === 1 && role === null}
+            accessibilityRole="button"
+            accessibilityLabel="ادامه"
+            accessibilityHint={step === 1 && role === null ? 'ابتدا یکی از گزینه‌ها را انتخاب کن' : undefined}
+            accessibilityState={{ disabled: step === 1 && role === null }}
             style={[styles.nextBtn, { backgroundColor: accent, borderRadius: borderRadius.xl, opacity: step === 1 && role === null ? 0.45 : 1 }]}
             activeOpacity={0.87}
           >
@@ -457,6 +468,9 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
           <TouchableOpacity
             onPress={handleComplete}
             disabled={saving}
+            accessibilityRole="button"
+            accessibilityLabel={saving ? 'در حال ذخیره' : ctaLabel}
+            accessibilityState={{ disabled: saving, busy: saving }}
             style={[styles.nextBtn, { backgroundColor: accent, borderRadius: borderRadius.xl, opacity: saving ? 0.6 : 1 }]}
             activeOpacity={0.87}
           >
@@ -534,6 +548,5 @@ const styles = StyleSheet.create({
   },
   nextBtnText: {
     fontWeight: '700',
-    letterSpacing: 0.3,
   },
 });

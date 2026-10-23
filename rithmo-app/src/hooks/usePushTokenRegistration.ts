@@ -32,6 +32,7 @@ import { useEffect, useRef } from 'react';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { useRegisterPushToken } from '@hooks/queries/useNotifications';
 import { useAuth } from '@hooks/useAuth';
+import { track } from '@analytics';
 
 /** Attempt to load @react-native-firebase/messaging lazily.
  *  Returns null if the package is missing OR if the native module is not
@@ -87,6 +88,7 @@ export function usePushTokenRegistration(): void {
             PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
           );
           if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            track('push_permission_result', { status: 'denied' });
             if (__DEV__) {
               console.log('[usePushTokenRegistration] POST_NOTIFICATIONS denied by user.');
             }
@@ -99,6 +101,7 @@ export function usePushTokenRegistration(): void {
           authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
           authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
+        track('push_permission_result', { status: enabled ? 'granted' : 'denied' });
         if (!enabled) {
           if (__DEV__) {
             console.log('[usePushTokenRegistration] Push permission denied by user.');
@@ -116,6 +119,7 @@ export function usePushTokenRegistration(): void {
         });
 
         registeredToken.current = token;
+        track('push_token_registered', {});
 
         if (__DEV__) {
           console.log('[usePushTokenRegistration] FCM token registered:', token.slice(0, 20) + '…');

@@ -177,6 +177,13 @@ export default function SettingsScreen() {
           prefKey="push_wellness_reminder"
           value={prefs?.push_wellness_reminder ?? false}
           onToggle={togglePref}
+        />
+        <PrefRow
+          iconSource={icons.wellness}
+          label="اعلان تغییرات سلامت"
+          prefKey="push_health_change"
+          value={prefs?.push_health_change ?? false}
+          onToggle={togglePref}
           last
         />
       </Card>

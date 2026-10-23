@@ -50,7 +50,9 @@ export type EventName =
   | 'knowledge_save'
   | 'knowledge_dismiss'
   | 'knowledge_feedback'
-  | 'notification_opened';
+  | 'notification_opened'
+  | 'push_permission_result'
+  | 'push_token_registered';
 
 /** Scalars only — nested values are dropped server-side. */
 export type EventPropValue = string | number | boolean | null;
@@ -141,6 +143,9 @@ export interface EventProps {
   knowledge_feedback:    { item_id: number; value: 'helpful' | 'not_relevant' };
 
   notification_opened: { notification_type?: string; source?: NotificationOpenSource };
+  /** Notification opt-in funnel (client side). Says nothing about delivery. */
+  push_permission_result: { status: 'granted' | 'denied' };
+  push_token_registered: Record<string, never>;
 }
 
 /** The wire shape sent to `/api/analytics/events/`. */

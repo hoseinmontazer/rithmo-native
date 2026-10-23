@@ -477,8 +477,8 @@ const styles = StyleSheet.create({
   headerTextCol: { flex: 1 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bellBtn: {
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',

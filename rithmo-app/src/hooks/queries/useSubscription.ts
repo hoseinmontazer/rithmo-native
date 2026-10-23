@@ -39,10 +39,15 @@ export function useSubscription() {
   });
 }
 
-export function usePremiumStatus(): { isPremium: boolean; isLoading: boolean } {
+export function usePremiumStatus(): { isPremium: boolean; isPremiumFree: boolean; isLoading: boolean } {
   const { data, isLoading } = useSubscription();
   return {
-    isPremium: data?.is_active ?? false,
+    // `entitled` is the backend's feature-entitlement answer (purchase,
+    // admin grant, or the free-access policy). Fall back to the billing
+    // fact for a backend that does not send it yet.
+    isPremium: data?.entitled ?? data?.is_active ?? false,
+    // Premium features are free by policy: hide upsell/purchase surfaces.
+    isPremiumFree: data?.premium_free_mode ?? false,
     isLoading,
   };
 }

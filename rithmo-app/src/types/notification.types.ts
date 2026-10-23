@@ -35,6 +35,7 @@ export interface NotificationPreferences {
   push_ovulation: boolean;
   push_partner_message: boolean;
   push_wellness_reminder: boolean;
+  push_health_change: boolean;
   inapp_period_reminder: boolean;
   inapp_ovulation: boolean;
   inapp_partner_message: boolean;
