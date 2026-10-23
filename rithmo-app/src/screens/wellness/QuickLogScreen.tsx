@@ -555,7 +555,7 @@ export default function QuickLogScreen() {
     mood, energy, pain, sleep, touched, selectedSymptoms, notes,
     selectedContextTags, contextNote, createContextEntry,
     saveLog, dataState, personalAvgMood, personalAvgEnergy, priorSameSignal,
-    fadeAnim, goBack,
+    fadeAnim,
   ]);
 
   // ── Saved state UI (with completion celebration) ────────────────────────────
