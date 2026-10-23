@@ -12,6 +12,7 @@ import {
   Easing,
   StyleSheet,
   Dimensions,
+  Platform,
   TouchableWithoutFeedback,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -73,6 +74,14 @@ export const ConfirmSheet = memo(function ConfirmSheet({
   const slideY  = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
+  // The modal window can extend under a 3-button navigation bar while the
+  // safe-area insets report 0 inside it, which hid the buttons. The difference
+  // between the screen and the window is that bar; reserve it.
+  const navBarGap =
+    Platform.OS === 'android'
+      ? Math.max(0, Dimensions.get('screen').height - Dimensions.get('window').height)
+      : 0;
+
   const palette = variantStyles(colors)[variant];
   const displayIcon = icon ?? palette.icon;
 
@@ -111,7 +120,11 @@ export const ConfirmSheet = memo(function ConfirmSheet({
   if (!visible) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onCancel}>
+    <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={onCancel}>
+      {/* A flex container (not an absolutely positioned sheet): on Android the
+          modal's absolute bottom edge can sit under the navigation bar, which
+          cut the buttons off; flex-end lays the sheet out in the visible area. */}
+      <View style={styles.host}>
       {/* Backdrop */}
       <TouchableWithoutFeedback onPress={onCancel}>
         <Animated.View style={[styles.backdrop, { opacity }]} />
@@ -123,7 +136,7 @@ export const ConfirmSheet = memo(function ConfirmSheet({
           styles.sheet,
           {
             backgroundColor: colors.surface,
-            paddingBottom: insets.bottom + spacing[4],
+            paddingBottom: Math.max(insets.bottom, navBarGap) + spacing[4],
             transform: [{ translateY: slideY }],
           },
         ]}
@@ -216,6 +229,7 @@ export const ConfirmSheet = memo(function ConfirmSheet({
           </TouchableOpacity>
         </View>
       </Animated.View>
+      </View>
     </Modal>
   );
 });
@@ -225,11 +239,11 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
+  host: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
   sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     alignItems: 'center',

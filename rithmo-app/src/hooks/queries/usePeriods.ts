@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { periodService } from '@api/services/periodService';
 import { queryKeys } from '@api/queryKeys';
 import type { CreatePeriodRequest, UpdatePeriodRequest } from '@types/period.types';
@@ -18,18 +18,34 @@ export function usePeriod(id: number) {
   });
 }
 
+/**
+ * Everything that is derived from the period list. Create, update, patch AND
+ * delete all go through here: previously only create invalidated the cycle
+ * analysis, the ovulation estimate and the intelligence layer, so after a
+ * correction (patch) or a removal those screens kept the old cycle for the
+ * rest of their staleTime while the calendar already showed the new one.
+ */
+export function invalidatePeriodDependents(queryClient: QueryClient) {
+  // periods.all() covers the list, the detail, cycle analysis/insights and
+  // the analytics-cycle queries (they all live under ['periods', ...]).
+  queryClient.invalidateQueries({ queryKey: queryKeys.periods.all() });
+  queryClient.invalidateQueries({ queryKey: queryKeys.ovulation.latest() });
+  // A period changes cycle context, phase, predictions and the observed
+  // cycle count in the accrual ledger — all of which Home reads from the
+  // intelligence layer.
+  queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.all() });
+  // Wellness-by-phase comparisons are bucketed by the same cycle phases.
+  queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.comparison() });
+  queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.correlations() });
+}
+
 export function useCreatePeriod() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreatePeriodRequest) =>
       periodService.createPeriod(data).then((r) => r.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.periods.all() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.ovulation.latest() });
-      // A period changes cycle context, phase, predictions and the observed
-      // cycle count in the accrual ledger — all of which Home reads from
-      // the intelligence layer.
-      queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.all() });
+      invalidatePeriodDependents(queryClient);
     },
   });
 }
@@ -41,8 +57,7 @@ export function useUpdatePeriod() {
       periodService.updatePeriod(id, data).then((r) => r.data),
     onSuccess: (updated) => {
       queryClient.setQueryData(queryKeys.periods.detail(updated.id), updated);
-      queryClient.invalidateQueries({ queryKey: queryKeys.periods.list() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.all() });
+      invalidatePeriodDependents(queryClient);
     },
   });
 }
@@ -54,8 +69,7 @@ export function usePatchPeriod() {
       periodService.patchPeriod(id, data).then((r) => r.data),
     onSuccess: (updated) => {
       queryClient.setQueryData(queryKeys.periods.detail(updated.id), updated);
-      queryClient.invalidateQueries({ queryKey: queryKeys.periods.list() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.intelligence.all() });
+      invalidatePeriodDependents(queryClient);
     },
   });
 }
@@ -65,7 +79,7 @@ export function useDeletePeriod() {
   return useMutation({
     mutationFn: (id: number) => periodService.deletePeriod(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.periods.all() });
+      invalidatePeriodDependents(queryClient);
     },
   });
 }

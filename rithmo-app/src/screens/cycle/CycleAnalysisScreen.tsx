@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useEffect } from 'react';
+import React, { useCallback, useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import { confidenceLabel, phaseDescription as phaseDescriptionFa } from '@i18n';
 import { track } from '@analytics';
 import { toFa, faDateShort } from '@utils/persian';
 import type { CycleScreenProps } from '@navigation/types';
+import { PeriodQuickEditSheet, type QuickEditPeriod } from '@components/cycle/PeriodQuickEditSheet';
 
 export default function CycleAnalysisScreen() {
   const navigation = useNavigation<CycleScreenProps<'CycleAnalysis'>['navigation']>();
@@ -34,6 +35,10 @@ export default function CycleAnalysisScreen() {
   const isMale = profile?.sex === 'male';
   const hasPartner = (profile?.partners?.length ?? 0) > 0;
   const isMaleWithPartner = isMale && hasPartner;
+
+  // A recorded period opened from "recent cycles" for a quick date correction
+  // (the same shared sheet as everywhere else; not a primary action here).
+  const [editingPeriod, setEditingPeriod] = useState<QuickEditPeriod | null>(null);
 
   // Pregnancy — the predictions below are NOT pregnancy-aware (same reason
   // ai_gateway/context.py refuses to build an AI context during pregnancy):
@@ -471,16 +476,21 @@ export default function CycleAnalysisScreen() {
             </TouchableOpacity>
           </View>
 
-          {periods.slice(0, 3).map((period: any, i: number) => {
+          {periods.slice(0, 5).map((period: any, i: number) => {
             const isOngoing = !period.end_date;
             return (
-              <View
+              <TouchableOpacity
                 key={period.id || i}
+                disabled={isMale}
+                activeOpacity={0.7}
+                onPress={() => setEditingPeriod(period)}
+                accessibilityRole="button"
+                accessibilityLabel={`${faDateShort(period.start_date)}${period.end_date ? ` تا ${faDateShort(period.end_date)}` : ' در جریان'}. برای ویرایش تاریخ‌ها لمس کن`}
                 style={[
                   styles.recentPeriodRow,
                   {
                     borderBottomColor: colors.border,
-                    borderBottomWidth: i < Math.min(periods.length, 3) - 1 ? StyleSheet.hairlineWidth : 0,
+                    borderBottomWidth: i < Math.min(periods.length, 5) - 1 ? StyleSheet.hairlineWidth : 0,
                     paddingVertical: spacing[3],
                   },
                 ]}
@@ -507,7 +517,12 @@ export default function CycleAnalysisScreen() {
                     </Text>
                   </View>
                 ) : null}
-              </View>
+                {!isMale ? (
+                  <View style={{ marginStart: spacing[2] }}>
+                    <Icon name="pencil-outline" size={16} color={colors.textTertiary} />
+                  </View>
+                ) : null}
+              </TouchableOpacity>
             );
           })}
         </Card>
@@ -612,6 +627,14 @@ export default function CycleAnalysisScreen() {
             هنوز تحلیلی از چرخه در دسترس نیست.{'\n'}ثبت اولین دوره‌ات بینش‌ها را آشکار می‌کند.
           </Text>
         </Card>
+      )}
+          {!isMale && (
+        <PeriodQuickEditSheet
+          visible={editingPeriod !== null}
+          period={editingPeriod}
+          onClose={() => setEditingPeriod(null)}
+          onOpenFullEdit={(periodId) => navigation.navigate('EditPeriod', { periodId })}
+        />
       )}
     </ScrollView>
   );

@@ -39,8 +39,10 @@ export interface CreatePeriodRequest {
   period_duration?: number;
 }
 
-export interface UpdatePeriodRequest extends Partial<CreatePeriodRequest> {
+export interface UpdatePeriodRequest extends Omit<Partial<CreatePeriodRequest>, 'end_date'> {
   period_id?: number;
+  /** `null` reopens the period (clears the end date); omit to leave it unchanged. */
+  end_date?: string | null;
 }
 
 /**

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -23,10 +23,18 @@ import {
 import { screen } from '@theme/spacing';
 import { usePeriods } from '@hooks/queries/usePeriods';
 import { useProfile } from '@hooks/queries/useProfile';
+import { useReducedMotion } from '@hooks/useReducedMotion';
 import { Card, Badge, Button, Icon, LoadingState, EmptyState } from '@components/ui';
+import { PeriodQuickEditSheet } from '@components/cycle/PeriodQuickEditSheet';
 import { formatDateISO } from '@utils/dateUtils';
 import { toFa, faDateShort, faDate } from '@utils/persian';
 import { buildCycleDateMap } from '@utils/cycleDayMap';
+import {
+  calendarCellA11yLabel,
+  describeCalendarDay,
+  describePeriodSpan,
+  type PeriodDayDescription,
+} from '@utils/periodCalendar';
 import { useSelectedDateStore } from '@store/selectedDateStore';
 import type { CycleStackParamList } from '@navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -52,14 +60,26 @@ function safeNextPeriod(period: any): string | null {
 // ── Calendar component ────────────────────────────────────────────────────────
 function CycleCalendar({
   periods,
+  selectedDate,
   onDayPress,
+  getScrollInner,
+  onRevealRow,
 }: {
   periods: any[];
   isMaleWithPartner: boolean;
+  selectedDate: string | null;
   onDayPress: (dateStr: string, periodId: number | null) => void;
+  /** The ScrollView's inner view, to measure a row against. */
+  getScrollInner: () => any;
+  /** Called with the selected week row's y (in scroll content) so the screen can keep it above the docked panel. */
+  onRevealRow: (y: number) => void;
 }) {
   const { colors, spacing, typography, borderRadius } = useTheme();
   const today = new Date();
+  const todayStr = formatDateISO(today);
+  const reduceMotion = useReducedMotion();
+  const reduceMotionRef = useRef(false);
+  reduceMotionRef.current = reduceMotion;
 
   // The calendar's cursor is a JALALI (year, month) — months 1-12.
   //
@@ -97,6 +117,19 @@ function CycleCalendar({
       const nowJ = toJalali(now);
       const ord = (jy: number, jm: number) => jy * 12 + (jm - 1);
       if (ord(currentYear, currentMonth) + 1 > ord(nowJ.jy, nowJ.jm) + 3) { return; }
+    }
+    // Reduced motion: change the month immediately, no slide.
+    if (reduceMotionRef.current) {
+      let m = currentMonth;
+      let y = currentYear;
+      if (direction === 'prev') {
+        if (m === 1) { m = 12; y -= 1; } else { m -= 1; }
+      } else if (m === 12) { m = 1; y += 1; } else { m += 1; }
+      displayMonthRef.current = m;
+      displayYearRef.current = y;
+      setDisplayMonth(m);
+      setDisplayYear(y);
+      return;
     }
     isAnimating.current = true;
 
@@ -169,6 +202,25 @@ function CycleCalendar({
     return days;
   }, [displayYear, displayMonth]);
 
+  // Keep the selected day's week visible above the docked day panel: measure
+  // its row against the scroll content and let the screen scroll to it.
+  const rowRefs = useRef<(View | null)[]>([]);
+  useEffect(() => {
+    if (!selectedDate) { return; }
+    const idx = calendarDays.findIndex((d) => d && formatDateISO(d) === selectedDate);
+    if (idx < 0) { return; }
+    const row = rowRefs.current[Math.floor(idx / 7)];
+    const inner = getScrollInner();
+    if (!row || !inner) { return; }
+    const t = setTimeout(() => {
+      try {
+        row.measureLayout(inner, (_x: number, y: number) => onRevealRow(y), () => {});
+      } catch { /* measuring is best-effort */ }
+    }, 60);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, calendarDays]);
+
   // The cursor IS Jalali now, so the label is read straight off it rather than
   // formatted from a Gregorian date and then string-sliced. That slicing was
   // how the grid came to be titled with the Jalali month containing the
@@ -228,7 +280,7 @@ function CycleCalendar({
         {...panResponder.panHandlers}
       >
         {Array.from({ length: calendarDays.length / 7 }, (_, rowIdx) => (
-          <View key={rowIdx} style={styles.weekRow}>
+          <View key={rowIdx} style={styles.weekRow} ref={(r) => { rowRefs.current[rowIdx] = r; }}>
             {calendarDays.slice(rowIdx * 7, rowIdx * 7 + 7).map((day, colIdx) => {
               const idx = rowIdx * 7 + colIdx;
               if (!day) {
@@ -242,6 +294,7 @@ function CycleCalendar({
               const isEnd = entry?.isEnd ?? false;
               const todayDay = isToday(day);
               const future = isFuture(day);
+              const selected = selectedDate === dateStr;
 
               const isPeriod = dayType === 'period';
               const isPredPeriod = dayType === 'predicted_period';
@@ -250,10 +303,18 @@ function CycleCalendar({
               const isPms = dayType === 'pms';
               const isFollic = dayType === 'follicular';
 
-              // Semantic phase colors from design tokens
-              const phaseDotColor = isPeriod
-                ? colors.menstrual
-                : isOvulation
+              // ── Visual language (one cue per meaning) ──────────────────
+              //  recorded period  → SOLID red circle, light-on-red number
+              //                     (+ a soft band joining the logged days)
+              //  predicted period → DASHED red ring, no fill, dark number
+              //  late             → DASHED amber ring
+              //  fertile window   → soft tint, no ring (never louder than a period)
+              //  today            → short bar under the number
+              //  selected         → solid dark ring AROUND the cell, so the
+              //                     day's own fill stays visible
+              // Shape (filled vs dashed ring) carries the recorded/predicted
+              // difference, so it survives colour-blindness and greyscale.
+              const phaseDotColor = isOvulation
                 ? colors.ovulation
                 : isPms
                 ? colors.luteal
@@ -261,42 +322,56 @@ function CycleCalendar({
                 ? colors.follicular
                 : 'transparent';
 
+              const desc = describeCalendarDay(dateStr, todayStr, entry);
+              const a11yLabel = calendarCellA11yLabel(
+                faDate(day, { weekday: true, year: false }),
+                desc,
+                { isToday: todayDay, isSelected: selected },
+              );
+
+              const numberColor = isPeriod
+                ? colors.textOnPrimary
+                : isLate
+                ? colors.textPrimary
+                : future
+                // A future day with a phase or prediction carries meaning, so
+                // it stays readable; only truly empty future days recede.
+                ? (dayType === 'none' ? colors.textDisabled : colors.textSecondary)
+                : colors.textPrimary;
+
               return (
                 <TouchableOpacity
                   key={dateStr}
-                  onPress={() => !future && onDayPress(dateStr, entry?.periodId ?? null)}
-                  activeOpacity={future ? 1 : 0.75}
+                  onPress={() => onDayPress(dateStr, entry?.periodId ?? null)}
+                  activeOpacity={0.75}
                   style={styles.dayCol}
+                  accessibilityRole="button"
+                  accessibilityLabel={a11yLabel}
+                  accessibilityState={{ selected }}
                 >
-                  {/* Period strip background */}
+                  {/* Soft band joining the logged days of one period.
+                      Logical (start/end) radii: the grid is RTL, so the
+                      period's first day is on the RIGHT edge. */}
                   {isPeriod && (
                     <View
                       style={[
                         styles.periodStrip,
                         {
-                          backgroundColor: colors.menstrual + '18',
-                          borderTopLeftRadius: isStart ? 16 : 0,
-                          borderBottomLeftRadius: isStart ? 16 : 0,
-                          borderTopRightRadius: isEnd ? 16 : 0,
-                          borderBottomRightRadius: isEnd ? 16 : 0,
+                          backgroundColor: colors.menstrual + '1F',
+                          borderTopStartRadius: isStart ? 16 : 0,
+                          borderBottomStartRadius: isStart ? 16 : 0,
+                          borderTopEndRadius: isEnd ? 16 : 0,
+                          borderBottomEndRadius: isEnd ? 16 : 0,
                         },
                       ]}
                     />
                   )}
 
-                  {/* Predicted period strip */}
-                  {isPredPeriod && (
+                  {/* Selection ring, drawn outside the circle */}
+                  {selected && (
                     <View
-                      style={[
-                        styles.periodStrip,
-                        {
-                          backgroundColor: colors.menstrual + '0A',
-                          borderWidth: 1,
-                          borderColor: colors.menstrual + '30',
-                          borderStyle: 'dashed',
-                          borderRadius: 16,
-                        },
-                      ]}
+                      pointerEvents="none"
+                      style={[styles.selectionRing, { borderColor: colors.textPrimary }]}
                     />
                   )}
 
@@ -304,43 +379,37 @@ function CycleCalendar({
                   <View
                     style={[
                       styles.dayCircle,
-                      {
-                        backgroundColor: todayDay
-                          ? colors.primary
-                          : isPeriod
-                          ? colors.menstrual + '22'
-                          : 'transparent',
-                        borderColor: isOvulation
-                          ? colors.ovulation
-                          : isLate
-                          ? colors.warning
-                          : 'transparent',
-                        borderWidth: isOvulation || isLate ? 1.5 : 0,
+                      isPeriod && { backgroundColor: colors.menstrual },
+                      isOvulation && { backgroundColor: colors.ovulation + '26' },
+                      isPredPeriod && {
+                        borderWidth: 2,
+                        borderStyle: 'dashed',
+                        borderColor: colors.menstrual,
+                      },
+                      // Late is a different SHAPE, not just a different hue:
+                      // a solid ring plus a "!" badge, so it never reads as a
+                      // prediction (dashed red) in greyscale or colour-blindness.
+                      isLate && {
+                        borderWidth: 2,
+                        borderStyle: 'solid',
+                        borderColor: colors.warning,
+                        backgroundColor: colors.warning + '14',
                       },
                     ]}
                   >
+                    {isLate && (
+                      <View style={[styles.lateBadge, { backgroundColor: colors.warning, borderColor: colors.surface }]}>
+                        <Text style={[styles.lateBadgeText, { color: colors.textOnPrimary }]}>!</Text>
+                      </View>
+                    )}
                     <Text
                       style={[
                         styles.dayNumber,
                         {
                           fontSize: typography.sm,
-                          color: todayDay
-                            // Today's cell is filled with colors.primary.
-                            ? colors.textOnPrimary
-                            : isPeriod
-                            ? colors.menstrual
-                            : isPredPeriod
-                            ? colors.menstrual
-                            : isLate
-                            ? colors.warning
-                            : isOvulation
-                            ? colors.ovulation
-                            : isPms
-                            ? colors.luteal
-                            : future
-                            ? colors.textDisabled
-                            : colors.textPrimary,
-                          fontWeight: (todayDay || isPeriod || isOvulation || isPms || isLate) ? '700' : '400',
+                          color: numberColor,
+                          fontWeight:
+                            todayDay || selected || isPeriod || isPredPeriod || isLate ? '700' : '500',
                         },
                       ]}
                     >
@@ -348,14 +417,14 @@ function CycleCalendar({
                     </Text>
                   </View>
 
-                  {/* Phase dot for non-period active days */}
+                  {/* Today marker: a short bar, so a period fill is never replaced */}
+                  {todayDay && (
+                    <View style={[styles.todayBar, { backgroundColor: colors.primary }]} />
+                  )}
+
+                  {/* Phase dot for estimated phases */}
                   {!isPeriod && !todayDay && (isOvulation || isPms || isFollic) && (
-                    <View
-                      style={[
-                        styles.phaseIndicatorDot,
-                        { backgroundColor: phaseDotColor },
-                      ]}
-                    />
+                    <View style={[styles.phaseIndicatorDot, { backgroundColor: phaseDotColor }]} />
                   )}
                 </TouchableOpacity>
               );
@@ -364,26 +433,153 @@ function CycleCalendar({
         ))}
       </Animated.View>
 
-      {/* Legend */}
-      <View style={[styles.legendContainer, { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, marginTop: spacing[3], paddingTop: spacing[3] }]}>
+      {/* Legend — every swatch is drawn exactly like the cell it explains */}
+      <View
+        accessible
+        accessibilityLabel="راهنما: دایره‌ی توپر قرمز یعنی دوره‌ی ثبت‌شده، حلقه‌ی خط‌چین قرمز یعنی دوره‌ی پیش‌بینی‌شده، حلقه‌ی توپر نارنجی با علامت تعجب یعنی دیرکرد، زمینه‌ی کم‌رنگ بنفش یعنی بازه‌ی باروری تخمینی"
+        style={[styles.legendContainer, { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, marginTop: spacing[3], paddingTop: spacing[3] }]}
+      >
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: colors.menstrual }]} />
-          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>دوره</Text>
+          <View style={[styles.legendSwatch, { backgroundColor: colors.menstrual }]} />
+          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>دوره‌ی ثبت‌شده</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: colors.follicular }]} />
-          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>فولیکولار</Text>
+          <View style={[styles.legendSwatch, { borderWidth: 2, borderStyle: 'dashed', borderColor: colors.menstrual }]} />
+          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>دوره‌ی پیش‌بینی‌شده</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: colors.ovulation }]} />
-          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>تخمک‌گذاری</Text>
+          <View style={[styles.legendSwatch, { borderWidth: 2, borderStyle: 'solid', borderColor: colors.warning, backgroundColor: colors.warning + '14' }]}>
+            <View style={[styles.lateBadgeMini, { backgroundColor: colors.warning, borderColor: colors.surface }]}>
+              <Text style={[styles.lateBadgeMiniText, { color: colors.textOnPrimary }]}>!</Text>
+            </View>
+          </View>
+          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>دیرکرد دوره</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: colors.luteal }]} />
-          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>لوتئال</Text>
+          <View style={[styles.legendSwatch, { backgroundColor: colors.ovulation + '26' }]} />
+          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>بازه‌ی باروری (تخمینی)</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendBar, { backgroundColor: colors.primary }]} />
+          <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>امروز</Text>
         </View>
       </View>
     </Card>
+  );
+}
+
+// ── Docked day panel ─────────────────────────────────────────────────────────
+// Room the scroll content keeps free under the docked panel.
+const PANEL_CLEARANCE = 300;
+// Space kept above the selected week when it is scrolled into view.
+const REVEAL_MARGIN = 160;
+
+/** The chip swatch repeats the calendar cell's own language. */
+function StatusSwatch({ status }: { status: PeriodDayDescription['status'] }) {
+  const { colors } = useTheme();
+  const base = { width: 14, height: 14, borderRadius: 7 } as const;
+  if (status === 'recorded') return <View style={[base, { backgroundColor: colors.menstrual }]} />;
+  if (status === 'predicted') {
+    return <View style={[base, { borderWidth: 2, borderStyle: 'dashed', borderColor: colors.menstrual }]} />;
+  }
+  if (status === 'late') {
+    return (
+      <View style={[base, { borderWidth: 2, borderStyle: 'solid', borderColor: colors.warning, backgroundColor: colors.warning + '14' }]}>
+        <View style={[styles.lateBadgeMini, { backgroundColor: colors.warning, borderColor: colors.surface }]}>
+          <Text style={[styles.lateBadgeMiniText, { color: colors.textOnPrimary }]}>!</Text>
+        </View>
+      </View>
+    );
+  }
+  return <View style={[base, { borderWidth: 1.5, borderColor: colors.textTertiary }]} />;
+}
+
+function DayPanel({
+  dateStr,
+  desc,
+  period,
+  readOnly,
+  onClose,
+  onEdit,
+  onLog,
+}: {
+  dateStr: string;
+  desc: PeriodDayDescription;
+  period: any | null;
+  readOnly: boolean;
+  onClose: () => void;
+  onEdit: () => void;
+  onLog: () => void;
+}) {
+  const { colors, spacing, typography, borderRadius, shadow } = useTheme();
+  return (
+    <View
+      accessibilityLiveRegion="polite"
+      style={[
+        styles.dayPanel,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+          borderRadius: borderRadius.xl,
+          padding: spacing[4],
+          bottom: screen.bottomTab - 12,
+          ...(shadow.md || {}),
+        },
+      ]}
+    >
+      <View style={styles.dayPanelHeader}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.selectedDateLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
+            {faDate(dateStr, { weekday: true, year: true })}
+          </Text>
+          <View style={styles.dayPanelTitleRow}>
+            <StatusSwatch status={desc.status} />
+            <Text style={[styles.selectedPhaseTitle, { color: colors.textPrimary, fontSize: typography.base }]}>
+              {desc.title}
+            </Text>
+            <View style={[styles.statusChip, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.sm }]}>
+              <Text style={{ color: colors.textSecondary, fontSize: typography.xs, fontWeight: '600' }}>
+                {desc.statusLabel}
+              </Text>
+            </View>
+          </View>
+        </View>
+        <TouchableOpacity
+          onPress={onClose}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          accessibilityRole="button"
+          accessibilityLabel="بستن جزئیات روز"
+          style={styles.dayPanelClose}
+        >
+          <Icon name="close" size={20} color={colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      <Text style={[styles.dayPanelDetail, { color: colors.textSecondary, fontSize: typography.sm, marginTop: spacing[2] }]}>
+        {desc.detail}
+      </Text>
+
+      {desc.status === 'recorded' && period ? (
+        <Text style={[styles.periodDateSpan, { color: colors.textPrimary, fontSize: typography.sm, marginTop: spacing[2] }]}>
+          {describePeriodSpan({ start: period.start_date, end: period.end_date ?? null })}
+        </Text>
+      ) : null}
+
+      {!readOnly && (desc.canEditPeriod || desc.canLogFromHere) ? (
+        <View style={{ marginTop: spacing[3] }}>
+          {desc.canEditPeriod ? (
+            <Button label="ویرایش تاریخ‌های این دوره" onPress={onEdit} size="md" fullWidth />
+          ) : (
+            <Button
+              label={desc.status === 'unrecorded' ? 'ثبت شروع دوره از این روز' : 'دوره‌ام از این روز شروع شد'}
+              onPress={onLog}
+              size="md"
+              fullWidth
+            />
+          )}
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -409,6 +605,13 @@ export default function CycleTrackerScreen() {
   const sharedSelectedDate = useSelectedDateStore((s) => s.selectedDate);
   const setSharedSelectedDate = useSelectedDateStore((s) => s.setSelectedDate);
   const [selectedDate, setSelectedDate] = useState<string | null>(sharedSelectedDate);
+  // The recorded period being corrected in the quick-edit sheet.
+  const [quickEditId, setQuickEditId] = useState<number | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const reduceMotionMain = useReducedMotion();
+  const revealRow = useCallback((y: number) => {
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - REVEAL_MARGIN), animated: !reduceMotionMain });
+  }, [reduceMotionMain]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -426,11 +629,6 @@ export default function CycleTrackerScreen() {
     if (!entry?.periodId) return null;
     return (periods as any[]).find((p) => p.id === entry.periodId) ?? null;
   }, [selectedDate, periods, cycleMap]);
-
-  const selectedDayType = useMemo(() => {
-    if (!selectedDate) return null;
-    return cycleMap.get(selectedDate)?.type ?? null;
-  }, [selectedDate, cycleMap]);
 
   const handleDayPress = useCallback((dateStr: string, _periodId: number | null) => {
     setSelectedDate(prev => {
@@ -454,13 +652,22 @@ export default function CycleTrackerScreen() {
 
   const periodList = (periods as any[]) ?? [];
 
+  const panelVisible = viewMode === 'calendar' && periodList.length > 0 && !!selectedDate;
+  const todayStr = formatDateISO(new Date());
+  const selectedDesc = selectedDate
+    ? describeCalendarDay(selectedDate, todayStr, cycleMap.get(selectedDate))
+    : null;
+
   return (
+    <View style={[styles.flex, { backgroundColor: colors.background }]}>
     <ScrollView
+      ref={scrollRef}
       style={[styles.flex, { backgroundColor: colors.background }]}
       contentContainerStyle={{
           paddingHorizontal: screen.gutter,
           paddingTop: screen.top,
-          paddingBottom: screen.bottomTab,
+          // Leave room so the docked day panel never hides the last week.
+          paddingBottom: screen.bottomTab + (panelVisible ? PANEL_CLEARANCE : 0),
         }}
       showsVerticalScrollIndicator={false}
       refreshControl={
@@ -583,88 +790,12 @@ export default function CycleTrackerScreen() {
               <CycleCalendar
                 periods={periodList}
                 isMaleWithPartner={isMaleWithPartner}
+                selectedDate={selectedDate}
                 onDayPress={handleDayPress}
+                getScrollInner={() => (scrollRef.current as any)?.getInnerViewRef?.()}
+                onRevealRow={revealRow}
               />
 
-              {/* Selected Day Inspection Card */}
-              {selectedDate && (selectedPeriod || selectedDayType) && (
-                <Card elevated={false} style={{ marginBottom: spacing[4], padding: spacing[4] }}>
-                  <View style={styles.selectedHeaderRow}>
-                    <View>
-                      <Text style={[styles.selectedDateLabel, { color: colors.textSecondary, fontSize: typography.xs }]}>
-                        {faDate(selectedDate, { weekday: 'long', month: 'long', day: 'numeric' })}
-                      </Text>
-                      <Text style={[styles.selectedPhaseTitle, { color: colors.textPrimary, fontSize: typography.base }]}>
-                        {selectedDayType === 'period'
-                          ? 'روزهای دوره'
-                          : selectedDayType === 'ovulation'
-                          ? 'پنجره‌ی تخمک‌گذاری / باروری'
-                          : selectedDayType === 'pms'
-                          ? 'لوتئال / پیش از دوره'
-                          : selectedDayType === 'follicular'
-                          ? 'فولیکولار'
-                          : 'روز ثبت‌شده'}
-                      </Text>
-                    </View>
-
-                    {selectedPeriod && !isMaleWithPartner && (
-                      <TouchableOpacity
-                        onPress={() => navigation.navigate('EditPeriod', { periodId: selectedPeriod.id })}
-                        activeOpacity={0.75}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        accessibilityRole="button"
-                        accessibilityLabel="ویرایش دوره"
-                        style={[styles.iconEditBtn, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.md }]}
-                      >
-                        <Icon name="pencil-outline" size={18} color={colors.primary} />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  {selectedPeriod && (
-                    <View style={[styles.selectedPeriodContent, { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, marginTop: spacing[3], paddingTop: spacing[3] }]}>
-                      <View style={styles.rowBetween}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={[styles.periodDateSpan, { color: colors.textPrimary, fontSize: typography.sm }]}>
-                            {faDateShort(selectedPeriod.start_date)}
-                            {selectedPeriod.end_date ? ` → ${faDateShort(selectedPeriod.end_date)}` : ' → در جریان'}
-                          </Text>
-                          {selectedPeriod.symptoms ? (
-                            <View style={styles.tagWrap}>
-                              {selectedPeriod.symptoms.split(',').map((s: string) => (
-                                <View key={s} style={[styles.symptomTag, { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.sm }]}>
-                                  <Text style={[styles.symptomTagText, { color: colors.textSecondary, fontSize: typography.xs }]}>
-                                    {s.trim()}
-                                  </Text>
-                                </View>
-                              ))}
-                            </View>
-                          ) : null}
-                        </View>
-
-                        {selectedPeriod.period_duration > 0 && (
-                          <View style={styles.durationPill}>
-                            <Text style={[styles.durationValue, { color: colors.menstrual, fontSize: typography.lg }]}>
-                              {toFa(selectedPeriod.period_duration)}
-                            </Text>
-                            <Text style={[styles.durationUnit, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                              روز
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                  )}
-                </Card>
-              )}
-
-              {selectedDate && !selectedPeriod && !selectedDayType && (
-                <View style={[styles.emptySelectedDay, { backgroundColor: colors.surface, borderRadius: borderRadius.lg, borderColor: colors.border, padding: spacing[4] }]}>
-                  <Text style={[styles.emptySelectedText, { color: colors.textSecondary, fontSize: typography.sm }]}>
-                    برای {faDateShort(selectedDate)} فعالیت چرخه‌ای ثبت نشده است.
-                  </Text>
-                </View>
-              )}
             </>
           ) : (
             <EmptyState
@@ -795,6 +926,28 @@ export default function CycleTrackerScreen() {
         />
       </View>
     </ScrollView>
+
+    {panelVisible && selectedDate && selectedDesc ? (
+      <View pointerEvents="box-none" style={styles.dayPanelHost}>
+        <DayPanel
+          dateStr={selectedDate}
+          desc={selectedDesc}
+          period={selectedPeriod && selectedDesc.status === 'recorded' ? selectedPeriod : null}
+          readOnly={isMaleWithPartner}
+          onClose={() => setSelectedDate(null)}
+          onEdit={() => selectedDesc.periodId != null && setQuickEditId(selectedDesc.periodId)}
+          onLog={() => navigation.navigate('LogPeriod', { startDate: selectedDate })}
+        />
+      </View>
+    ) : null}
+
+    <PeriodQuickEditSheet
+      visible={quickEditId != null}
+      period={periodList.find((p: any) => p.id === quickEditId) ?? null}
+      onClose={() => setQuickEditId(null)}
+      onOpenFullEdit={(periodId) => navigation.navigate('EditPeriod', { periodId })}
+    />
+    </View>
   );
 }
 
@@ -849,6 +1002,82 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
+  dayPanelHost: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
+    paddingHorizontal: screen.gutter,
+  },
+  dayPanel: {
+    position: 'absolute',
+    start: screen.gutter,
+    end: screen.gutter,
+    borderWidth: 1,
+  },
+  dayPanelHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  dayPanelTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+    flexWrap: 'wrap',
+  },
+  dayPanelClose: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -8,
+    marginEnd: -8,
+  },
+  dayPanelDetail: {
+    lineHeight: 22,
+  },
+  statusChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  selectionRing: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+  },
+  lateBadge: {
+    position: 'absolute',
+    top: -5,
+    end: -5,
+    width: 15,
+    height: 15,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lateBadgeText: { fontSize: 10, lineHeight: 12, fontWeight: '800' },
+  lateBadgeMini: {
+    position: 'absolute',
+    top: -5,
+    end: -5,
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lateBadgeMiniText: { fontSize: 8, lineHeight: 10, fontWeight: '800' },
+  todayBar: {
+    position: 'absolute',
+    bottom: 2,
+    width: 14,
+    height: 3,
+    borderRadius: 2,
+  },
   phaseIndicatorDot: {
     position: 'absolute',
     bottom: 3,
@@ -866,6 +1095,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginVertical: 4,
+  },
+  legendSwatch: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  legendBar: {
+    width: 14,
+    height: 3,
+    borderRadius: 2,
   },
   legendDot: {
     width: 8,

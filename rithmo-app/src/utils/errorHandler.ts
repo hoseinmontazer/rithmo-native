@@ -37,6 +37,7 @@ const KNOWN_MESSAGES: Array<[RegExp, string]> = [
 ];
 
 const GENERIC = 'مشکلی پیش آمد. دوباره تلاش کن.';
+const GENERIC_SERVER = 'سرور الان پاسخ نمی‌دهد. چند لحظه بعد دوباره تلاش کن.';
 
 /** True when a string is predominantly Latin — i.e. not fit to show. */
 function isLatin(text: string): boolean {
@@ -103,6 +104,12 @@ export function extractErrorMessage(error: unknown): string {
   }
 
   if (axiosError?.response?.data) {
+    // A proxy/gateway error page (502/504 from nginx) arrives as an HTML
+    // string, not JSON. Iterating it as an object yields its first
+    // CHARACTER ("<") as the "field", which is what used to reach the user.
+    // Any non-object body gets the generic Persian message; the caller keeps
+    // its own retry affordance.
+    if (typeof axiosError.response.data !== 'object') { return GENERIC_SERVER; }
     const data = axiosError.response.data as ApiError;
 
     if (data.detail) { return translate(String(data.detail)); }

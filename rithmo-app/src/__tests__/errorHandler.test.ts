@@ -133,4 +133,20 @@ describe('HTTP 429 (rate limit) gets its own dedicated message, never the generi
     expect(extractErrorMessage(responseError({ detail: 'Internal Server Error' }, 500)))
       .toBe('مشکلی پیش آمد. دوباره تلاش کن.');
   });
+
+  it('an HTML error page (proxy 502/504) never shows "<" — it gets a Persian message', () => {
+    for (const status of [502, 503, 504]) {
+      const out = extractErrorMessage(
+        responseError('<html><head><title>502 Bad Gateway</title></head><body>nginx</body></html>', status),
+      );
+      expect(out).toBe('سرور الان پاسخ نمی‌دهد. چند لحظه بعد دوباره تلاش کن.');
+      expect(out).not.toContain('<');
+      expect(out).not.toMatch(LATIN);
+    }
+  });
+
+  it('an empty or plain-text error body also falls back to Persian', () => {
+    expect(extractErrorMessage(responseError('Bad Gateway', 502))).not.toMatch(LATIN);
+    expect(extractErrorMessage(responseError(null, 502))).not.toMatch(LATIN);
+  });
 });

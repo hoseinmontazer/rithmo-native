@@ -10,11 +10,13 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@hooks/useTheme';
 import { screen } from '@theme/spacing';
+import { JalaliDatePicker } from '@components/cycle/JalaliDatePicker';
 import { Button, Icon } from '@components/ui';
+import { mapPeriodError } from '@utils/periodCalendar';
 import type { CycleStackParamList } from '@navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCreatePeriod, usePatchPeriod } from '@hooks/queries/usePeriods';
@@ -83,21 +85,6 @@ function CustomDatePickerSheet({
   const { colors, spacing, typography, borderRadius } = useTheme();
   const today = new Date();
 
-  const dates: Date[] = Array.from({ length: 45 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    return d;
-  });
-
-  const fmt = (d: Date) =>
-    faDate(d, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-
-  const isToday = (d: Date) => d.toDateString() === today.toDateString();
-  // Reads the live `selected` prop directly rather than staging a local
-  // copy — a tap below commits immediately (see onPress), so there is
-  // never an uncommitted selection that a dismiss could silently drop.
-  const isSel = (d: Date) => d.toDateString() === selected.toDateString();
-
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
@@ -118,52 +105,17 @@ function CustomDatePickerSheet({
             </TouchableOpacity>
           </View>
 
-          {/* List */}
-          <ScrollView style={styles.dateListScroll} showsVerticalScrollIndicator={false}>
-            {dates.map((d, i) => {
-              const sel = isSel(d);
-              return (
-                <TouchableOpacity
-                  key={i}
-                  onPress={() => {
-                    onSelect(d);
-                    onClose();
-                  }}
-                  style={[
-                    styles.dateOptionRow,
-                    {
-                      paddingHorizontal: spacing[4],
-                      paddingVertical: spacing[3],
-                      backgroundColor: sel ? colors.menstrual + '12' : 'transparent',
-                      borderLeftWidth: sel ? 3 : 0,
-                      borderLeftColor: colors.menstrual,
-                    },
-                  ]}
-                >
-                  <View>
-                    <Text
-                      style={[
-                        styles.dateOptionText,
-                        {
-                          color: sel ? colors.menstrual : colors.textPrimary,
-                          fontSize: typography.sm,
-                          fontWeight: sel ? '700' : '400',
-                        },
-                      ]}
-                    >
-                      {fmt(d)}
-                    </Text>
-                    {isToday(d) && (
-                      <Text style={[styles.todayTagText, { color: colors.menstrual, fontSize: typography.xs }]}>
-                        امروز
-                      </Text>
-                    )}
-                  </View>
-                  {sel && <Icon name="check-circle" size={20} color={colors.menstrual} />}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+          {/* Month grid: any past day, picked directly */}
+          <View style={{ padding: spacing[4] }}>
+            <JalaliDatePicker
+              value={formatDateISO(selected)}
+              max={formatDateISO(today)}
+              onSelect={(iso) => {
+                onSelect(new Date(iso + 'T00:00:00'));
+                onClose();
+              }}
+            />
+          </View>
         </View>
       </View>
     </Modal>
@@ -259,7 +211,7 @@ function EndPeriodSheet({
             {!noValidDates && (
               <View style={{ marginBottom: spacing[4] }}>
                 <Text style={[styles.fieldSectionLabel, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[2] }]}>
-                  END DATE
+                  تاریخ پایان
                 </Text>
                 <View style={styles.quickDatesRow}>
                   {validDates.slice(0, 3).map((d, i) => {
@@ -323,9 +275,19 @@ function EndPeriodSheet({
 // ── Main Screen ───────────────────────────────────────────────────────────────
 export default function LogPeriodScreen() {
   const navigation = useNavigation<Props['navigation']>();
+  const route = useRoute<Props['route']>();
   const { colors, spacing, typography, borderRadius } = useTheme();
 
-  const [startDate, setStartDate] = useState(new Date());
+  // A date handed over from the calendar ("log a period starting this day").
+  // Never in the future: an actual period cannot start tomorrow.
+  const [startDate, setStartDate] = useState(() => {
+    const iso = route.params?.startDate;
+    if (iso) {
+      const d = new Date(iso + 'T00:00:00');
+      if (!Number.isNaN(d.getTime()) && d <= new Date()) return d;
+    }
+    return new Date();
+  });
   const [showCustomPicker, setShowCustomPicker] = useState(false);
   const [symptoms, setSymptoms] = useState<string[]>([]);
   const [medication, setMedication] = useState<string[]>([]);
@@ -374,7 +336,7 @@ export default function LogPeriodScreen() {
               activePeriodStartDate: data.start_date,
             });
           } else {
-            toast.error('ثبت ناموفق بود', data?.error || 'لطفا ورودی‌ها را بررسی کن.');
+            toast.error('ثبت نشد', mapPeriodError(error).message);
           }
         },
       },
@@ -398,16 +360,18 @@ export default function LogPeriodScreen() {
                 toast.success('ثبت دوره', 'دوره‌ی قبل پایان یافت و دوره‌ی جدید ثبت شد.');
                 navigation.goBack();
               },
-              onError: () => toast.error('خطا', 'نمی‌توان دوره‌ی جدید ساخت.'),
+              // The previous period is already closed at this point: say so,
+              // so nobody wonders why it ended, and tell them what to do next.
+              onError: (err: any) =>
+                toast.error(
+                  'دوره‌ی جدید ثبت نشد',
+                  `دوره‌ی قبل پایان یافت اما دوره‌ی جدید ثبت نشد. ${mapPeriodError(err).message}`,
+                ),
             },
           );
         },
         onError: (err: any) => {
-          const msg =
-            err?.response?.data?.end_date?.[0] ||
-            err?.response?.data?.error ||
-            'نمی‌توان دوره‌ی فعال را پایان داد.';
-          toast.error('خطا', msg);
+          toast.error('پایان دوره ثبت نشد', mapPeriodError(err).message);
         },
       },
     );
@@ -423,11 +387,7 @@ export default function LogPeriodScreen() {
           navigation.goBack();
         },
         onError: (err: any) => {
-          const msg =
-            err?.response?.data?.end_date?.[0] ||
-            err?.response?.data?.error ||
-            'نمی‌توان دوره‌ی فعال را پایان داد.';
-          toast.error('خطا', msg);
+          toast.error('پایان دوره ثبت نشد', mapPeriodError(err).message);
         },
       },
     );
@@ -469,7 +429,7 @@ export default function LogPeriodScreen() {
           {/* ── 1. Start Date Selector ─────────────────────────────── */}
           <View style={{ marginBottom: spacing[5] }}>
             <Text style={[styles.fieldSectionLabel, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[2] }]}>
-              START DATE
+              تاریخ شروع
             </Text>
 
             {/* Quick Relative Pills */}

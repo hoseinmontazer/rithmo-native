@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
-  Modal,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -15,10 +14,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@hooks/useTheme';
 import { screen } from '@theme/spacing';
 import { Button, Icon, LoadingState, ErrorState } from '@components/ui';
-import { usePeriod, usePatchPeriod } from '@hooks/queries/usePeriods';
+import { ConfirmSheet } from '@components/ui/ConfirmSheet';
+import { PeriodQuickEditSheet } from '@components/cycle/PeriodQuickEditSheet';
+import { usePeriod, usePatchPeriod, useDeletePeriod } from '@hooks/queries/usePeriods';
 import { useToast } from '../../context/ToastContext';
-import { formatDateISO } from '@utils/dateUtils';
-import { faDate } from '@utils/persian';
+import {
+  buildPeriodPatch,
+  describePeriodSpan,
+  mapPeriodError,
+  periodDraftFromRecord,
+  type PeriodErrorInfo,
+} from '@utils/periodCalendar';
 import type { CycleScreenProps } from '@navigation/types';
 
 type Props = CycleScreenProps<'EditPeriod'>;
@@ -61,117 +67,16 @@ const MED_LABELS: Record<string, string> = {
   naproxen: 'ناپروکسن',
 };
 
-// ── Date Picker Sheet ─────────────────────────────────────────────────────────
-function DatePickerSheet({
-  visible,
-  title,
-  selected,
-  minDate,
-  onClose,
-  onSelect,
-}: {
-  visible: boolean;
-  title: string;
-  selected: Date | null;
-  minDate?: Date;
-  onClose: () => void;
-  onSelect: (d: Date) => void;
-}) {
-  const { colors, spacing, typography, borderRadius } = useTheme();
-  const today = new Date();
-
-  const dates: Date[] = Array.from({ length: 60 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    return d;
-  });
-
-  const validDates = minDate
-    ? dates.filter(d => d >= minDate)
-    : dates;
-
-  const fmt = (d: Date) =>
-    faDate(d, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-
-  const isToday = (d: Date) => d.toDateString() === today.toDateString();
-  // Reads the live `selected` prop directly rather than staging a local
-  // copy — a tap below commits immediately (see onPress), so there is
-  // never an uncommitted selection that a dismiss could silently drop.
-  const isSel = (d: Date) => !!selected && d.toDateString() === selected.toDateString();
-
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalBackdrop}>
-        <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={onClose} accessibilityRole="button" accessibilityLabel="بستن" />
-        <View style={[styles.modalSheet, { backgroundColor: colors.surface, borderRadius: borderRadius.xl }]}>
-          {/* Handle */}
-          <View style={styles.modalHandleWrapper}>
-            <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
-          </View>
-
-          {/* Title */}
-          <View style={[styles.modalHeaderRow, { borderBottomColor: colors.border, padding: spacing[4] }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary, fontSize: typography.base }]}>
-              {title}
-            </Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel="بستن">
-              <Icon name="close" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* List */}
-          <ScrollView style={styles.dateListScroll} showsVerticalScrollIndicator={false}>
-            {validDates.map((d, i) => {
-              const sel = isSel(d);
-              return (
-                <TouchableOpacity
-                  key={i}
-                  onPress={() => {
-                    onSelect(d);
-                    onClose();
-                  }}
-                  style={[
-                    styles.dateOptionRow,
-                    {
-                      paddingHorizontal: spacing[4],
-                      paddingVertical: spacing[3],
-                      backgroundColor: sel ? colors.menstrual + '12' : 'transparent',
-                      borderLeftWidth: sel ? 3 : 0,
-                      borderLeftColor: colors.menstrual,
-                    },
-                  ]}
-                >
-                  <View>
-                    <Text
-                      style={[
-                        styles.dateOptionText,
-                        {
-                          color: sel ? colors.menstrual : colors.textPrimary,
-                          fontSize: typography.sm,
-                          fontWeight: sel ? '700' : '400',
-                        },
-                      ]}
-                    >
-                      {fmt(d)}
-                    </Text>
-                    {isToday(d) && (
-                      <Text style={[styles.todayTagText, { color: colors.menstrual, fontSize: typography.xs }]}>
-                        امروز
-                      </Text>
-                    )}
-                  </View>
-                  {sel && <Icon name="check-circle" size={20} color={colors.menstrual} />}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
-}
+const normalizeList = (v: string | null | undefined) =>
+  (v ?? '')
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .join(',');
 
 // ── Main Screen ───────────────────────────────────────────────────────────────
+// Dates are corrected in PeriodQuickEditSheet (one place, direct date choice).
+// This form keeps what the sheet does not: symptoms, medication and delete.
 export default function EditPeriodScreen() {
   const navigation = useNavigation<Props['navigation']>();
   const route = useRoute<Props['route']>();
@@ -180,106 +85,118 @@ export default function EditPeriodScreen() {
 
   const { data: period, isLoading, isError, error, refetch } = usePeriod(periodId);
   const patchMutation = usePatchPeriod();
+  const deleteMutation = useDeletePeriod();
   const toast = useToast();
 
-  // Form state
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
   const [symptoms, setSymptoms] = useState<string[]>([]);
   const [medication, setMedication] = useState<string[]>([]);
   const [symptomsText, setSymptomsText] = useState('');
   const [medicationText, setMedicationText] = useState('');
 
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
+  const [datesOpen, setDatesOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [saveError, setSaveError] = useState<PeriodErrorInfo | null>(null);
+  const pendingNav = useRef<any>(null);
+  const allowLeave = useRef(false);
 
-  // Pre-fill form when period is loaded
+  // Fill the form ONCE per period. Re-filling on every refresh would wipe
+  // unsaved symptom edits the moment the dates sheet saves and the record
+  // is refetched.
   useEffect(() => {
     if (!period) return;
-    // Anchor to local midnight — a bare 'YYYY-MM-DD' parses as UTC midnight
-    // otherwise, which is a different local calendar day west of UTC.
-    setStartDate(new Date(period.start_date + 'T00:00:00'));
-    setEndDate(period.end_date ? new Date(period.end_date + 'T00:00:00') : null);
-
     const symsFromAPI = period.symptoms
-      ? period.symptoms.split(',').map((s: string) => s.trim()).filter(Boolean)
+      ? period.symptoms.split(',').map((x: string) => x.trim()).filter(Boolean)
       : [];
     const medsFromAPI = period.medication
       ? period.medication.split(',').map((m: string) => m.trim()).filter(Boolean)
       : [];
 
-    const knownSyms = symsFromAPI.filter((s: string) => COMMON_SYMPTOMS.includes(s));
-    const extraSyms = symsFromAPI.filter((s: string) => !COMMON_SYMPTOMS.includes(s));
-    const knownMeds = medsFromAPI.filter((m: string) => COMMON_MEDS.includes(m));
-    const extraMeds = medsFromAPI.filter((m: string) => !COMMON_MEDS.includes(m));
+    setSymptoms(symsFromAPI.filter((x: string) => COMMON_SYMPTOMS.includes(x)));
+    setMedication(medsFromAPI.filter((m: string) => COMMON_MEDS.includes(m)));
+    setSymptomsText(symsFromAPI.filter((x: string) => !COMMON_SYMPTOMS.includes(x)).join(', '));
+    setMedicationText(medsFromAPI.filter((m: string) => !COMMON_MEDS.includes(m)).join(', '));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period?.id]);
 
-    setSymptoms(knownSyms);
-    setMedication(knownMeds);
-    setSymptomsText(extraSyms.join(', '));
-    setMedicationText(extraMeds.join(', '));
-  }, [period]);
-
-  const toggleChip = (list: string[], setList: (v: string[]) => void, val: string) =>
-    setList(list.includes(val) ? list.filter(x => x !== val) : [...list, val]);
-
-  const buildField = (chips: string[], text: string) => {
-    const extra = text.trim() ? text.split(',').map(s => s.trim()).filter(Boolean) : [];
-    const all = [...new Set([...chips, ...extra])];
-    return all.length ? all.join(',') : '';
+  const toggleChip = (list: string[], setList: (v: string[]) => void, val: string) => {
+    setSaveError(null);
+    setList(list.includes(val) ? list.filter((x) => x !== val) : [...list, val]);
   };
 
-  const fmtDate = (d: Date) =>
-    faDate(d, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  const buildField = (chips: string[], text: string) => {
+    const extra = text.trim() ? text.split(',').map((x) => x.trim()).filter(Boolean) : [];
+    return [...new Set([...chips, ...extra])].join(',');
+  };
+
+  const original = useMemo(() => (period ? periodDraftFromRecord(period) : null), [period]);
+  // Same items in a different order is not a change.
+  const canon = (v: string) => normalizeList(v).split(',').filter(Boolean).sort().join(',');
+  const draft = useMemo(() => {
+    if (!original) return null;
+    const sym = buildField(symptoms, symptomsText);
+    const med = buildField(medication, medicationText);
+    return {
+      ...original,
+      symptoms: canon(sym) === canon(original.symptoms) ? original.symptoms : sym,
+      medication: canon(med) === canon(original.medication) ? original.medication : med,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [original, symptoms, symptomsText, medication, medicationText]);
+  const patch = useMemo(
+    () => (original && draft ? buildPeriodPatch(original, draft) : {}),
+    [original, draft],
+  );
+  const dirty = Object.keys(patch).length > 0;
+  const busy = patchMutation.isPending || deleteMutation.isPending;
+
+  // Leaving with unsaved symptom/medication edits asks first.
+  useEffect(() => {
+    const unsub = navigation.addListener('beforeRemove', (e: any) => {
+      if (allowLeave.current || !dirty || busy) return;
+      e.preventDefault();
+      pendingNav.current = e.data.action;
+      setConfirmDiscard(true);
+    });
+    return unsub;
+  }, [navigation, dirty, busy]);
+
+  const leave = useCallback(() => {
+    allowLeave.current = true;
+    navigation.goBack();
+  }, [navigation]);
 
   const handleSave = () => {
-    if (!startDate) return;
-
-    if (endDate) {
-      // End date is inclusive: it may equal the start date (1-day period),
-      // but must not be before it — mirrors the backend contract.
-      if (endDate < startDate) {
-        toast.warning('تاریخ نامعتبر', 'تاریخ پایان باید بعد از تاریخ شروع یا مساوی آن باشد.');
-        return;
-      }
-    }
-
+    if (!dirty || busy) return;
+    setSaveError(null);
     patchMutation.mutate(
-      {
-        id: periodId,
-        data: {
-          start_date: formatDateISO(startDate),
-          end_date: endDate ? formatDateISO(endDate) : undefined,
-          symptoms: buildField(symptoms, symptomsText) || undefined,
-          medication: buildField(medication, medicationText) || undefined,
-        },
-      },
+      { id: periodId, data: patch },
       {
         onSuccess: () => {
-          toast.success('به‌روزرسانی دوره', 'تغییراتت ذخیره شد.');
-          navigation.goBack();
+          toast.success('ذخیره شد', 'علائم و داروهای این دوره به‌روز شد.');
+          leave();
         },
-        onError: (err: any) => {
-          const msg =
-            err?.response?.data?.end_date?.[0] ||
-            err?.response?.data?.start_date?.[0] ||
-            err?.response?.data?.detail ||
-            'به‌روزرسانی ثبت دوره ناموفق بود.';
-          toast.error('خطا در به‌روزرسانی', msg);
-        },
+        onError: (err: any) => setSaveError(mapPeriodError(err)),
       },
     );
   };
 
+  const handleDelete = () => {
+    setConfirmDelete(false);
+    deleteMutation.mutate(periodId, {
+      onSuccess: () => {
+        toast.success('دوره حذف شد', 'پیش‌بینی‌ها دوباره بر پایه‌ی دوره‌های باقی‌مانده حساب می‌شوند.');
+        leave();
+      },
+      onError: (err: any) => toast.error('حذف نشد', mapPeriodError(err).message),
+    });
+  };
+
   if (isLoading) return <LoadingState fullScreen message="در حال بارگذاری ثبت دوره…" />;
   if (isError) return <ErrorState fullScreen error={error} onRetry={refetch} />;
-  if (!period || !startDate) return null;
+  if (!period || !original) return null;
 
-  const busy = patchMutation.isPending;
-  const isOngoing = !endDate;
-
-  // Earliest allowable end date = the start date itself (1-day periods
-  // are valid; end_date is inclusive).
-  const minEndDay = new Date(startDate);
+  const span = describePeriodSpan({ start: period.start_date, end: period.end_date ?? null });
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -287,118 +204,44 @@ export default function EditPeriodScreen() {
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{
-          paddingHorizontal: screen.gutter,
-          paddingTop: screen.top,
-          paddingBottom: screen.bottom,
-        }}
+            paddingHorizontal: screen.gutter,
+            paddingTop: screen.top,
+            paddingBottom: screen.bottom,
+          }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header Introduction */}
-          <View style={{ marginBottom: spacing[4] }}>
-            <Text style={[styles.headerSubtitle, { color: colors.textSecondary, fontSize: typography.sm }]}>
-              تاریخ‌ها، علائم و داروهای این دوره را ویرایش کن.
-            </Text>
-          </View>
-
-          {/* ── 1. Start Date ──────────────────────────────────────── */}
-          <View style={{ marginBottom: spacing[4] }}>
-            <Text style={[styles.fieldSectionLabel, { color: colors.textTertiary, fontSize: typography.xs, marginBottom: spacing[2] }]}>
-              تاریخ شروع
-            </Text>
-            <TouchableOpacity
-              onPress={() => setShowStartPicker(true)}
-              activeOpacity={0.8}
-              style={[
-                styles.dateCard,
-                {
-                  backgroundColor: colors.surfaceSecondary,
-                  borderColor: colors.border,
-                  borderRadius: borderRadius.md,
-                  padding: spacing[3],
-                },
-              ]}
-            >
-              <View style={styles.dateCardLeft}>
-                <Icon name="calendar" size={20} color={colors.menstrual} />
-                <View>
-                  <Text style={[styles.dateValueText, { color: colors.textPrimary, fontSize: typography.base }]}>
-                    {startDate ? fmtDate(startDate) : 'انتخاب تاریخ'}
-                  </Text>
-                  <Text style={[styles.dateSubtext, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                    برای تغییر، لمس کن
-                  </Text>
-                </View>
-              </View>
-              <Icon name="chevron-right" size={18} color={colors.textTertiary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* ── 2. End Date ────────────────────────────────────────── */}
-          <View style={{ marginBottom: spacing[5] }}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.fieldSectionLabel, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                تاریخ پایان
-              </Text>
-              {isOngoing && (
-                <Text style={[styles.optionalTag, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                  دوره در جریان
+          {/* ── Dates: shown, edited in the quick sheet ─────────────── */}
+          <View
+            style={[
+              styles.dateCard,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderRadius: borderRadius.lg,
+                padding: spacing[4],
+                marginBottom: spacing[5],
+              },
+            ]}
+          >
+            <View style={styles.dateCardLeft}>
+              <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: colors.menstrual }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.textTertiary, fontSize: typography.xs }}>تاریخ‌های ثبت‌شده</Text>
+                <Text
+                  style={[styles.dateValueText, { color: colors.textPrimary, fontSize: typography.base }]}
+                  accessibilityLabel={`تاریخ‌های ثبت‌شده: ${span}`}
+                >
+                  {span}
                 </Text>
-              )}
+              </View>
             </View>
-
-            <TouchableOpacity
-              onPress={() => setShowEndPicker(true)}
-              activeOpacity={0.8}
-              style={[
-                styles.dateCard,
-                {
-                  backgroundColor: colors.surfaceSecondary,
-                  borderColor: colors.border,
-                  borderRadius: borderRadius.md,
-                  padding: spacing[3],
-                },
-              ]}
-            >
-              <View style={styles.dateCardLeft}>
-                <Icon name="calendar-check" size={20} color={endDate ? colors.primary : colors.textTertiary} />
-                <View>
-                  <Text
-                    style={[
-                      styles.dateValueText,
-                      {
-                        color: endDate ? colors.textPrimary : colors.textTertiary,
-                        fontSize: typography.base,
-                        fontWeight: endDate ? '700' : '400',
-                      },
-                    ]}
-                  >
-                    {endDate ? fmtDate(endDate) : 'هنوز به پایان نرسیده (در جریان)'}
-                  </Text>
-                  <Text style={[styles.dateSubtext, { color: colors.textTertiary, fontSize: typography.xs }]}>
-                    زودترین تاریخ مجاز: {fmtDate(minEndDay)}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.dateActionRight}>
-                {endDate && (
-                  <TouchableOpacity
-                    onPress={() => setEndDate(null)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    style={{ marginRight: spacing[1] }}
-                    accessibilityRole="button"
-                    accessibilityLabel="پاک کردن تاریخ پایان"
-                  >
-                    <Icon name="close-circle-outline" size={18} color={colors.textTertiary} />
-                  </TouchableOpacity>
-                )}
-                <Icon name="chevron-right" size={18} color={colors.textTertiary} />
-              </View>
-            </TouchableOpacity>
+            <View style={{ marginTop: spacing[3] }}>
+              <Button label="ویرایش تاریخ‌ها" onPress={() => setDatesOpen(true)} variant="secondary" size="md" fullWidth />
+            </View>
           </View>
 
-          {/* ── 3. Symptoms ────────────────────────────────────────── */}
+          {/* ── Symptoms ────────────────────────────────────────────── */}
           <View style={{ marginBottom: spacing[5] }}>
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.fieldSectionLabel, { color: colors.textTertiary, fontSize: typography.xs }]}>
@@ -410,13 +253,16 @@ export default function EditPeriodScreen() {
             </View>
 
             <View style={styles.chipsWrap}>
-              {COMMON_SYMPTOMS.map(s => {
-                const active = symptoms.includes(s);
+              {COMMON_SYMPTOMS.map((sym) => {
+                const active = symptoms.includes(sym);
                 return (
                   <TouchableOpacity
-                    key={s}
-                    onPress={() => toggleChip(symptoms, setSymptoms, s)}
+                    key={sym}
+                    onPress={() => toggleChip(symptoms, setSymptoms, sym)}
                     activeOpacity={0.75}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: active }}
+                    accessibilityLabel={SYMPTOM_LABELS[sym] ?? sym}
                     style={[
                       styles.chipItem,
                       {
@@ -425,6 +271,8 @@ export default function EditPeriodScreen() {
                         borderRadius: borderRadius.pill,
                         paddingHorizontal: spacing[3],
                         paddingVertical: spacing[2],
+                        minHeight: 40,
+                        justifyContent: 'center',
                       },
                     ]}
                   >
@@ -435,11 +283,10 @@ export default function EditPeriodScreen() {
                           color: active ? colors.menstrual : colors.textSecondary,
                           fontSize: typography.xs,
                           fontWeight: active ? '700' : '500',
-                          textTransform: 'capitalize',
                         },
                       ]}
                     >
-                      {SYMPTOM_LABELS[s] ?? s}
+                      {SYMPTOM_LABELS[sym] ?? sym}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -462,14 +309,18 @@ export default function EditPeriodScreen() {
               placeholder="سایر علائم…"
               placeholderTextColor={colors.textTertiary}
               value={symptomsText}
-              onChangeText={setSymptomsText}
+              onChangeText={(t) => {
+                setSaveError(null);
+                setSymptomsText(t);
+              }}
               multiline
               numberOfLines={2}
+              accessibilityLabel="سایر علائم"
             />
           </View>
 
-          {/* ── 4. Medication ──────────────────────────────────────── */}
-          <View style={{ marginBottom: spacing[6] }}>
+          {/* ── Medication ──────────────────────────────────────────── */}
+          <View style={{ marginBottom: spacing[5] }}>
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.fieldSectionLabel, { color: colors.textTertiary, fontSize: typography.xs }]}>
                 دارو
@@ -480,13 +331,16 @@ export default function EditPeriodScreen() {
             </View>
 
             <View style={styles.chipsWrap}>
-              {COMMON_MEDS.map(m => {
-                const active = medication.includes(m);
+              {COMMON_MEDS.map((med) => {
+                const active = medication.includes(med);
                 return (
                   <TouchableOpacity
-                    key={m}
-                    onPress={() => toggleChip(medication, setMedication, m)}
+                    key={med}
+                    onPress={() => toggleChip(medication, setMedication, med)}
                     activeOpacity={0.75}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: active }}
+                    accessibilityLabel={MED_LABELS[med] ?? med}
                     style={[
                       styles.chipItem,
                       {
@@ -495,6 +349,8 @@ export default function EditPeriodScreen() {
                         borderRadius: borderRadius.pill,
                         paddingHorizontal: spacing[3],
                         paddingVertical: spacing[2],
+                        minHeight: 40,
+                        justifyContent: 'center',
                       },
                     ]}
                   >
@@ -505,11 +361,10 @@ export default function EditPeriodScreen() {
                           color: active ? colors.primary : colors.textSecondary,
                           fontSize: typography.xs,
                           fontWeight: active ? '700' : '500',
-                          textTransform: 'capitalize',
                         },
                       ]}
                     >
-                      {MED_LABELS[m] ?? m}
+                      {MED_LABELS[med] ?? med}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -532,53 +387,88 @@ export default function EditPeriodScreen() {
               placeholder="سایر داروها…"
               placeholderTextColor={colors.textTertiary}
               value={medicationText}
-              onChangeText={setMedicationText}
+              onChangeText={(t) => {
+                setSaveError(null);
+                setMedicationText(t);
+              }}
               multiline
               numberOfLines={2}
+              accessibilityLabel="سایر داروها"
             />
           </View>
 
-          {/* ── Actions ────────────────────────────────────────────── */}
+          {saveError ? (
+            <View
+              accessibilityLiveRegion="polite"
+              style={{
+                backgroundColor: colors.errorBg,
+                borderRadius: borderRadius.md,
+                padding: spacing[3],
+                marginBottom: spacing[3],
+              }}
+            >
+              <Text style={{ color: colors.error, fontSize: typography.sm, lineHeight: 22 }}>{saveError.message}</Text>
+            </View>
+          ) : null}
+
+          {/* ── Actions ─────────────────────────────────────────────── */}
           <View style={{ gap: spacing[2] }}>
             <Button
-              label={busy ? 'در حال ذخیره…' : 'ذخیره تغییرات'}
+              label={patchMutation.isPending ? 'در حال ذخیره…' : saveError?.retryable ? 'تلاش دوباره' : 'ذخیره علائم و داروها'}
               onPress={handleSave}
-              disabled={busy}
-              loading={busy}
+              disabled={!dirty || busy}
+              loading={patchMutation.isPending}
               size="lg"
               fullWidth
             />
-            <Button
-              label="انصراف"
-              onPress={() => navigation.goBack()}
-              variant="ghost"
-              size="md"
-              fullWidth
-            />
+            <Button label="بازگشت" onPress={() => navigation.goBack()} variant="ghost" size="md" fullWidth />
+          </View>
+
+          {/* Deliberately last, quiet, and separate from the date correction above */}
+          <View style={[styles.deleteZone, { borderTopColor: colors.border, marginTop: spacing[6], paddingTop: spacing[4] }]}>
+            <Text style={{ color: colors.textSecondary, fontSize: typography.sm, lineHeight: 22 }}>
+              این دوره را اشتباهی ثبت کرده‌ای؟ اگر فقط تاریخش غلط است، بالا «ویرایش تاریخ‌ها» را بزن. حذف، کل این دوره را از تاریخچه‌ات برمی‌دارد.
+            </Text>
+            <TouchableOpacity
+              onPress={() => setConfirmDelete(true)}
+              disabled={busy}
+              accessibilityRole="button"
+              accessibilityLabel="حذف این دوره"
+              style={styles.deleteBtn}
+            >
+              <Icon name="trash-can-outline" size={18} color={colors.error} />
+              <Text style={{ color: colors.error, fontSize: typography.sm, fontWeight: '700' }}>حذف این دوره</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Start Date Picker */}
-      <DatePickerSheet
-        visible={showStartPicker}
-        title="ویرایش تاریخ شروع"
-        selected={startDate}
-        onClose={() => setShowStartPicker(false)}
-        onSelect={d => {
-          setStartDate(d);
-          setEndDate(null);
-        }}
+      <PeriodQuickEditSheet visible={datesOpen} period={period} onClose={() => setDatesOpen(false)} />
+
+      <ConfirmSheet
+        visible={confirmDelete}
+        variant="danger"
+        title="این دوره حذف شود؟"
+        message={`دوره‌ی ${span} از تاریخچه‌ات پاک می‌شود و برنگشتنی است. پیش‌بینی‌ها بر پایه‌ی بقیه‌ی دوره‌هایت دوباره حساب می‌شوند.`}
+        confirmLabel="حذف دوره"
+        cancelLabel="نگه‌دار"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(false)}
       />
 
-      {/* End Date Picker */}
-      <DatePickerSheet
-        visible={showEndPicker}
-        title="ویرایش تاریخ پایان"
-        selected={endDate}
-        minDate={minEndDay}
-        onClose={() => setShowEndPicker(false)}
-        onSelect={setEndDate}
+      <ConfirmSheet
+        visible={confirmDiscard}
+        variant="warning"
+        title="تغییرات ذخیره نشده‌اند"
+        message="اگر بیرون بروی، تغییرات علائم و داروها از بین می‌رود."
+        confirmLabel="بیرون برو"
+        cancelLabel="ادامه‌ی ویرایش"
+        onConfirm={() => {
+          setConfirmDiscard(false);
+          allowLeave.current = true;
+          if (pendingNav.current) navigation.dispatch(pendingNav.current);
+        }}
+        onCancel={() => setConfirmDiscard(false)}
       />
     </SafeAreaView>
   );
@@ -606,9 +496,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   dateCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     borderWidth: 1,
   },
   dateCardLeft: {
@@ -641,46 +528,14 @@ const styles = StyleSheet.create({
     minHeight: 64,
     textAlignVertical: 'top',
   },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+  deleteZone: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 8,
   },
-  modalSheet: {
-    maxHeight: '75%',
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-  modalHandleWrapper: {
-    alignItems: 'center',
-    paddingTop: 10,
-    paddingBottom: 4,
-  },
-  modalHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-  },
-  modalHeaderRow: {
+  deleteBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  modalTitle: {
-    fontWeight: '700',
-  },
-  dateListScroll: {
-    maxHeight: 320,
-  },
-  dateOptionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dateOptionText: {},
-  todayTagText: {
-    fontWeight: '600',
-    marginTop: 1,
+    gap: 8,
+    minHeight: 44,
   },
 });
