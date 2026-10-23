@@ -19,6 +19,10 @@ export const pregnancyService = {
   start: (payload: StartPregnancyRequest) =>
     apiClient.post<PregnancyEnvelope>(API_ENDPOINTS.PREGNANCY, payload),
 
+  // Correct the dates of the ACTIVE pregnancy (exactly one of the two).
+  update: (payload: StartPregnancyRequest) =>
+    apiClient.patch<PregnancyEnvelope>(API_ENDPOINTS.PREGNANCY, payload),
+
   end: () => apiClient.post<PregnancyEnvelope>(API_ENDPOINTS.PREGNANCY_END, {}),
 
   // Premium — P1.3. Reframes the same status this service already

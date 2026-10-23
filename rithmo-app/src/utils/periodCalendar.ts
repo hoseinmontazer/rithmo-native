@@ -354,3 +354,15 @@ export function pickCurrentPeriod(periods: any[] | undefined, today: string): Cu
     daysSinceEnd,
   };
 }
+
+/**
+ * While pregnant, a calendar day can offer "record a symptom or observation",
+ * which opens Quick Log. Quick Log only ever records TODAY (the server refuses
+ * a log more than a day away), so the action is offered for today only; any
+ * other day must not imply it will log against that date.
+ */
+export function observationActionFor(dateStr: string, todayStr: string): 'today' | 'other' {
+  return dateStr === todayStr ? 'today' : 'other';
+}
+
+export const OBSERVATION_TODAY_ONLY_NOTE_FA = 'ثبت علامت فقط برای امروز ممکن است.';

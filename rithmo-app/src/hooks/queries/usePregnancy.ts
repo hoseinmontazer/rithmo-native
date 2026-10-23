@@ -13,6 +13,7 @@
  * the API response — nothing here recomputes them. The backend remains
  * the single source of truth (cycle_tracker.services.pregnancy_service).
  */
+import { invalidatePeriodDependents } from './usePeriods';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { pregnancyService } from '@api/services/pregnancyService';
 import { queryKeys } from '@api/queryKeys';
@@ -62,9 +63,23 @@ export function useStartPregnancy() {
       pregnancyService.start(payload).then((r) => unwrap(r.data)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.pregnancy.all() });
-      // Cycle predictions are suspended while pregnant — bust the caches
-      // that show them so Home/Cycle stop showing a stale prediction.
-      queryClient.invalidateQueries({ queryKey: queryKeys.periods.all() });
+      // Cycle predictions are suspended while pregnant — bust every cache
+      // that shows them (periods, ovulation, the intelligence layer behind
+      // Home/Insights) so none keeps a stale prediction.
+      invalidatePeriodDependents(queryClient);
+    },
+  });
+}
+
+export function useUpdatePregnancy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: StartPregnancyRequest) =>
+      pregnancyService.update(payload).then((r) => unwrap(r.data)),
+    onSuccess: () => {
+      // The week, trimester, due date and timeline all derive from the dates.
+      queryClient.invalidateQueries({ queryKey: queryKeys.pregnancy.all() });
+      invalidatePeriodDependents(queryClient);
     },
   });
 }
@@ -76,7 +91,7 @@ export function useEndPregnancy() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.pregnancy.all() });
       // Cycle prediction resumes immediately after ending.
-      queryClient.invalidateQueries({ queryKey: queryKeys.periods.all() });
+      invalidatePeriodDependents(queryClient);
     },
   });
 }

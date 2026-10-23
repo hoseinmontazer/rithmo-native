@@ -43,7 +43,8 @@ import { toFa, faDate } from '@utils/persian';
 import { todayISO } from '@utils/dateUtils';
 import { track } from '@analytics';
 import { MOODS } from '@utils/insightsEngine';
-import { QUICK_SYMPTOMS, parseSymptomCodes } from '@constants/symptoms';
+import { parseSymptomCodes, quickSymptomsFor } from '@constants/symptoms';
+import { usePregnancyStatus } from '@hooks/queries/usePregnancy';
 import { CONTEXT_TAGS } from '@constants/contextTags';
 import { symptomIcon, ICON_SIZE } from '@design-system/iconography';
 import icons, { type AppIconName } from '@assets/icons';
@@ -107,12 +108,12 @@ const PAIN_OPTIONS: RatingOption[] = [
   { value: 4, label: 'خیلی زیاد', shortLabel: '۴', iconName: 'alert-octagon-outline' },
 ];
 
-// Canonical codes + Persian labels, shared with the server's vocabulary.
-// This screen used to hold its own private list of raw Persian display
-// strings; the server now stores stable codes, so "سردرد" logged here and
-// "headache" logged from the period screen count as the SAME symptom in
-// the pattern engine instead of two unrelated ones.
-const COMMON_SYMPTOMS = QUICK_SYMPTOMS;
+// Symptom chips come from the canonical codes + Persian labels shared with the
+// server's vocabulary (`quickSymptomsFor` in @constants/symptoms). This screen
+// used to hold its own private list of raw Persian display strings; the server
+// now stores stable codes, so "سردرد" logged here and "headache" logged from
+// the period screen count as the SAME symptom in the pattern engine instead of
+// two unrelated ones.
 
 /** Window the "your usual" baseline describes. */
 const BASELINE_WINDOW_DAYS = 30;
@@ -358,6 +359,9 @@ export default function QuickLogScreen() {
   const [pain, setPain] = useState(0);
   const [sleep, setSleep] = useState(7);
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
+  // «لکه‌بینی» joins the chips while pregnant (see quickSymptomsFor).
+  const { data: pregnancyStatus } = usePregnancyStatus();
+  const quickSymptoms = quickSymptomsFor(Boolean(pregnancyStatus?.has_active_pregnancy), selectedSymptoms);
   const [notes, setNotes] = useState('');
 
   // Today 2.0: "امروز چیز متفاوتی بود؟" — separate from the WellnessLog
@@ -798,7 +802,7 @@ export default function QuickLogScreen() {
               علائم شایع امروز
             </Text>
             <View style={[styles.chipWrap, { gap: spacing[2] }]}>
-              {COMMON_SYMPTOMS.map(sym => {
+              {quickSymptoms.map(sym => {
                 const active = selectedSymptoms.includes(sym.code);
                 return (
                   <TouchableOpacity

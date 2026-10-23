@@ -7,7 +7,7 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import Svg, { Circle } from 'react-native-svg';
 import { useTheme } from '@hooks/useTheme';
 import { screen } from '@theme/spacing';
@@ -258,8 +258,12 @@ export default function CycleAnalysisScreen() {
         {!isMale && (
           <View style={{ flex: 1 }}>
             <Button
-              label="ثبت دوره"
-              onPress={() => navigation.navigate('LogPeriod')}
+              label={isPregnant ? 'ثبت علامت یا مشاهده' : 'ثبت دوره'}
+              onPress={
+                isPregnant
+                  ? () => navigation.dispatch(CommonActions.navigate({ name: 'LogTab', params: { screen: 'QuickLog' } }))
+                  : () => navigation.navigate('LogPeriod')
+              }
               size="md"
               fullWidth
             />

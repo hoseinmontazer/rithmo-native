@@ -20,6 +20,7 @@ import { mapPeriodError } from '@utils/periodCalendar';
 import type { CycleStackParamList } from '@navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCreatePeriod, usePatchPeriod } from '@hooks/queries/usePeriods';
+import { usePregnancyStatus } from '@hooks/queries/usePregnancy';
 import { useToast } from '../../context/ToastContext';
 import { formatDateISO } from '@utils/dateUtils';
 import { faDate, faDateShort } from '@utils/persian';
@@ -405,6 +406,8 @@ export default function LogPeriodScreen() {
   const isCustom = !isToday && !isYesterday && !isTwoDaysAgo;
 
   const busy = createMutation.isPending || patchMutation.isPending;
+  const { data: pregnancyStatus } = usePregnancyStatus();
+  const pregnant = Boolean(pregnancyStatus?.has_active_pregnancy);
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -422,7 +425,9 @@ export default function LogPeriodScreen() {
           {/* Header Introduction */}
           <View style={{ marginBottom: spacing[4] }}>
             <Text style={[styles.headerSubtitle, { color: colors.textSecondary, fontSize: typography.sm }]}>
-              تاریخ شروع دوره‌ی قاعدگیت را ثبت کن.
+              {pregnant
+                ? 'حالت بارداری روشن است. این ثبت فقط به تاریخچه‌ات اضافه می‌شود و پیش‌بینی چرخه را دوباره فعال نمی‌کند. برای ثبت یک علامت، می‌توانی از «ثبت سریع» هم استفاده کنی.'
+                : 'تاریخ شروع دوره‌ی قاعدگیت را ثبت کن.'}
             </Text>
           </View>
 

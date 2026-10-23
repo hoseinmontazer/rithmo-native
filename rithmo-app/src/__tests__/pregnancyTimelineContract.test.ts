@@ -30,10 +30,12 @@ describe('Pregnancy timeline endpoint', () => {
 
   it('does not add a new call site for the existing /api/pregnancy/ endpoints', () => {
     const src = read('api/services/pregnancyService.ts');
-    // Regression guard: PREGNANCY (getStatus GET + start POST, pre-existing)
-    // and PREGNANCY_END (end POST, pre-existing) must still resolve exactly
-    // as many times as before P1.3 — never a new use of either.
-    expect(src.match(/API_ENDPOINTS\.PREGNANCY\b/g)?.length).toBe(2);
+    // Regression guard: PREGNANCY (getStatus GET + start POST, pre-existing,
+    // plus the approved due-date correction PATCH) and PREGNANCY_END (end POST,
+    // pre-existing) must resolve exactly this many times — a new use of either
+    // has to be a deliberate, reviewed change that updates this count.
+    expect(src.match(/API_ENDPOINTS\.PREGNANCY\b/g)?.length).toBe(3);
+    expect(src).toMatch(/update:[^]*?apiClient\.patch<PregnancyEnvelope>\(API_ENDPOINTS\.PREGNANCY,/);
     expect(src.match(/API_ENDPOINTS\.PREGNANCY_END/g)?.length).toBe(1);
   });
 });

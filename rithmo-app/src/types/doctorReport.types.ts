@@ -14,7 +14,9 @@ export interface DoctorReportCycleSummary {
   cycle_length_std_dev: number | null;
   average_period_duration: number | null;
   regularity_score: number | null;
-  confidence_label: 'low' | 'medium' | 'high';
+  /** Confidence in the next-period PREDICTION (not in the recorded figures).
+   *  `null` while a pregnancy is active: there is no prediction to rate. */
+  confidence_label: 'low' | 'medium' | 'high' | null;
 }
 
 export interface DoctorReportSymptomPattern {

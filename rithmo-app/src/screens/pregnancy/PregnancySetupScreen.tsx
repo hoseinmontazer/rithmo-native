@@ -10,13 +10,14 @@
  *
  * No other onboarding questions — this is deliberately the only step.
  */
+import { extractErrorMessage } from '@utils/errorHandler';
 import React, { useMemo, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@hooks/useTheme';
 import { screen } from '@theme/spacing';
 import { Button, Icon } from '@components/ui';
-import { useStartPregnancy } from '@hooks/queries/usePregnancy';
+import { useStartPregnancy, useUpdatePregnancy } from '@hooks/queries/usePregnancy';
 import { formatDateISO } from '@utils/dateUtils';
 import { faDate } from '@utils/persian';
 import { useToast } from '../../context/ToastContext';
@@ -107,12 +108,23 @@ function PregnancyDatePickerSheet({
   );
 }
 
-export default function PregnancySetupScreen() {
+interface SetupProps {
+  /** Correct the dates of the ACTIVE pregnancy instead of starting one. */
+  editing?: boolean;
+  /** Leave edit mode (after saving or cancelling). */
+  onClose?: () => void;
+}
+
+export default function PregnancySetupScreen({ editing = false, onClose }: SetupProps = {}) {
   const { colors, spacing, typography, borderRadius } = useTheme();
   const toast = useToast();
-  const startPregnancy = useStartPregnancy();
+  const startMutation = useStartPregnancy();
+  const updateMutation = useUpdatePregnancy();
+  // Same shape either way; edit mode just calls PATCH instead of POST.
+  const startPregnancy = editing ? updateMutation : startMutation;
 
-  const [mode, setMode] = useState<EntryMode>('last_period_date');
+  // A correction usually comes from a clinic visit, so it opens on the due date.
+  const [mode, setMode] = useState<EntryMode>(editing ? 'due_date' : 'last_period_date');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showPicker, setShowPicker] = useState(false);
 
@@ -125,12 +137,19 @@ export default function PregnancySetupScreen() {
     if (!selectedDate) { return; }
     try {
       await startPregnancy.mutateAsync({ [mode]: formatDateISO(selectedDate) });
-      toast.success('پیگیری بارداری شروع شد', 'وضعیت بارداریت را می‌توانی همینجا ببینی.');
+      if (editing) {
+        toast.info('تاریخ بارداری به‌روز شد', 'هفته و تاریخ تخمینی زایمان دوباره محاسبه شد.');
+        onClose?.();
+      } else {
+        toast.success('پیگیری بارداری شروع شد', 'وضعیت بارداریت را می‌توانی همینجا ببینی.');
+      }
     } catch (err: any) {
+      // Never show the server's raw (English) text. A 409 means one is
+      // already active, which has its own plain explanation.
       const message =
-        err?.response?.data?.error ||
-        err?.response?.data?.non_field_errors?.[0] ||
-        'ثبت اطلاعات بارداری با خطا مواجه شد.';
+        err?.response?.status === 409
+          ? 'یک بارداری فعال از قبل ثبت شده است.'
+          : extractErrorMessage(err);
       toast.error('خطا در ثبت', message);
     }
   };
@@ -147,10 +166,12 @@ export default function PregnancySetupScreen() {
         }}
       >
         <Text style={{ color: colors.textPrimary, fontSize: typography.title, fontWeight: '800', marginBottom: spacing[2] }}>
-          بارداریت را ثبت کن
+          {editing ? 'تاریخ‌ها را اصلاح کن' : 'بارداریت را ثبت کن'}
         </Text>
         <Text style={{ color: colors.textSecondary, fontSize: typography.bodySmall, lineHeight: 20, marginBottom: spacing[5] }}>
-          با یک تاریخ شروع می‌کنیم — هفته و روز بارداری، سه‌ماهه و تاریخ تخمینی زایمان از همین یک تاریخ محاسبه می‌شود.
+          {editing
+            ? 'یک تاریخ تازه وارد کن؛ هفته و روز بارداری، سه‌ماهه و تاریخ تخمینی زایمان دوباره از همین تاریخ محاسبه می‌شود.'
+            : 'با یک تاریخ شروع می‌کنیم — هفته و روز بارداری، سه‌ماهه و تاریخ تخمینی زایمان از همین یک تاریخ محاسبه می‌شود.'}
         </Text>
 
         <Text style={{ color: colors.textPrimary, fontSize: typography.bodySmall, fontWeight: '700', marginBottom: spacing[2] }}>
@@ -188,13 +209,22 @@ export default function PregnancySetupScreen() {
         </TouchableOpacity>
 
         <Button
-          label={startPregnancy.isPending ? 'در حال ثبت…' : 'شروع پیگیری'}
+          label={startPregnancy.isPending ? 'در حال ثبت…' : editing ? 'ذخیره‌ی تاریخ' : 'شروع پیگیری'}
           onPress={handleSubmit}
           disabled={!selectedDate || startPregnancy.isPending}
           loading={startPregnancy.isPending}
           size="lg"
           fullWidth
         />
+        {editing ? (
+          <TouchableOpacity
+            onPress={onClose}
+            accessibilityRole="button"
+            style={{ alignItems: 'center', marginTop: spacing[4], padding: spacing[2] }}
+          >
+            <Text style={{ color: colors.textSecondary, fontSize: typography.bodySmall }}>انصراف</Text>
+          </TouchableOpacity>
+        ) : null}
       </ScrollView>
 
       <PregnancyDatePickerSheet

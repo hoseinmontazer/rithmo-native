@@ -165,3 +165,17 @@ export function cycleDayForDate(dateISO: string, periods: any[]): number | null 
   }
   return null;
 }
+
+/**
+ * Keep only recorded periods. Used while a pregnancy is active: cycle
+ * predictions (predicted period, fertile window, phases, "late") are paused
+ * everywhere else, so the calendar must not keep drawing them. History is
+ * untouched.
+ */
+export function withoutPredictions(map: Map<string, DayInfo>): Map<string, DayInfo> {
+  const kept = new Map<string, DayInfo>();
+  map.forEach((info, key) => {
+    if (info.type === 'period') {kept.set(key, info);}
+  });
+  return kept;
+}

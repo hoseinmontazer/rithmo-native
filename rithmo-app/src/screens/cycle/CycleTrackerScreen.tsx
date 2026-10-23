@@ -10,7 +10,7 @@ import {
   PanResponder,
   Animated,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useTheme } from '@hooks/useTheme';
 import {
   toJalali,
@@ -26,13 +26,16 @@ import { useProfile } from '@hooks/queries/useProfile';
 import { useReducedMotion } from '@hooks/useReducedMotion';
 import { Card, Badge, Button, Icon, LoadingState, EmptyState } from '@components/ui';
 import { PeriodQuickEditSheet } from '@components/cycle/PeriodQuickEditSheet';
-import { formatDateISO } from '@utils/dateUtils';
+import { formatDateISO, todayISO } from '@utils/dateUtils';
 import { toFa, faDateShort, faDate } from '@utils/persian';
-import { buildCycleDateMap } from '@utils/cycleDayMap';
+import { buildCycleDateMap, withoutPredictions } from '@utils/cycleDayMap';
+import { usePregnancyStatus } from '@hooks/queries/usePregnancy';
 import {
   calendarCellA11yLabel,
   describeCalendarDay,
   describePeriodSpan,
+  OBSERVATION_TODAY_ONLY_NOTE_FA,
+  observationActionFor,
   type PeriodDayDescription,
 } from '@utils/periodCalendar';
 import { useSelectedDateStore } from '@store/selectedDateStore';
@@ -99,7 +102,12 @@ function CycleCalendar({
   const slideAnim = useRef(new Animated.Value(0)).current;
   const isAnimating = useRef(false);
 
-  const periodMap = useMemo(() => buildCycleDateMap(periods), [periods]);
+  const { data: pregnancyStatus } = usePregnancyStatus();
+  const pregnant = Boolean(pregnancyStatus?.has_active_pregnancy);
+  const periodMap = useMemo(() => {
+    const full = buildCycleDateMap(periods);
+    return pregnant ? withoutPredictions(full) : full;
+  }, [periods, pregnant]);
 
   // Allow navigating up to 3 months forward into future
   // Three Jalali months ahead, compared as an absolute month ordinal so the
@@ -436,13 +444,16 @@ function CycleCalendar({
       {/* Legend — every swatch is drawn exactly like the cell it explains */}
       <View
         accessible
-        accessibilityLabel="راهنما: دایره‌ی توپر قرمز یعنی دوره‌ی ثبت‌شده، حلقه‌ی خط‌چین قرمز یعنی دوره‌ی پیش‌بینی‌شده، حلقه‌ی توپر نارنجی با علامت تعجب یعنی دیرکرد، زمینه‌ی کم‌رنگ بنفش یعنی بازه‌ی باروری تخمینی"
+        accessibilityLabel={pregnant ? "راهنما: دایره‌ی توپر قرمز یعنی دوره‌ی ثبت‌شده" : "راهنما: دایره‌ی توپر قرمز یعنی دوره‌ی ثبت‌شده، حلقه‌ی خط‌چین قرمز یعنی دوره‌ی پیش‌بینی‌شده، حلقه‌ی توپر نارنجی با علامت تعجب یعنی دیرکرد، زمینه‌ی کم‌رنگ بنفش یعنی بازه‌ی باروری تخمینی"}
         style={[styles.legendContainer, { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, marginTop: spacing[3], paddingTop: spacing[3] }]}
       >
         <View style={styles.legendItem}>
           <View style={[styles.legendSwatch, { backgroundColor: colors.menstrual }]} />
           <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>دوره‌ی ثبت‌شده</Text>
         </View>
+        {/* Predictions are paused while pregnant, so their swatches are not explained. */}
+        {!pregnant && (
+          <>
         <View style={styles.legendItem}>
           <View style={[styles.legendSwatch, { borderWidth: 2, borderStyle: 'dashed', borderColor: colors.menstrual }]} />
           <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>دوره‌ی پیش‌بینی‌شده</Text>
@@ -459,6 +470,8 @@ function CycleCalendar({
           <View style={[styles.legendSwatch, { backgroundColor: colors.ovulation + '26' }]} />
           <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>بازه‌ی باروری (تخمینی)</Text>
         </View>
+          </>
+        )}
         <View style={styles.legendItem}>
           <View style={[styles.legendBar, { backgroundColor: colors.primary }]} />
           <Text style={[styles.legendText, { color: colors.textSecondary, fontSize: typography.xs }]}>امروز</Text>
@@ -502,6 +515,8 @@ function DayPanel({
   onClose,
   onEdit,
   onLog,
+  pregnant,
+  onLogObservation,
 }: {
   dateStr: string;
   desc: PeriodDayDescription;
@@ -510,6 +525,9 @@ function DayPanel({
   onClose: () => void;
   onEdit: () => void;
   onLog: () => void;
+  /** While pregnant a day is not a "period start": offer an observation/symptom instead. */
+  pregnant: boolean;
+  onLogObservation: () => void;
 }) {
   const { colors, spacing, typography, borderRadius, shadow } = useTheme();
   return (
@@ -569,6 +587,18 @@ function DayPanel({
         <View style={{ marginTop: spacing[3] }}>
           {desc.canEditPeriod ? (
             <Button label="ویرایش تاریخ‌های این دوره" onPress={onEdit} size="md" fullWidth />
+          ) : pregnant ? (
+            // A report made during pregnancy is an observation, not a confirmed
+            // period: send it to Quick Log (symptoms, e.g. spotting) instead of
+            // creating a period record, and never discard it. Quick Log records
+            // today only, so other days get a note instead of a misleading button.
+            observationActionFor(dateStr, todayISO()) === 'today' ? (
+              <Button label="ثبت علامت یا مشاهده‌ی امروز" onPress={onLogObservation} size="md" fullWidth />
+            ) : (
+              <Text style={{ color: colors.textSecondary, fontSize: typography.sm, lineHeight: 20 }}>
+                {OBSERVATION_TODAY_ONLY_NOTE_FA}
+              </Text>
+            )
           ) : (
             <Button
               label={desc.status === 'unrecorded' ? 'ثبت شروع دوره از این روز' : 'دوره‌ام از این روز شروع شد'}
@@ -620,7 +650,15 @@ export default function CycleTrackerScreen() {
   }, [refetch]);
 
   // Full cycle date map
-  const cycleMap = useMemo(() => buildCycleDateMap((periods as any[]) ?? []), [periods]);
+  const { data: pregnancy } = usePregnancyStatus();
+  const isPregnant = Boolean(pregnancy?.has_active_pregnancy);
+  const goToQuickLog = useCallback(() => {
+    navigation.dispatch(CommonActions.navigate({ name: 'LogTab', params: { screen: 'QuickLog' } }));
+  }, [navigation]);
+  const cycleMap = useMemo(() => {
+    const full = buildCycleDateMap((periods as any[]) ?? []);
+    return isPregnant ? withoutPredictions(full) : full;
+  }, [periods, isPregnant]);
 
   // Find period for selected date
   const selectedPeriod = useMemo(() => {
@@ -700,8 +738,8 @@ export default function CycleTrackerScreen() {
         {!isMale && (
           <View style={{ flex: 1 }}>
             <Button
-              label="ثبت دوره"
-              onPress={() => navigation.navigate('LogPeriod')}
+              label={isPregnant ? 'ثبت علامت یا مشاهده' : 'ثبت دوره'}
+              onPress={isPregnant ? goToQuickLog : () => navigation.navigate('LogPeriod')}
               size="md"
               fullWidth
             />
@@ -787,6 +825,16 @@ export default function CycleTrackerScreen() {
         <View>
           {periodList.length > 0 ? (
             <>
+              {isPregnant && (
+                <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[3], padding: spacing[4], backgroundColor: colors.surfaceSecondary }}>
+                  <Text style={{ color: colors.textPrimary, fontSize: typography.sm, fontWeight: '700' }}>
+                    پیش‌بینی چرخه موقتاً متوقف است
+                  </Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: typography.sm, lineHeight: 20, marginTop: spacing[1] }}>
+                    حالت بارداری روشن است؛ فقط دوره‌های ثبت‌شده نشان داده می‌شوند.
+                  </Text>
+                </Card>
+              )}
               <CycleCalendar
                 periods={periodList}
                 isMaleWithPartner={isMaleWithPartner}
@@ -937,6 +985,8 @@ export default function CycleTrackerScreen() {
           onClose={() => setSelectedDate(null)}
           onEdit={() => selectedDesc.periodId != null && setQuickEditId(selectedDesc.periodId)}
           onLog={() => navigation.navigate('LogPeriod', { startDate: selectedDate })}
+          pregnant={isPregnant}
+          onLogObservation={goToQuickLog}
         />
       </View>
     ) : null}

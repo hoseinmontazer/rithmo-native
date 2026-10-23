@@ -7,12 +7,14 @@
  * Every number here is exactly what the API returned — nothing is
  * recomputed on the client.
  */
+import { extractErrorMessage } from '@utils/errorHandler';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@hooks/useTheme';
 import { screen } from '@theme/spacing';
+import PregnancySetupScreen from './PregnancySetupScreen';
 import { Button, Card, ConfirmSheet, ErrorState, Icon, LoadingState } from '@components/ui';
 import { useEndPregnancy, usePregnancyStatus, usePregnancyTimeline } from '@hooks/queries/usePregnancy';
 import { toFa, faDateYear } from '@utils/persian';
@@ -39,6 +41,7 @@ export default function PregnancyStatusScreen() {
   } = usePregnancyTimeline();
   const endPregnancy = useEndPregnancy();
   const [confirmEndVisible, setConfirmEndVisible] = useState(false);
+  const [editingDates, setEditingDates] = useState(false);
 
   const goToQuickLog = () => {
     navigation.dispatch(
@@ -50,14 +53,21 @@ export default function PregnancyStatusScreen() {
     setConfirmEndVisible(false);
     try {
       await endPregnancy.mutateAsync();
-      toast.success('پایان بارداری', 'حالت بارداری پایان یافت. تاریخچه چرخه‌ات دست‌نخورده باقی مانده.');
+      // Neutral on purpose: it must not assume the outcome or how the person
+      // feels, so no celebratory tone and no "success" styling.
+      toast.info('حالت بارداری بسته شد', 'تاریخچه‌ات سر جایش است. هر زمان خواستی می‌توانی دوباره آن را روشن کنی.');
     } catch (err: any) {
-      toast.error('خطا', err?.response?.data?.error || 'پایان بارداری با خطا مواجه شد.');
+      // Never show the server's raw (English) error text.
+      toast.error('انجام نشد', extractErrorMessage(err));
     }
   };
 
   if (isLoading || !data?.has_active_pregnancy) {
     return <LoadingState fullScreen message="در حال بررسی وضعیت بارداری…" />;
+  }
+
+  if (editingDates) {
+    return <PregnancySetupScreen editing onClose={() => setEditingDates(false)} />;
   }
 
   const week = data.gestational_week ?? 0;
@@ -122,6 +132,14 @@ export default function PregnancyStatusScreen() {
               {data.due_date ? faDateYear(data.due_date + 'T00:00:00') : '—'}
             </Text>
           </View>
+          <Text
+            onPress={() => setEditingDates(true)}
+            accessibilityRole="button"
+            accessibilityLabel="اصلاح تاریخ‌های بارداری"
+            style={{ color: colors.primary, fontSize: typography.caption, fontWeight: '600', marginTop: spacing[3] }}
+          >
+            اصلاح تاریخ‌ها
+          </Text>
         </Card>
 
         {timeline?.disclaimer_fa ? (
@@ -164,7 +182,9 @@ export default function PregnancyStatusScreen() {
         message="تاریخچه چرخه و داده‌های ثبت‌شده‌ات حذف نمی‌شود و پیش‌بینی چرخه دوباره فعال می‌شود."
         confirmLabel="پایان بده"
         cancelLabel="انصراف"
-        variant="warning"
+        // Neutral, not an alarm: ending is not a warning-level event and must
+        // not assume why the person is doing it.
+        variant="info"
         onConfirm={handleEndPregnancy}
         onCancel={() => setConfirmEndVisible(false)}
       />

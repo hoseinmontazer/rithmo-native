@@ -45,6 +45,22 @@ export const SYMPTOMS: readonly SymptomOption[] = [
 /** The subset shown in the fast daily log — the most commonly reported. */
 export const QUICK_SYMPTOMS: readonly SymptomOption[] = SYMPTOMS.slice(0, 8);
 
+/**
+ * Spotting is not one of the everyday chips. While a pregnancy is active it is
+ * offered in Quick Log so a bleeding report has a clearly labelled, structured
+ * place that goes through the ordinary wellness log (it never creates a period
+ * record). It is also kept visible if today's log already holds it, so it can
+ * always be unselected.
+ */
+const SPOTTING: SymptomOption = SYMPTOMS.find((s) => s.code === 'spotting') as SymptomOption;
+
+export function quickSymptomsFor(
+  pregnant: boolean,
+  selected: readonly string[] = [],
+): readonly SymptomOption[] {
+  return pregnant || selected.includes(SPOTTING.code) ? [...QUICK_SYMPTOMS, SPOTTING] : QUICK_SYMPTOMS;
+}
+
 const BY_CODE = new Map(SYMPTOMS.map((s) => [s.code, s]));
 /**
  * Reverse lookup so a Persian label written by an older build (or by
