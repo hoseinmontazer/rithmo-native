@@ -82,6 +82,16 @@ describe('copy safety', () => {
   });
 });
 
+describe('bundled fallback safety cards', () => {
+  it('only say who to ask and that time matters: no method, no effectiveness claim', () => {
+    const cards = (logic as unknown as { ESSENTIAL_SAFETY_FALLBACK?: Array<{ text: string }> }).ESSENTIAL_SAFETY_FALLBACK;
+    expect(Array.isArray(cards)).toBe(true);
+    for (const c of cards ?? []) {
+      expect(c.text).not.toMatch(/کاندوم|قرص|کم می‌کند|خطر .* را کم/);
+    }
+  });
+});
+
 describe('icons', () => {
   it('every icon the area asks for exists in the shipped glyph map', () => {
     const missing = GUIDE_ICON_NAMES.filter((n) => !(n in GLYPHS));

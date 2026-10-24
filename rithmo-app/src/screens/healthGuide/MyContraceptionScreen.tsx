@@ -101,10 +101,20 @@ export default function MyContraceptionScreen() {
   const [linkId, setLinkId] = useState<number | null>(null);
   const [remError, setRemError] = useState<string | null>(null);
 
-  if (summary.isLoading) { return <LoadingState fullScreen />; }
-  if (summary.isError || !summary.data) { return <ErrorState error={summary.error} onRetry={summary.refetch} fullScreen />; }
+  if (summary.isLoading || remindersQ.isLoading) { return <LoadingState fullScreen />; }
+  // The reminder list must never fall back to "no reminders" when it simply
+  // failed to load, so both queries gate the screen and retry together.
+  if (!summary.data || !remindersQ.data) {
+    return (
+      <ErrorState
+        error={summary.error ?? remindersQ.error}
+        onRetry={() => { summary.refetch(); remindersQ.refetch(); }}
+        fullScreen
+      />
+    );
+  }
   const s = summary.data;
-  const reminders = remindersQ.data ?? [];
+  const reminders = remindersQ.data;
 
   const resetMethod = () => { setMethod(null); setStartedOn(today); setEnded(false); setStoppedOn(today); setMethodError(null); };
   const resetReminder = () => { setKind('daily'); setHour(''); setMinute(''); setIntervalText(''); setAnchor(today); setLinkId(null); setRemError(null); };
