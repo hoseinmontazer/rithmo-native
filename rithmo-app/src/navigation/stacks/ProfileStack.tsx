@@ -16,6 +16,11 @@ import ZibalPaymentScreen from '@screens/profile/ZibalPaymentScreen';
 import SupportScreen from '@screens/support/SupportScreen';
 import PregnancyScreen from '@screens/pregnancy/PregnancyScreen';
 import TTCScreen from '@screens/ttc/TTCScreen';
+import HealthGuideHubScreen from '@screens/healthGuide/HealthGuideHubScreen';
+import GuideArticleScreen from '@screens/healthGuide/GuideArticleScreen';
+import MethodCompareScreen from '@screens/healthGuide/MethodCompareScreen';
+import MyContraceptionScreen from '@screens/healthGuide/MyContraceptionScreen';
+import HealthChecksScreen from '@screens/healthGuide/HealthChecksScreen';
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
@@ -45,6 +50,11 @@ export function ProfileStack() {
       <Stack.Screen name="Support"         component={SupportScreen}       options={{ title: navTitle('Support') }} />
       <Stack.Screen name="Pregnancy"       component={PregnancyScreen as React.ComponentType} options={{ title: navTitle('Pregnancy') }} />
       <Stack.Screen name="TTC"             component={TTCScreen as React.ComponentType} options={{ title: navTitle('TTC') }} />
+      <Stack.Screen name="HealthGuide"     component={HealthGuideHubScreen}  options={{ title: navTitle('HealthGuide') }} />
+      <Stack.Screen name="GuideArticle"    component={GuideArticleScreen as React.ComponentType} options={{ title: navTitle('GuideArticle') }} />
+      <Stack.Screen name="MethodCompare"   component={MethodCompareScreen}   options={{ title: navTitle('MethodCompare') }} />
+      <Stack.Screen name="MyContraception" component={MyContraceptionScreen} options={{ title: navTitle('MyContraception') }} />
+      <Stack.Screen name="HealthChecks"    component={HealthChecksScreen}    options={{ title: navTitle('HealthChecks') }} />
       <Stack.Screen
         name="Upgrade"
         component={UpgradeScreen as React.ComponentType}

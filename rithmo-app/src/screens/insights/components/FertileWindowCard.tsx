@@ -102,6 +102,16 @@ export const FertileWindowCard = memo(function FertileWindowCard() {
         </Text>
       )}
 
+      {/* A neutral note while a hormonal method is recorded: those methods act
+          on ovulation, so an estimate from past cycles may not match now. */}
+      {data.method_note_fa ? (
+        <Text
+          style={{ color: colors.textSecondary, fontSize: typography.caption, lineHeight: 20, marginTop: spacing[3] }}
+        >
+          {data.method_note_fa}
+        </Text>
+      ) : null}
+
       <Text
         style={{ color: colors.textTertiary, fontSize: typography.micro, lineHeight: 16, marginTop: spacing[2] }}
       >

@@ -593,6 +593,16 @@ export default function ProfileScreen() {
       {/* ── 6. برنامه و سلامت ───────────────────────────────────────── */}
       <SectionHeader label="برنامه و سلامت" icon={PROFILE_ICONS.settings} />
       <Card rounded="2xl" style={{ backgroundColor: colors.surface, borderColor: colors.border, paddingHorizontal: spacing[4] }}>
+        {/* Education is public and free; "my records" inside it are private. Shown to
+            every account (both partners keep their own), so it sits outside the
+            owner-only block below. */}
+        <MenuRow
+          icon={PROFILE_ICONS.healthGuide}
+          label="سلامت جنسی و پیشگیری"
+          sub="راهنما، مقایسه‌ی روش‌ها و ثبت‌های شخصی"
+          accentColor={colors.primary}
+          onPress={() => navigation.navigate('HealthGuide')}
+        />
         {isCycleOwner && (
           <>
             <MenuRow

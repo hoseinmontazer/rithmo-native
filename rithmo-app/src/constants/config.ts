@@ -173,6 +173,18 @@ export const API_ENDPOINTS = {
 
   // Support (user-facing tickets; internal notes are server-side only)
   SUPPORT_TICKETS: '/api/support/tickets/',
+  // Reviewed contraception / sexual-health education. Anonymous and read-only
+  // on the server; nothing about what is read is stored.
+  HEALTH_GUIDE: '/api/health-guide/',
+  HEALTH_GUIDE_METHODS: '/api/health-guide/methods/',
+
+  // PRIVATE records (owner only, never shared, never part of /user/profile/):
+  // the method the user uses, reminders they set themselves, and the dates of
+  // sexual-health checks. Own endpoints and own query keys.
+  CONTRACEPTION_SUMMARY: '/api/contraception/summary/',
+  CONTRACEPTION_RECORDS: '/api/contraception/records/',
+  CONTRACEPTION_REMINDERS: '/api/contraception/reminders/',
+  SEXUAL_HEALTH_CHECKS: '/api/sexual-health/checks/',
 } as const;
 
 export const KEYCHAIN_SERVICE = 'com.rithmo.auth';

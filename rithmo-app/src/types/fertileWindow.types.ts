@@ -28,6 +28,8 @@ export interface FertileWindowPayload {
   /** Backend-owned, shown only when there is a real reason to caution —
    * render verbatim, never strengthen or drop. */
   reliability_note_fa: string | null;
+  /** Neutral note shown beside the estimate while a hormonal method is recorded. */
+  method_note_fa?: string | null;
   /** Backend-owned medical disclaimer — always present, render verbatim. */
   disclaimer_fa: string;
 }

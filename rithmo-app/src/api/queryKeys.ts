@@ -115,6 +115,20 @@ export const queryKeys = {
     monthlyReview: () => ['aiReflection', 'monthlyReview'] as const,
     doctorReport: () => ['aiReflection', 'doctorReport'] as const,
   },
+  // Education content (public) and PRIVATE records each get their own keys, so
+  // nothing sensitive lives under a generic one and logout's clear() drops it all.
+  healthGuide: {
+    index: () => ['healthGuide', 'index'] as const,
+    article: (slug: string) => ['healthGuide', 'article', slug] as const,
+    methods: () => ['healthGuide', 'methods'] as const,
+  },
+  contraception: {
+    summary: () => ['contraception', 'summary'] as const,
+    reminders: () => ['contraception', 'reminders'] as const,
+  },
+  sexualHealth: {
+    checks: () => ['sexualHealth', 'checks'] as const,
+  },
   support: {
     all: () => ['support'] as const,
     list: () => ['support', 'list'] as const,

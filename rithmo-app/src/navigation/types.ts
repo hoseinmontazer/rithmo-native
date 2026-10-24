@@ -95,6 +95,13 @@ export type ProfileStackParamList = {
   ChangePassword:  undefined;
   DeleteAccount:   undefined;
   Support:         undefined;
+  // Contraception & sexual-health area (reached only from Profile). Education is
+  // public and free; the two record screens are PRIVATE to the signed-in user.
+  HealthGuide:     undefined;
+  GuideArticle:    { slug: string };
+  MethodCompare:   undefined;
+  MyContraception: undefined;
+  HealthChecks:    undefined;
   Upgrade:         { featureName?: string };  // paywall — featureName shown in headline
   Pregnancy:       undefined;                 // premium-gated; shows setup or status internally
   TTC:             undefined;                 // premium-gated; shows setup or status internally (P1.4.1)
