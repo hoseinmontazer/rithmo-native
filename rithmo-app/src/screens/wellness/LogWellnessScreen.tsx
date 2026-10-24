@@ -5,7 +5,7 @@
  * Full 13-metric comprehensive logging form organized into calm, logical sections.
  * Preserves all backend fields, scales, clamping, and pre-filling logic.
  */
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -30,7 +30,8 @@ import {
 import { Button, Input, Card, SliderMetric } from '@components/ui';
 import { extractErrorMessage } from '@utils/errorHandler';
 import { todayISO } from '@utils/dateUtils';
-import { SYMPTOMS, parseSymptomCodes } from '@constants/symptoms';
+import { SYMPTOMS } from '@constants/symptoms';
+import { buildLogWellnessPayload, storedSymptoms, type WellnessForm } from './wellnessEdits';
 import { CONTEXT_TAGS } from '@constants/contextTags';
 import { symptomIcon, ICON_SIZE } from '@design-system/iconography';
 import type { WellnessScreenProps } from '@navigation/types';
@@ -54,7 +55,7 @@ export default function LogWellnessScreen() {
   const { mutateAsync: updateLog, isPending: isUpdating } = useUpdateWellnessLog();
   const isPending = isCreating || isUpdating;
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<WellnessForm>({
     stress_level: 5,
     sleep_hours: 7,
     mood_level: 3,
@@ -78,9 +79,17 @@ export default function LogWellnessScreen() {
 
   const logDate = existing?.date ?? todayISO();
 
+  // Which fields the user changed, and what the form loaded — see
+  // buildLogWellnessPayload. A ref for `edited` so the prefill below can
+  // skip edited fields without re-running on every keystroke.
+  const edited = useRef(new Set<keyof WellnessForm>());
+  const symptomsEdited = useRef(false);
+  const [baseline, setBaseline] = useState<Partial<WellnessForm>>({});
+  const [symptomsBaseline, setSymptomsBaseline] = useState<string[]>([]);
+
   useEffect(() => {
     if (existing) {
-      setForm({
+      const loaded: WellnessForm = {
         stress_level: clamp(existing.stress_level ?? 5, 1, 10),
         sleep_hours: clamp(existing.sleep_hours ?? 7, 0, 12),
         mood_level: clamp(existing.mood_level ?? 3, 1, 5),
@@ -94,19 +103,27 @@ export default function LogWellnessScreen() {
         anxiety_level: clamp(existing.anxiety_level ?? 3, 1, 10),
         focus_level: clamp(existing.focus_level ?? 5, 1, 10),
         notes: existing.notes ?? '',
+      };
+      setBaseline(loaded);
+      // A late or refetched load fills only what the user has not edited.
+      setForm(prev => {
+        const next = { ...loaded };
+        edited.current.forEach((key) => { (next as Record<string, unknown>)[key] = prev[key]; });
+        return next;
       });
-      const codes = existing.symptom_codes?.length
-        ? existing.symptom_codes
-        : parseSymptomCodes(existing.symptoms);
-      setSelectedSymptoms(codes);
+      const codes = storedSymptoms(existing);
+      setSymptomsBaseline(codes);
+      if (!symptomsEdited.current) { setSelectedSymptoms(codes); }
     }
   }, [existing]);
 
-  const set = useCallback(<K extends keyof typeof form>(key: K, value: typeof form[K]) => {
+  const set = useCallback(<K extends keyof WellnessForm>(key: K, value: WellnessForm[K]) => {
+    edited.current.add(key);
     setForm(prev => ({ ...prev, [key]: value }));
   }, []);
 
   const toggleSymptom = useCallback((code: string) => {
+    symptomsEdited.current = true;
     setSelectedSymptoms(prev =>
       prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
     );
@@ -122,16 +139,22 @@ export default function LogWellnessScreen() {
       // instead of updating the day being edited. Only a fresh "new
       // report" (no logId) still goes through the create path, which is
       // always for today.
+      //
+      // Either way only edited-and-changed fields are sent (PATCH for an
+      // edit); everything else keeps its stored value and provenance.
+      const payload = buildLogWellnessPayload(
+        form, edited.current, baseline, selectedSymptoms, symptomsBaseline,
+      );
       if (logId) {
-        await updateLog({ id: logId, data: { ...form, symptoms: selectedSymptoms.join(',') } });
+        await updateLog({ id: logId, data: payload });
       } else {
-        await saveLog({ ...form, symptoms: selectedSymptoms.join(',') });
+        await saveLog(payload);
       }
       navigation.goBack();
     } catch (err) {
       Alert.alert('خطا', extractErrorMessage(err));
     }
-  }, [form, selectedSymptoms, logId, saveLog, updateLog, navigation]);
+  }, [form, selectedSymptoms, baseline, symptomsBaseline, logId, saveLog, updateLog, navigation]);
 
   // ── Today 2.0: context entries for this exact day ────────────────────
   const { data: contextEntries } = useContextEntriesForDate(logDate);

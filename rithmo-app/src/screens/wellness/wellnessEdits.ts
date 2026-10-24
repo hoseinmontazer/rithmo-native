@@ -64,6 +64,45 @@ export function wasReported(log: WellnessLog, field: keyof WellnessLog): boolean
   return log.reported_fields.includes(field);
 }
 
+// ── LogWellness's full form ───────────────────────────────────────────────
+
+export type WellnessForm = {
+  stress_level: number;
+  sleep_hours: number;
+  mood_level: number;
+  energy_level: number;
+  pain_level: number;
+  exercise_minutes: number;
+  nutrition_quality: number;
+  caffeine_intake: number;
+  alcohol_intake: number;
+  smoking: number;
+  anxiety_level: number;
+  focus_level: number;
+  notes: string;
+};
+
+/**
+ * The request body for a LogWellness save: only the fields the user edited
+ * and changed from what the form loaded (`baseline`; empty for a new report),
+ * plus symptoms only when the selection differs from what was stored. The
+ * form's slider defaults and prefill clamps (stress 0 shown as 1, sleep 14
+ * shown as 12) therefore never reach the server.
+ */
+export function buildLogWellnessPayload(
+  form: WellnessForm,
+  edited: ReadonlySet<keyof WellnessForm>,
+  baseline: Partial<WellnessForm>,
+  symptoms: readonly string[],
+  symptomsBaseline: readonly string[],
+): Partial<WellnessForm> & { symptoms?: string } {
+  const payload: Partial<WellnessForm> & { symptoms?: string } = changedFields(form, edited, baseline);
+  if (!sameSymptoms(symptoms, symptomsBaseline)) {
+    payload.symptoms = symptoms.join(',');
+  }
+  return payload;
+}
+
 // ── QuickLog's four pickers ───────────────────────────────────────────────
 
 export type QuickMetric = 'mood' | 'energy' | 'pain' | 'sleep';

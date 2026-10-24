@@ -57,10 +57,10 @@ describe('QuickLog empty-submit / provenance fix', () => {
   });
 
   it('only sends a touched field to the server, never an untouched default', () => {
-    expect(src).toMatch(/touched\.mood \? \{ mood_level: mood \} : \{\}/);
-    expect(src).toMatch(/touched\.energy \? \{ energy_level:/);
-    expect(src).toMatch(/touched\.pain \? \{ pain_level:/);
-    expect(src).toMatch(/touched\.sleep \? \{ sleep_hours: sleep \} : \{\}/);
+    // The selection rule itself (touched AND changed from what was loaded)
+    // lives in wellnessEdits.ts and is unit-tested in wellnessDataIntegrity.
+    expect(src).toMatch(/buildQuickLogPayload\(/);
+    expect(src).toMatch(/values: \{ mood, energy, pain, sleep \},\s*touched,/);
   });
 
   it('every picker marks its own field touched on interaction', () => {
@@ -70,8 +70,12 @@ describe('QuickLog empty-submit / provenance fix', () => {
     expect((src.match(/markTouched\('sleep'\)/g) || []).length).toBeGreaterThanOrEqual(2);
   });
 
-  it('reopening an already-reported day marks those fields touched from reported_fields, not blank', () => {
-    expect(src).toMatch(/reported\.includes\('mood_level'\)/);
+  it('reopening an already-reported day does NOT mark fields touched; omitted fields keep value and provenance server-side', () => {
+    // Marking reported fields touched made every reopen-and-save resend the
+    // picker's lossy display value (energy 7 -> 8, sleep 6.5 -> 7). The
+    // server merges reported_fields, so an omitted field loses nothing.
+    expect(src).not.toMatch(/reported\.includes\('mood_level'\)/);
+    expect(src).toMatch(/quickLogBaseline\(prefillSource\)/);
   });
 
   it('renders the Today 2.0 context step with the approved chips and a standing free-text field', () => {
@@ -100,12 +104,14 @@ describe('LogWellnessScreen: symptom-editing gap closed', () => {
   const src = read('screens/wellness/LogWellnessScreen.tsx');
 
   it('renders the full symptom vocabulary, not just the quick 8', () => {
-    expect(src).toMatch(/import \{ SYMPTOMS, parseSymptomCodes \} from '@constants\/symptoms'/);
+    expect(src).toMatch(/import \{ SYMPTOMS \} from '@constants\/symptoms'/);
     expect(src).toMatch(/SYMPTOMS\.map/);
   });
 
   it('sends the edited symptom selection on save', () => {
-    expect(src).toMatch(/symptoms: selectedSymptoms\.join\(','\)/);
+    // Joined inside buildLogWellnessPayload, only when it differs from what was stored.
+    expect(src).toMatch(/buildLogWellnessPayload\([^)]*selectedSymptoms, symptomsBaseline/);
+    expect(read('screens/wellness/wellnessEdits.ts')).toMatch(/payload\.symptoms = symptoms\.join\(','\)/);
   });
 
   it('also exposes Today 2.0 context editing for the same day', () => {
