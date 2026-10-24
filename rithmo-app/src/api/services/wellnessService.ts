@@ -66,9 +66,11 @@ export const wellnessService = {
     // Sends this device's own local calendar date explicitly — the
     // backend used to infer "today" itself from server/UTC time, so an
     // entry logged in the evening in most timezones could silently land
-    // on the wrong calendar day from the user's point of view.
+    // on the wrong calendar day from the user's point of view. A caller
+    // that loaded a specific day (QuickLog) passes that day as `date` so
+    // the save lands on the day it showed, even across local midnight.
     apiClient
-      .post(API_ENDPOINTS.WELLNESS, { ...data, date: formatDateISO(new Date()) })
+      .post(API_ENDPOINTS.WELLNESS, { ...data, date: data.date ?? formatDateISO(new Date()) })
       .then((r) => unwrap<WellnessLog>(r)!),
 
   getLog: (id: number) =>
@@ -76,9 +78,11 @@ export const wellnessService = {
       .get(`${API_ENDPOINTS.WELLNESS}${id}/`)
       .then((r) => unwrap<WellnessLog>(r)!),
 
+  // PATCH, not PUT: callers send only the fields the user edited, and the
+  // server must keep every field the request omits.
   updateLog: (id: number, data: UpdateWellnessLogRequest) =>
     apiClient
-      .put(`${API_ENDPOINTS.WELLNESS}${id}/`, data)
+      .patch(`${API_ENDPOINTS.WELLNESS}${id}/`, data)
       .then((r) => unwrap<WellnessLog>(r)!),
 
   deleteLog: (id: number) =>
@@ -94,9 +98,12 @@ export const wellnessService = {
       .get(API_ENDPOINTS.WELLNESS_STREAKS)
       .then((r) => unwrap<WellnessStreaks>(r)),
 
-  getTodayLog: () =>
+  // `date` (YYYY-MM-DD, the device's local day) makes the server read the
+  // same calendar day createOrUpdateLog writes. Omitted → the server's own
+  // day, the original behaviour.
+  getTodayLog: (date?: string) =>
     apiClient
-      .get(API_ENDPOINTS.WELLNESS_TODAY)
+      .get(API_ENDPOINTS.WELLNESS_TODAY, date ? { params: { date } } : undefined)
       .then((r) => unwrap<WellnessLog>(r)), // null = no log today, that's valid
 
   getWeeklySummary: () =>

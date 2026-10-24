@@ -21,7 +21,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { screen } from '@theme/spacing';
@@ -39,12 +39,28 @@ import { useCreateContextEntry } from '@hooks/queries/useContextEntries';
 import { TodayFeedbackBlock } from '@components/TodayFeedbackBlock';
 import { Button, Card, Badge, CelebrationAnimation, AppIcon, SliderMetric } from '@components/ui';
 import { focusScrollY, parseQuickLogFocus, type QuickLogFocus } from './quickLogFocus';
+import {
+  EMPTY_QUICK_BASELINE,
+  QUICK_DEFAULTS,
+  QUICK_METRICS,
+  QUICK_SLEEP_MAX,
+  QUICK_SLEEP_MIN,
+  buildQuickLogPayload,
+  contextEntriesFor,
+  contextEntryKey,
+  pendingContextEntries,
+  quickLogBaseline,
+  reportedMetricCount,
+  shouldResetQuickLog,
+  storedSymptoms,
+  type QuickLogBaseline,
+} from './wellnessEdits';
 import { extractErrorMessage } from '@utils/errorHandler';
 import { toFa, faDate } from '@utils/persian';
 import { todayISO } from '@utils/dateUtils';
 import { track } from '@analytics';
 import { MOODS } from '@utils/insightsEngine';
-import { parseSymptomCodes, quickSymptomsFor } from '@constants/symptoms';
+import { quickSymptomsFor } from '@constants/symptoms';
 import { usePregnancyStatus } from '@hooks/queries/usePregnancy';
 import { CONTEXT_TAGS } from '@constants/contextTags';
 import { symptomIcon, ICON_SIZE } from '@design-system/iconography';
@@ -330,8 +346,16 @@ export default function QuickLogScreen() {
     consumeFocus();
   }, [consumeFocus]);
 
+  /*
+   * The one local calendar day this form is for: fixed when the form is
+   * loaded and used for both the read and the save, so a form opened before
+   * local midnight is never prefilled from, or saved onto, a different day.
+   * Re-taken from the device clock whenever the form resets (see the focus
+   * effect below). Never a user-chosen date — QuickLog only logs "today".
+   */
+  const [formDate, setFormDate] = useState(todayISO);
   const { data: existing } = useWellnessLog(logId ?? 0);
-  const { data: todayLog } = useTodayWellnessLog();
+  const { data: todayLog, isLoading: todayLoading } = useTodayWellnessLog(formDate);
   /*
    * Personal baselines for the "today vs your usual" line.
    *
@@ -366,7 +390,13 @@ export default function QuickLogScreen() {
    */
   const { data: recentLogs } = useWellnessLogs({ limit: 2 });
 
-  const prefillSource = logId ? existing : (todayLog ?? existing);
+  // Only ever the log for the day being saved: an explicit log by id, or
+  // the server's log for `formDate` (re-checked here so a response for any
+  // other day can never prefill this form).
+  const prefillSource: WellnessLog | null | undefined = logId
+    ? existing
+    : (todayLog && todayLog.date === formDate ? todayLog : null);
+  const saveDate: string | undefined = logId ? existing?.date : formDate;
 
   // Behavioural only: whether this is an edit, never what is being logged.
   useEffect(() => {
@@ -374,10 +404,10 @@ export default function QuickLogScreen() {
   }, [logId]);
 
   // ── Form state ──────────────────────────────────────────────────────────────
-  const [mood, setMood] = useState(3);
-  const [energy, setEnergy] = useState(3);
-  const [pain, setPain] = useState(0);
-  const [sleep, setSleep] = useState(7);
+  const [mood, setMood] = useState(QUICK_DEFAULTS.mood);
+  const [energy, setEnergy] = useState(QUICK_DEFAULTS.energy);
+  const [pain, setPain] = useState(QUICK_DEFAULTS.pain);
+  const [sleep, setSleep] = useState(QUICK_DEFAULTS.sleep);
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   // «لکه‌بینی» joins the chips while pregnant (see quickSymptomsFor).
   const { data: pregnancyStatus } = usePregnancyStatus();
@@ -406,6 +436,29 @@ export default function QuickLogScreen() {
   const markTouched = useCallback((field: keyof typeof touched) => {
     setTouched(prev => (prev[field] ? prev : { ...prev, [field]: true }));
   }, []);
+  /*
+   * What the form loaded for `formDate` — the comparison point for "the user
+   * changed this". A touched picker is sent only when its value differs from
+   * here, so a stored value the coarse pickers cannot represent (energy 7,
+   * pain 4) is never rewritten by a save that did not change it.
+   */
+  const [baseline, setBaseline] = useState<QuickLogBaseline>(EMPTY_QUICK_BASELINE);
+  // Read by the prefill effect without re-running it: a (re)loaded log fills
+  // only what the user has not edited yet, so a late or refetched response
+  // can never overwrite input already on screen.
+  const editedRef = useRef({ ...touched, symptoms: false, notes: false });
+  editedRef.current = { ...editedRef.current, ...touched };
+  const onNotesChange = useCallback((text: string) => {
+    editedRef.current.notes = true;
+    setNotes(text);
+  }, []);
+  // Context entries this form session already created, so a retry after a
+  // partial failure (or a second tap) never writes the same event twice.
+  const createdContextKeys = useRef(new Set<string>());
+  const submittingRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
+  // Bumped on reset so the prefill effect re-applies the (unchanged) source.
+  const [prefillKey, setPrefillKey] = useState(0);
 
   // ── Post-save observation state ─────────────────────────────────────────────
   const [observation, setObservation] = useState<string | null>(null);
@@ -419,35 +472,24 @@ export default function QuickLogScreen() {
   const [celebrationVisible, setCelebrationVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Pre-fill from existing log
+  // Pre-fill from the loaded day. Pickers show the nearest value they can
+  // display (sleep keeps its half hour); the stored value itself is kept by
+  // the server unless the user changes that picker. Reported fields are NOT
+  // marked touched: an omitted field keeps its value and its provenance
+  // server-side, so nothing is lost by not resending it.
   useEffect(() => {
-    if (prefillSource) {
-      setMood(Math.min(5, Math.max(1, Math.round(prefillSource.mood_level || 3))));
-      setEnergy(Math.min(5, Math.max(1, Math.round((prefillSource.energy_level || 5) / 2))));
-      setPain(Math.min(4, Math.max(0, Math.round((prefillSource.pain_level || 0) / 2.5))));
-      setSleep(Math.round(prefillSource.sleep_hours || 7));
-      setNotes(prefillSource.notes || '');
-      // Prefer the server's canonical code list; fall back to parsing the
-      // comma string (which older builds and older rows still send).
-      const codes = prefillSource.symptom_codes?.length
-        ? prefillSource.symptom_codes
-        : parseSymptomCodes(prefillSource.symptoms);
-      if (codes.length) {
-        setSelectedSymptoms(codes);
-      }
-      // A field already reported (per the server's own provenance) stays
-      // "touched" on reopen — otherwise re-saving an already-logged day
-      // would look untouched again and silently drop it from
-      // reported_fields on the next save.
-      const reported = Array.isArray(prefillSource.reported_fields) ? prefillSource.reported_fields : [];
-      setTouched({
-        mood: reported.includes('mood_level'),
-        energy: reported.includes('energy_level'),
-        pain: reported.includes('pain_level'),
-        sleep: reported.includes('sleep_hours'),
-      });
-    }
-  }, [prefillSource]);
+    if (!prefillSource) { return; }
+    const loaded = quickLogBaseline(prefillSource);
+    setBaseline(loaded);
+    const edited = editedRef.current;
+    const setters = { mood: setMood, energy: setEnergy, pain: setPain, sleep: setSleep };
+    QUICK_METRICS.forEach((metric) => {
+      if (edited[metric]) { return; }
+      setters[metric](loaded.metrics[metric] ?? QUICK_DEFAULTS[metric]);
+    });
+    if (!edited.notes) { setNotes(loaded.notes); }
+    if (!edited.symptoms) { setSelectedSymptoms(storedSymptoms(prefillSource)); }
+  }, [prefillSource, prefillKey]);
 
   // ── Derived data-state ──────────────────────────────────────────────────────
   const periodCount = Array.isArray(periods) ? (periods as unknown[]).length : 0;
@@ -474,13 +516,14 @@ export default function QuickLogScreen() {
     : null;
 
   const priorSameSignal = useMemo(
-    () => derivePriorSameSignal(recentLogs, todayISO()),
-    [recentLogs],
+    () => derivePriorSameSignal(recentLogs, formDate),
+    [recentLogs, formDate],
   );
 
   const cycleDay: number | null = (cycleAnalysis as any)?.current_status?.cycle_day ?? null;
 
   const toggleSymptom = useCallback((sym: string) => {
+    editedRef.current.symptoms = true;
     setSelectedSymptoms(prev =>
       prev.includes(sym) ? prev.filter(s => s !== sym) : [...prev, sym]
     );
@@ -498,53 +541,82 @@ export default function QuickLogScreen() {
     }
   }, [navigation]);
 
+  // ── Fresh form on reopen ──────────────────────────────────────────────────
+  // Tabs stay mounted, so without this a completed save left the success
+  // view up for the next visit. Reset happens only on regaining focus, and
+  // only after a save or a local-day rollover; an unsaved draft survives tab
+  // switches. Nothing is persisted beyond this mounted screen.
+  const resetForm = useCallback((day: string) => {
+    setFormDate(day);
+    setMood(QUICK_DEFAULTS.mood);
+    setEnergy(QUICK_DEFAULTS.energy);
+    setPain(QUICK_DEFAULTS.pain);
+    setSleep(QUICK_DEFAULTS.sleep);
+    setTouched({ mood: false, energy: false, pain: false, sleep: false });
+    editedRef.current = { mood: false, energy: false, pain: false, sleep: false, symptoms: false, notes: false };
+    setSelectedSymptoms([]);
+    setNotes('');
+    setSelectedContextTags([]);
+    setContextNote('');
+    setBaseline(EMPTY_QUICK_BASELINE);
+    createdContextKeys.current = new Set();
+    setObservation(null);
+    setSaved(false);
+    setCelebrationVisible(false);
+    fadeAnim.setValue(0);
+    setPrefillKey(k => k + 1);
+  }, [fadeAnim]);
+
+  const lifecycleRef = useRef({ saved, formDate });
+  lifecycleRef.current = { saved, formDate };
+  useFocusEffect(
+    useCallback(() => {
+      const today = todayISO();
+      if (shouldResetQuickLog({ ...lifecycleRef.current, today })) {
+        resetForm(today);
+      }
+    }, [resetForm]),
+  );
+
   // ── Save handler ────────────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
+    if (submittingRef.current || !saveDate) { return; }
+    submittingRef.current = true;
+    setSubmitting(true);
     try {
-      // Only send fields the user actually touched — the server applies
-      // model defaults for the rest and records provenance accordingly
-      // (see cycle_tracker/views/wellness_log.py's reported_fields). A
-      // picker the user never touched must never look identical to a
-      // deliberately-entered value.
-      await saveLog({
-        ...(touched.mood ? { mood_level: mood } : {}),
-        ...(touched.energy ? { energy_level: energy * 2 } : {}),
-        ...(touched.pain ? { pain_level: Math.round(pain * 2.5) } : {}),
-        ...(touched.sleep ? { sleep_hours: sleep } : {}),
-        symptoms: selectedSymptoms.join(','),
-        notes,
-      });
+      // Only what the user changed, always for the day the form loaded
+      // (see wellnessEdits.buildQuickLogPayload). The server keeps every
+      // omitted field, value and provenance alike.
+      const payload = buildQuickLogPayload(
+        {
+          date: saveDate,
+          values: { mood, energy, pain, sleep },
+          touched,
+          symptoms: selectedSymptoms,
+          notes,
+        },
+        baseline,
+      );
+      await saveLog(payload);
 
-      // Today 2.0: one ContextEntry per selected tag. The optional short
-      // elaboration (contextNote) attaches to the first tag only — never
-      // duplicated across rows, and never merged into the WellnessLog
-      // notes above (which is a separate, already-existing field with
-      // its own AI-feedback role). A lone note with no tag selected
-      // becomes a single "other" entry, so free text is never silently
-      // dropped.
-      const today = todayISO();
-      const tagsToSave: ContextTag[] = selectedContextTags.length > 0
-        ? selectedContextTags
-        : (contextNote.trim() ? ['other'] : []);
-      if (tagsToSave.length > 0) {
-        await Promise.all(
-          tagsToSave.map((tag, index) =>
-            createContextEntry({
-              date: today,
-              tag,
-              ...(index === 0 && contextNote.trim() ? { raw_text: contextNote.trim() } : {}),
-            })
-          )
-        );
+      // Today 2.0: one ContextEntry per selected tag (note on the first
+      // only; a lone note becomes 'other'), never merged into the
+      // WellnessLog notes above. Created one at a time and remembered on
+      // success, so retrying after a partial failure creates only the
+      // missing ones.
+      const entries = contextEntriesFor<ContextTag>(saveDate, selectedContextTags, contextNote, 'other');
+      for (const entry of pendingContextEntries(entries, createdContextKeys.current)) {
+        await createContextEntry(entry);
+        createdContextKeys.current.add(contextEntryKey(entry));
       }
 
       // COUNT of fields and a boolean for symptoms — never the values.
       // The whole point of the contract is that telemetry can answer "did
       // she finish the log" without knowing anything about her body.
       track('daily_log_submitted', {
-        field_count: Object.values(touched).filter(Boolean).length + (notes ? 1 : 0),
+        field_count: reportedMetricCount(payload) + ('notes' in payload && notes ? 1 : 0),
         had_symptoms: selectedSymptoms.length > 0,
-        had_context: tagsToSave.length > 0,
+        had_context: entries.length > 0,
       });
 
       const obs = buildPostLogObservation(
@@ -570,9 +642,12 @@ export default function QuickLogScreen() {
       }, 2200);
     } catch (err) {
       Alert.alert('ذخیره نشد', `${extractErrorMessage(err)}\nاطلاعاتت هنوز اینجاست؛ دوباره امتحان کن.`);
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
   }, [
-    mood, energy, pain, sleep, touched, selectedSymptoms, notes,
+    saveDate, mood, energy, pain, sleep, touched, selectedSymptoms, notes, baseline,
     selectedContextTags, contextNote, createContextEntry,
     saveLog, dataState, personalAvgMood, personalAvgEnergy, priorSameSignal,
     fadeAnim,
@@ -790,11 +865,11 @@ export default function QuickLogScreen() {
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                 <TouchableOpacity
-                  onPress={() => { setSleep(s => Math.max(3, Math.round((s - 0.5) * 2) / 2)); markTouched('sleep'); }}
-                  disabled={sleep <= 3}
+                  onPress={() => { setSleep(s => Math.max(QUICK_SLEEP_MIN, Math.round((s - 0.5) * 2) / 2)); markTouched('sleep'); }}
+                  disabled={sleep <= QUICK_SLEEP_MIN}
                   style={[
                     styles.sleepStepBtn,
-                    { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.pill, opacity: sleep <= 3 ? 0.4 : 1 },
+                    { backgroundColor: colors.surfaceSecondary, borderRadius: borderRadius.pill, opacity: sleep <= QUICK_SLEEP_MIN ? 0.4 : 1 },
                   ]}
                   accessibilityRole="button"
                   accessibilityLabel="کاهش ساعت خواب"
@@ -805,11 +880,11 @@ export default function QuickLogScreen() {
                   {toFa(sleep)} ساعت
                 </Text>
                 <TouchableOpacity
-                  onPress={() => { setSleep(s => Math.min(12, Math.round((s + 0.5) * 2) / 2)); markTouched('sleep'); }}
-                  disabled={sleep >= 12}
+                  onPress={() => { setSleep(s => Math.min(QUICK_SLEEP_MAX, Math.round((s + 0.5) * 2) / 2)); markTouched('sleep'); }}
+                  disabled={sleep >= QUICK_SLEEP_MAX}
                   style={[
                     styles.sleepStepBtn,
-                    { backgroundColor: colors.primaryLighter, borderRadius: borderRadius.pill, opacity: sleep >= 12 ? 0.4 : 1 },
+                    { backgroundColor: colors.primaryLighter, borderRadius: borderRadius.pill, opacity: sleep >= QUICK_SLEEP_MAX ? 0.4 : 1 },
                   ]}
                   accessibilityRole="button"
                   accessibilityLabel="افزایش ساعت خواب"
@@ -970,7 +1045,7 @@ export default function QuickLogScreen() {
               placeholder="یادداشت در مورد روزت..."
               placeholderTextColor={colors.textTertiary}
               value={notes}
-              onChangeText={setNotes}
+              onChangeText={onNotesChange}
               multiline
               numberOfLines={3}
               textAlignVertical="top"
@@ -978,11 +1053,13 @@ export default function QuickLogScreen() {
           </View>
 
           {/* ── Save Button ───────────────────────────────────────────── */}
+          {/* Held until the day's log has loaded, so a save can never be
+              composed against a form that has not shown what is stored. */}
           <Button
-            label={isPending ? 'در حال ذخیره...' : 'ثبت گزارش امروز'}
+            label={isPending || submitting ? 'در حال ذخیره...' : 'ثبت گزارش امروز'}
             onPress={handleSave}
-            loading={isPending}
-            disabled={isPending}
+            loading={isPending || submitting}
+            disabled={isPending || submitting || todayLoading || !saveDate}
             size="lg"
             fullWidth
           />

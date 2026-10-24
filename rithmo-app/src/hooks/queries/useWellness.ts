@@ -127,12 +127,18 @@ export function useWellnessStreaks() {
   });
 }
 
-export function useTodayWellnessLog() {
+/**
+ * The log for one local calendar day (`date`, YYYY-MM-DD) — or, without
+ * `date`, for the server's own day. The day is part of the key so a form
+ * can never be handed a cached log from a different day; it extends
+ * `wellness.today()`, so every existing prefix invalidation still covers it.
+ */
+export function useTodayWellnessLog(date?: string) {
   return useQuery<WellnessLog | null>({
-    queryKey: queryKeys.wellness.today(),
+    queryKey: date ? [...queryKeys.wellness.today(), date] : queryKeys.wellness.today(),
     queryFn: async () => {
       try {
-        return await wellnessService.getTodayLog();
+        return await wellnessService.getTodayLog(date);
       } catch (error: any) {
         // 404 means no log today - return null instead of error
         if (error?.response?.status === 404) {

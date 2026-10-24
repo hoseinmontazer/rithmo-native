@@ -165,7 +165,9 @@ describe('Quick Log from the calendar while pregnant records today only', () => 
 
   it('the app always sends the device local date to the wellness endpoint, never a calendar selection', () => {
     const svc = read('api/services/wellnessService.ts');
-    expect(svc).toMatch(/createOrUpdateLog[^]*?date: formatDateISO\(new Date\(\)\)/);
+    // A caller may pin the day it loaded (QuickLog's formDate, itself taken
+    // from the device clock); otherwise the device's current local day.
+    expect(svc).toMatch(/createOrUpdateLog[^]*?date: data\.date \?\? formatDateISO\(new Date\(\)\)/);
     const quick = read('screens/wellness/QuickLogScreen.tsx');
     expect(quick).not.toMatch(/route\.params\??\.(date|selectedDate)/);
   });

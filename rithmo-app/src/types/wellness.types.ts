@@ -60,14 +60,24 @@ export interface WellnessLog {
 type ServerDefaultedLogFields =
   | 'stress_level' | 'anxiety_level' | 'focus_level' | 'exercise_minutes'
   | 'nutrition_quality' | 'caffeine_intake' | 'alcohol_intake' | 'smoking'
-  | 'mood_level' | 'energy_level' | 'pain_level' | 'sleep_hours';
+  | 'mood_level' | 'energy_level' | 'pain_level' | 'sleep_hours'
+  // Free text; the server keeps the stored value when it is omitted, so an
+  // edit that never touched notes must not have to resend them.
+  | 'notes';
 
 export type CreateWellnessLogRequest = Omit<
   WellnessLog,
   | 'id' | 'date' | 'wellness_score' | 'sleep_score' | 'activity_score' | 'mental_score'
   | 'user' | 'created_at' | 'updated_at'
   | ServerDefaultedLogFields
-> & Partial<Pick<WellnessLog, ServerDefaultedLogFields>>;
+> & Partial<Pick<WellnessLog, ServerDefaultedLogFields>> & {
+  /**
+   * Local calendar day (YYYY-MM-DD) this write is for. Optional; the service
+   * defaults it to the device's current day. Must be within a day of the
+   * server's day (backend-enforced).
+   */
+  date?: string;
+};
 export type UpdateWellnessLogRequest = Partial<CreateWellnessLogRequest>;
 
 // ── Wrapped API response shapes ───────────────────────────────────────────────
