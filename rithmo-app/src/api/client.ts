@@ -9,6 +9,7 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosE
 import { API_BASE_URL, API_TIMEOUT_MS, API_ENDPOINTS } from '@constants/config';
 import { secureStorage } from '@utils/secureStorage';
 import type { RefreshTokenResponse } from '@types/auth.types';
+import { MissingRefreshTokenError, isTerminalAuthRejection } from './authErrors';
 
 // Extend config to carry retry flag
 interface RetryableConfig extends InternalAxiosRequestConfig {
@@ -125,7 +126,7 @@ apiClient.interceptors.response.use(
 
     try {
       const tokens = await secureStorage.getTokens();
-      if (!tokens?.refreshToken) {throw new Error('No refresh token available');}
+      if (!tokens?.refreshToken) {throw new MissingRefreshTokenError();}
 
       const { data } = await axios.post<RefreshTokenResponse>(
         `${API_BASE_URL}${API_ENDPOINTS.AUTH_REFRESH}`,
@@ -159,17 +160,23 @@ apiClient.interceptors.response.use(
       return apiClient(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError, null);
-      // Clear tokens AND flip the auth store so the navigator redirects to
-      // login. Previously only the tokens were cleared while isAuthenticated
-      // stayed true — a permanent soft-lock (audit 2026-08-20, finding F5).
-      await secureStorage.clearTokens();
-      sessionExpiredListeners.forEach((listener) => {
-        try {
-          listener();
-        } catch (listenerError) {
-          // listener errors must not break the reject path
-        }
-      });
+      // Only a refresh the server actually REJECTED ends the session. A
+      // refresh that could not reach the server (offline, timeout, 5xx) says
+      // nothing about the session, so the tokens stay and the next request
+      // tries again; clearing them here signed people out during outages.
+      if (isTerminalAuthRejection(refreshError, { refreshRequest: true })) {
+        // Clear tokens AND flip the auth store so the navigator redirects to
+        // login. Previously only the tokens were cleared while isAuthenticated
+        // stayed true — a permanent soft-lock (audit 2026-08-20, finding F5).
+        await secureStorage.clearTokens();
+        sessionExpiredListeners.forEach((listener) => {
+          try {
+            listener();
+          } catch (listenerError) {
+            // listener errors must not break the reject path
+          }
+        });
+      }
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;

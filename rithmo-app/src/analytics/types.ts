@@ -52,7 +52,12 @@ export type EventName =
   | 'knowledge_feedback'
   | 'notification_opened'
   | 'push_permission_result'
-  | 'push_token_registered';
+  | 'push_token_registered'
+  | 'goal_prompt_viewed'
+  | 'goal_set'
+  | 'goal_removed'
+  | 'feedback_opened'
+  | 'feedback_submitted';
 
 /** Scalars only — nested values are dropped server-side. */
 export type EventPropValue = string | number | boolean | null;
@@ -146,6 +151,23 @@ export interface EventProps {
   /** Notification opt-in funnel (client side). Says nothing about delivery. */
   push_permission_result: { status: 'granted' | 'denied' };
   push_token_registered: Record<string, never>;
+
+  /**
+   * Reproductive goal + in-app feedback. NO properties on any of these, by
+   * design and mirrored by the server allowlist: the chosen goal, the feedback
+   * topic and the feedback text say whether someone is trying to conceive or
+   * avoiding pregnancy, so they never leave the owner-only store.
+   *   goal_prompt_viewed - the goal screen was opened (once per mount)
+   *   goal_set           - the server CONFIRMED a goal was saved or changed
+   *   goal_removed       - the server CONFIRMED the goal was removed
+   *   feedback_opened    - the feedback form was opened (once per mount)
+   *   feedback_submitted - the server CONFIRMED feedback was stored
+   */
+  goal_prompt_viewed: Record<string, never>;
+  goal_set: Record<string, never>;
+  goal_removed: Record<string, never>;
+  feedback_opened: Record<string, never>;
+  feedback_submitted: Record<string, never>;
 }
 
 /** The wire shape sent to `/api/analytics/events/`. */

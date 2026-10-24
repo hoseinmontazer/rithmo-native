@@ -19,7 +19,8 @@ import {
 } from '@hooks/queries/usePeriods';
 import { useProfile } from '@hooks/queries/useProfile';
 import { usePregnancyStatus } from '@hooks/queries/usePregnancy';
-import { Card, LoadingState, ErrorState, Badge, Icon, Button } from '@components/ui';
+import { Card, LoadingState, ErrorState, Badge, Icon, Button, Reveal } from '@components/ui';
+import { CycleDayStrip } from '@components/viz/CycleDayStrip';
 import { confidenceLabel, phaseDescription as phaseDescriptionFa } from '@i18n';
 import { track } from '@analytics';
 import { toFa, faDateShort } from '@utils/persian';
@@ -254,6 +255,7 @@ export default function CycleAnalysisScreen() {
       )}
 
       {/* ── Quick Action Row ───────────────────────────────────────── */}
+      <Reveal>
       <View style={[styles.quickActionsRow, { marginBottom: spacing[4] }]}>
         {!isMale && (
           <View style={{ flex: 1 }}>
@@ -280,9 +282,11 @@ export default function CycleAnalysisScreen() {
           />
         </View>
       </View>
+      </Reveal>
 
       {/* ── Current Cycle Overview ─────────────────────────────────── */}
       {!isPregnant && currentPhase && (
+        <Reveal delay={80}>
         <Card elevated={false} rounded="2xl" style={{ marginBottom: spacing[4], padding: spacing[4] }}>
           <View style={styles.cardHeaderRow}>
             <View>
@@ -315,6 +319,11 @@ export default function CycleAnalysisScreen() {
             >
               {phaseDescription}
             </Text>
+          ) : null}
+
+          {/* Where today sits in the AVERAGE cycle; recorded numbers only, no prediction. */}
+          {typeof cycleDay === 'number' && typeof avgCycle === 'number' ? (
+            <CycleDayStrip day={cycleDay} length={avgCycle} color={phaseColor} />
           ) : null}
 
           {/* Metric Grid */}
@@ -359,6 +368,7 @@ export default function CycleAnalysisScreen() {
             ) : null}
           </View>
         </Card>
+        </Reveal>
       )}
 
       {/* ── Cycle Regularity ────────────────────────────────────────── */}

@@ -173,6 +173,14 @@ export const API_ENDPOINTS = {
 
   // Support (user-facing tickets; internal notes are server-side only)
   SUPPORT_TICKETS: '/api/support/tickets/',
+  // Optional in-app product feedback (creates a support ticket server-side).
+  SUPPORT_FEEDBACK: '/api/support/feedback/',
+
+  // Optional reproductive goal. Owner-only and deliberately NOT part of
+  // /api/user/profile/ - it has its own endpoint and its own query key so it
+  // never rides along in a generic profile cache or payload.
+  REPRODUCTIVE_GOAL: '/api/user/reproductive-goal/',
+
   // Reviewed contraception / sexual-health education. Anonymous and read-only
   // on the server; nothing about what is read is stored.
   HEALTH_GUIDE: '/api/health-guide/',

@@ -73,7 +73,7 @@ describe('android hardware back', () => {
 describe('route registration', () => {
   it('registers the tabs the product actually has', () => {
     expect(registered('MainNavigator.tsx').sort()).toEqual(
-      ['CycleTab', 'HomeTab', 'InsightsTab', 'LogTab', 'ProfileTab'],
+      ['CycleTab', 'HealthTab', 'HomeTab', 'InsightsTab', 'LogTab', 'ProfileTab'],
     );
   });
 
@@ -112,7 +112,7 @@ describe('removed routes stay removed', () => {
 
   it('are not registered in any navigator', () => {
     const files = ['AuthNavigator.tsx', 'MainNavigator.tsx', 'stacks/CycleStack.tsx',
-      'stacks/HomeStack.tsx', 'stacks/InsightsStack.tsx', 'stacks/MessagesStack.tsx',
+      'stacks/HealthStack.tsx', 'stacks/HomeStack.tsx', 'stacks/InsightsStack.tsx', 'stacks/MessagesStack.tsx',
       'stacks/ProfileStack.tsx', 'stacks/WellnessStack.tsx'];
     const found = files.flatMap(f => registered(f)).filter(r => REMOVED.includes(r));
     expect(found).toEqual([]);
@@ -232,7 +232,7 @@ describe('LearningTimeline is owner-only by construction (M6)', () => {
 describe('no route points at a screen that no longer exists', () => {
   it('every lazy/static screen import in a navigator resolves', () => {
     const navFiles = ['AuthNavigator.tsx', 'MainNavigator.tsx', 'stacks/CycleStack.tsx',
-      'stacks/HomeStack.tsx', 'stacks/InsightsStack.tsx', 'stacks/MessagesStack.tsx',
+      'stacks/HealthStack.tsx', 'stacks/HomeStack.tsx', 'stacks/InsightsStack.tsx', 'stacks/MessagesStack.tsx',
       'stacks/ProfileStack.tsx', 'stacks/WellnessStack.tsx'];
     const missing: string[] = [];
     for (const f of navFiles) {

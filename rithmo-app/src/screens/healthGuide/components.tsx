@@ -148,3 +148,37 @@ export function Choice({ label, active, onPress }: { label: string; active: bool
     </TouchableOpacity>
   );
 }
+
+/**
+ * UrgentHelp - the time-sensitive safety guidance as ONE calm panel rather than
+ * a stack of alarm boxes. It is always rendered open and never inside a
+ * collapsible. Items with `onPress` (approved articles) are buttons; the
+ * bundled fallback items are plain text.
+ */
+export function UrgentHelp({ items }: {
+  items: Array<{ key: string; title: string; text: string; onPress?: () => void }>;
+}) {
+  const { colors, spacing, typography, borderRadius } = useTheme();
+  return (
+    <View style={{ borderRadius: borderRadius.md, backgroundColor: colors.errorBg, paddingHorizontal: spacing[4] }} testID="urgent-help">
+      {items.map((it, i) => {
+        const body = (
+          <View style={{ flexDirection: 'row', gap: spacing[3], paddingVertical: spacing[3], borderBottomWidth: i === items.length - 1 ? 0 : 1, borderBottomColor: colors.border }}>
+            <Icon name="alert-circle-outline" size={20} color={colors.error} style={{ marginTop: 2 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.textPrimary, fontSize: typography.bodySmall, fontWeight: '700', lineHeight: 22 }}>{it.title}</Text>
+              <Text style={{ color: colors.textPrimary, fontSize: typography.bodySmall, lineHeight: 22, marginTop: 2 }}>{it.text}</Text>
+            </View>
+          </View>
+        );
+        return it.onPress ? (
+          <TouchableOpacity key={it.key} onPress={it.onPress} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`${it.title}. ${it.text}`}>
+            {body}
+          </TouchableOpacity>
+        ) : (
+          <View key={it.key} accessible accessibilityLabel={`${it.title}. ${it.text}`}>{body}</View>
+        );
+      })}
+    </View>
+  );
+}

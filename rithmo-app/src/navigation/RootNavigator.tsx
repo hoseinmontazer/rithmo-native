@@ -7,7 +7,7 @@
  *   3. OnboardingScreen — if authenticated but onboarding not complete
  *   4. MainNavigator    — main app
  */
-import { NEUTRAL_SCREEN_LABEL, isSensitiveRoute } from '../analytics/sensitiveRoutes';
+import { describeActiveRoute } from '../analytics/sensitiveRoutes';
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
@@ -109,19 +109,11 @@ export function RootNavigator() {
       // report itself and none of them can disagree about the route name.
       onStateChange={(state) => {
         try {
-          let route: any = state?.routes?.[state.index ?? 0];
-          while (route?.state) {
-            const child = route.state;
-            route = child.routes?.[child.index ?? 0];
-          }
-          if (route?.name) {
+          const active = describeActiveRoute(state);
+          if (active) {
             // Private screens are neither named nor counted (analytics/sensitiveRoutes.ts).
-            if (isSensitiveRoute(route.name)) {
-              setCurrentScreen(NEUTRAL_SCREEN_LABEL);
-            } else {
-              setCurrentScreen(route.name);
-              track('screen_viewed', { route: route.name });
-            }
+            setCurrentScreen(active.screen);
+            if (active.trackRoute) { track('screen_viewed', { route: active.trackRoute }); }
           }
         } catch { /* navigation introspection must never break navigation */ }
       }}

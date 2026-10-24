@@ -9,8 +9,9 @@
  * controls (hero cards, primary CTAs) where the premium feel matters most,
  * not every touchable everywhere.
  */
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, type GestureResponderEvent, type StyleProp, type ViewStyle } from 'react-native';
+import { useReducedMotion } from '@hooks/useReducedMotion';
 
 interface PressScaleProps {
   onPress?: (e: GestureResponderEvent) => void;
@@ -43,8 +44,14 @@ export function PressScale({
   accessibilityState,
 }: PressScaleProps) {
   const scale = useRef(new Animated.Value(1)).current;
+  const reduced = useReducedMotion();
+
+  // Never leave a press animation running on an unmounted view.
+  useEffect(() => () => scale.stopAnimation(), [scale]);
 
   const animate = (toValue: number) => {
+    // Reduced motion: the press still registers, the control just does not shrink.
+    if (reduced) { scale.setValue(1); return; }
     Animated.timing(scale, {
       toValue,
       duration: 160,

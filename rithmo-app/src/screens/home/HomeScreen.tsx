@@ -73,6 +73,7 @@ import { DailyCheckInCard } from './components/DailyCheckInCard';
 import { SupportReceiptCard } from './components/SupportReceiptCard';
 import { TodayRecordedCard } from './components/TodayRecordedCard';
 import { visibleActions } from './visibleActions';
+import type { QuickLogFocus } from '../wellness/quickLogFocus';
 
 type Props = HomeScreenProps<'Home'>;
 
@@ -161,8 +162,8 @@ export default function HomeScreen() {
   const goToQuickLog = useCallback(() => {
     navigation.navigate('LogTab' as any, { screen: 'QuickLog' } as any);
   }, [navigation]);
-  const goToQuickLogCategory = useCallback((category: string) => {
-    navigation.navigate('LogTab' as any, { screen: 'QuickLog', params: { initialCategory: category } } as any);
+  const goToQuickLogCategory = useCallback((focus: QuickLogFocus) => {
+    navigation.navigate('LogTab' as any, { screen: 'QuickLog', params: { initialCategory: focus } } as any);
   }, [navigation]);
   const checkInPromptOffersAdaptive =
     !todayLoading && !todayError && today?.check_in?.kind === 'missing_data' && today.check_in.state === 'shown';

@@ -39,9 +39,9 @@ describe('tab iconography', () => {
     expect(new Set(glyphs).size).toBe(glyphs.length);
   });
 
-  it('covers exactly the five tab destinations', () => {
+  it('covers exactly the six tab destinations', () => {
     expect(Object.keys(TAB_ICONS).sort()).toEqual(
-      ['cycle', 'home', 'log', 'patterns', 'profile'],
+      ['cycle', 'health', 'home', 'log', 'patterns', 'profile'],
     );
   });
 

@@ -115,6 +115,10 @@ export const queryKeys = {
     monthlyReview: () => ['aiReflection', 'monthlyReview'] as const,
     doctorReport: () => ['aiReflection', 'doctorReport'] as const,
   },
+  // Dedicated key: the goal is sensitive and must not live under `profile`.
+  reproductiveGoal: {
+    all: () => ['reproductiveGoal'] as const,
+  },
   // Education content (public) and PRIVATE records each get their own keys, so
   // nothing sensitive lives under a generic one and logout's clear() drops it all.
   healthGuide: {

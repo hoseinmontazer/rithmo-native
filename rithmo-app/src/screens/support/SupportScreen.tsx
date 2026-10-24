@@ -37,6 +37,7 @@ import {
 import { extractErrorMessage } from '@utils/errorHandler';
 import { faDateShort, toFa } from '@utils/persian';
 import type { TicketCategory, TicketStatus } from '@types/support.types';
+import { FEEDBACK_TOPICS } from './feedbackLogic';
 
 const CATEGORY_OPTIONS: { value: TicketCategory; label: string }[] = [
   { value: 'technical', label: 'فنی' },
@@ -532,7 +533,9 @@ export default function SupportScreen() {
                       marginTop: 4,
                     }}
                   >
-                    {CATEGORY_OPTIONS.find((c) => c.value === t.category)?.label ?? t.category}
+                    {CATEGORY_OPTIONS.find((c) => c.value === t.category)?.label
+                      ?? FEEDBACK_TOPICS.find((c) => c.value === t.category)?.label
+                      ?? t.category}
                     {last ? ` • ${fmtDate(last.created_at)}` : ''}
                   </Text>
                 </TouchableOpacity>

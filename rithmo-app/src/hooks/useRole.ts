@@ -53,6 +53,14 @@ export interface UseRoleResult {
    * application permanently.
    */
   isResolved: boolean;
+  /**
+   * True when `role` comes from a trusted source: the server's profile (its
+   * role, or its partner rule for male profiles) or this device's onboarding
+   * choice. The device value is trusted because it is written during
+   * onboarding and wiped at every sign-in and sign-out, so it can only belong
+   * to the current account. False means `role` is the bare 'owner' default.
+   */
+  hasTrustedRole: boolean;
   setRole: (role: UserRole) => void;
 }
 
@@ -95,5 +103,7 @@ export function useRole(): UseRoleResult {
     AsyncStorage.setItem(ONBOARDING_ROLE_KEY, next).catch(() => { /* non-fatal */ });
   }, []);
 
-  return { role, isPartner: role === 'partner', isResolved, setRole };
+  const hasTrustedRole = forcedPartner || serverRole !== null || localRole !== null;
+
+  return { role, isPartner: role === 'partner', isResolved, hasTrustedRole, setRole };
 }

@@ -39,6 +39,7 @@ export const TAB_ICON_ART = {
   cycle:    'menstruation',
   log:      'edit',
   patterns: 'search',
+  health:   'healthcare',
   profile:  'profile',
 } as const;
 
@@ -48,6 +49,7 @@ export const TAB_ICONS = {
   cycle: 'calendar-heart',
   log: 'plus-circle-outline',
   patterns: 'chart-timeline-variant',
+  health: 'heart-pulse',
   profile: 'account-circle-outline',
 } as const;
 
@@ -63,6 +65,7 @@ export const TAB_ICONS_ACTIVE = {
   cycle: 'calendar-heart',
   log: 'plus-circle',
   patterns: 'chart-timeline-variant',
+  health: 'heart-pulse',
   profile: 'account-circle',
 } as const;
 
@@ -90,8 +93,9 @@ export const PROFILE_ICONS = {
   history: 'history',
   medications: 'pill',
   pregnancy: 'human-pregnant',
-  healthGuide: 'heart-pulse',
   ttc: 'heart-plus-outline',
+  goal: 'flag-outline',
+  feedback: 'message-text-outline',
 } as const;
 
 export type ProfileIconKey = keyof typeof PROFILE_ICONS;

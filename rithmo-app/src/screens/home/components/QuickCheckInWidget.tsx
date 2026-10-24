@@ -1,32 +1,28 @@
 import React, { memo } from 'react';
 import { Image, ImageSourcePropType, StyleSheet, View, Text } from 'react-native';
-import { Scale } from 'lucide-react-native';
 import icons from '@assets/icons';
 import { PressScale } from '@components/ui';
 import { useTheme } from '@hooks/useTheme';
 import { typography } from '@theme/typography';
+import type { QuickLogFocus } from '../../wellness/quickLogFocus';
 
 interface CheckInItem {
-  id: string;
+  /** The QuickLog section this chip opens. */
+  focus: QuickLogFocus;
   label: string;
-  /** Artwork. Weight has none: see `ICON_WEIGHT` below. */
-  icon?: ImageSourcePropType;
-  screen: string;
+  icon: ImageSourcePropType;
 }
 
+// Only what QuickLog can actually record. Water and Weight were removed: the
+// form has no such input, so those chips opened a screen that could not log them.
 const ITEMS: CheckInItem[] = [
-  { id: 'mood', label: 'حالت', icon: icons.quickMood, screen: 'Mood' },
-  { id: 'energy', label: 'انرژی', icon: icons.quickEnergy, screen: 'Energy' },
-  { id: 'water', label: 'آب', icon: icons.quickWater, screen: 'Water' },
-  { id: 'symptoms', label: 'نشانه‌ها', icon: icons.quickSymptoms, screen: 'Symptoms' },
-  // Neutral scale glyph (lucide, already a dependency). The supplied weight
-  // artwork carried a red down-arrow, which reads as a weight-LOSS goal; the
-  // check-in only records a number, so it must not imply a direction.
-  { id: 'weight', label: 'وزن', screen: 'Weight' },
+  { focus: 'mood', label: 'حالت', icon: icons.quickMood },
+  { focus: 'energy', label: 'انرژی', icon: icons.quickEnergy },
+  { focus: 'symptoms', label: 'نشانه‌ها', icon: icons.quickSymptoms },
 ];
 
 interface Props {
-  onPressItem: (screen: string) => void;
+  onPressItem: (focus: QuickLogFocus) => void;
 }
 
 export const QuickCheckInWidget = memo(function QuickCheckInWidget({ onPressItem }: Props) {
@@ -40,9 +36,9 @@ export const QuickCheckInWidget = memo(function QuickCheckInWidget({ onPressItem
       
       <View style={styles.grid}>
         {ITEMS.map((item) => (
-          <View key={item.id} style={styles.itemContainer}>
+          <View key={item.focus} style={styles.itemContainer}>
             <PressScale
-              onPress={() => onPressItem(item.screen)}
+              onPress={() => onPressItem(item.focus)}
               style={[
                 styles.iconWrap,
                 { backgroundColor: colors.primaryLighter, borderColor: colors.primaryLight }
@@ -51,17 +47,13 @@ export const QuickCheckInWidget = memo(function QuickCheckInWidget({ onPressItem
               accessibilityLabel={`ثبت ${item.label}`}
             >
               {/* Decorative: the label below and the button label name it. */}
-              {item.icon ? (
-                <Image
-                  source={item.icon}
-                  style={styles.iconImage}
-                  resizeMode="contain"
-                  accessibilityIgnoresInvertColors
-                  importantForAccessibility="no"
-                />
-              ) : (
-                <Scale size={28} color={colors.primaryDark} strokeWidth={2.25} />
-              )}
+              <Image
+                source={item.icon}
+                style={styles.iconImage}
+                resizeMode="contain"
+                accessibilityIgnoresInvertColors
+                importantForAccessibility="no"
+              />
             </PressScale>
             <Text style={[styles.label, { color: colors.textSecondary }]}>
               {item.label}
@@ -88,7 +80,7 @@ const styles = StyleSheet.create({
   },
   grid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     alignItems: 'flex-start',
   },
   itemContainer: {

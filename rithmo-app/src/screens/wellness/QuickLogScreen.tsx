@@ -38,6 +38,7 @@ import { usePeriods, useCycleAnalysis } from '@hooks/queries/usePeriods';
 import { useCreateContextEntry } from '@hooks/queries/useContextEntries';
 import { TodayFeedbackBlock } from '@components/TodayFeedbackBlock';
 import { Button, Card, Badge, CelebrationAnimation, AppIcon, SliderMetric } from '@components/ui';
+import { focusScrollY, parseQuickLogFocus, type QuickLogFocus } from './quickLogFocus';
 import { extractErrorMessage } from '@utils/errorHandler';
 import { toFa, faDate } from '@utils/persian';
 import { todayISO } from '@utils/dateUtils';
@@ -309,6 +310,25 @@ export default function QuickLogScreen() {
   const { colors, spacing, typography, borderRadius } = useTheme();
 
   const logId = route.params?.logId;
+  // Home's quick check-in chips name the section to open at; anything else is
+  // the top. The hint is consumed once (cleared below), so a later open from
+  // another entry point is not scrolled by a stale value, and tapping the same
+  // chip again works because the screen stays mounted in its tab.
+  const focus = parseQuickLogFocus(route.params?.initialCategory);
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionY = useRef<Partial<Record<QuickLogFocus, number>>>({ mood: 0 });
+  const consumeFocus = useCallback(() => {
+    if (!focus) { return; }
+    const y = sectionY.current[focus];
+    if (y === undefined) { return; } // not laid out yet; its onLayout calls this again
+    scrollRef.current?.scrollTo({ y: focusScrollY(y), animated: false });
+    navigation.setParams({ initialCategory: undefined });
+  }, [focus, navigation]);
+  useEffect(() => { consumeFocus(); }, [consumeFocus]);
+  const noteSection = useCallback((section: QuickLogFocus, y: number) => {
+    sectionY.current[section] = y;
+    consumeFocus();
+  }, [consumeFocus]);
 
   const { data: existing } = useWellnessLog(logId ?? 0);
   const { data: todayLog } = useTodayWellnessLog();
@@ -619,6 +639,7 @@ export default function QuickLogScreen() {
     >
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={{
           paddingHorizontal: screen.gutter,
           paddingTop: screen.top,
@@ -738,6 +759,7 @@ export default function QuickLogScreen() {
               mockup's own spec (labeled 0–4 buttons), and its steps are
               genuinely discrete/named, not a continuous quantity the way
               energy is. */}
+          <View onLayout={(e) => noteSection('energy', e.nativeEvent.layout.y)}>
           <Card elevated={false} style={{ padding: spacing[4], marginBottom: spacing[6] }}>
             <SliderMetric
               icon="lightning-bolt-outline"
@@ -758,6 +780,7 @@ export default function QuickLogScreen() {
               accentColor={colors.primary}
             />
           </Card>
+          </View>
 
           {/* ── Sleep: +/- stepper, half-hour steps ─────────────────── */}
           <Card elevated={false} style={{ padding: spacing[4], marginBottom: spacing[6] }}>
@@ -798,7 +821,10 @@ export default function QuickLogScreen() {
           </Card>
 
           {/* ── Symptom chips (with emoji) ──────────────────────────── */}
-          <View style={{ marginBottom: spacing[6] }}>
+          <View
+            style={{ marginBottom: spacing[6] }}
+            onLayout={(e) => noteSection('symptoms', e.nativeEvent.layout.y)}
+          >
             <Text style={[styles.sectionSubtitle, { color: colors.textPrimary, fontSize: textRoles.cardTitle.fontSize, fontWeight: textRoles.cardTitle.fontWeight, lineHeight: textRoles.cardTitle.lineHeight, marginBottom: spacing[2] }]}>
               علائم شایع امروز
             </Text>

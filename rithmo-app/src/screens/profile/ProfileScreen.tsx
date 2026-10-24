@@ -593,16 +593,6 @@ export default function ProfileScreen() {
       {/* ── 6. برنامه و سلامت ───────────────────────────────────────── */}
       <SectionHeader label="برنامه و سلامت" icon={PROFILE_ICONS.settings} />
       <Card rounded="2xl" style={{ backgroundColor: colors.surface, borderColor: colors.border, paddingHorizontal: spacing[4] }}>
-        {/* Education is public and free; "my records" inside it are private. Shown to
-            every account (both partners keep their own), so it sits outside the
-            owner-only block below. */}
-        <MenuRow
-          icon={PROFILE_ICONS.healthGuide}
-          label="سلامت جنسی و پیشگیری"
-          sub="راهنما، مقایسه‌ی روش‌ها و ثبت‌های شخصی"
-          accentColor={colors.primary}
-          onPress={() => navigation.navigate('HealthGuide')}
-        />
         {isCycleOwner && (
           <>
             <MenuRow
@@ -611,6 +601,16 @@ export default function ProfileScreen() {
               sub="گزارش‌های روزانه و ثبت علائم"
               accentColor={colors.primary}
               onPress={() => navigation.navigate('LogTab' as never, { screen: 'WellnessDashboard' } as never)}
+            />
+            {/* Optional and private to the owner; nothing else in the app
+                reads it. No status is fetched here, so opening Profile makes
+                no extra request and shows no goal on this screen. */}
+            <MenuRow
+              icon={PROFILE_ICONS.goal}
+              label="هدف من"
+              sub="اختیاری و فقط برای خودت"
+              accentColor={colors.primary}
+              onPress={() => navigation.navigate('ReproductiveGoal')}
             />
           </>
         )}
@@ -627,6 +627,13 @@ export default function ProfileScreen() {
           sub="حریم خصوصی، راهنما و ارتباط با پشتیبانی"
           accentColor={colors.warning}
           onPress={() => navigation.navigate('Support')}
+        />
+        <MenuRow
+          icon={PROFILE_ICONS.feedback}
+          label="ارسال بازخورد"
+          sub="نظرت را بگو؛ نوشتنش اختیاری است"
+          accentColor={colors.follicular}
+          onPress={() => navigation.navigate('Feedback')}
           last
         />
       </Card>

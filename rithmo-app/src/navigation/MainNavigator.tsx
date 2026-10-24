@@ -1,33 +1,43 @@
 /**
  * MainNavigator — Bottom tab bar
  *
- * Tabs: Home | Cycle | Log | Patterns | Profile
+ * Five destinations, in equal slots: Home | Cycle | Patterns | Health | Profile.
  *
- * "Log" opens the QuickLog screen directly.
+ * "Log" is an ACTION, not a destination. Its route (LogTab) stays registered,
+ * because notifications, cold start and several screens navigate to it, but it
+ * has no slot in the bar: a slim "log today" row above the bar opens QuickLog
+ * from the root of Cycle and Patterns (Home has its own quick-log entry points;
+ * see logActionVisibility.ts).
  * "Patterns" is the Insights hub — data-state-aware in Phase 1,
  *   populated with cross-cycle intelligence in Phase 2+.
  */
-import React, { useEffect } from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, StyleSheet, Platform, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { BottomTabBar, createBottomTabNavigator, type BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { View, Text, StyleSheet, Platform, ActivityIndicator, Keyboard } from 'react-native';
 import type { MainTabParamList } from './types';
 import { HomeStack }     from './stacks/HomeStack';
 import { CycleStack }    from './stacks/CycleStack';
 import { WellnessStack } from './stacks/WellnessStack';
 import { InsightsStack } from './stacks/InsightsStack';
 import { ProfileStack }  from './stacks/ProfileStack';
+import { HealthStack }   from './stacks/HealthStack';
 import { useUnreadNotifications } from '@hooks/queries/useNotifications';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { TAB_ICON_ART, TAB_ICONS, TAB_ICONS_ACTIVE, ICON_SIZE, type TabKey } from '@design-system/iconography';
-import { AppIcon } from '@components/ui';
+import { TAB_ICON_ART, ICON_SIZE, type TabKey } from '@design-system/iconography';
+import { AppIcon, ErrorState, PressScale } from '@components/ui';
 import icons from '@assets/icons';
 import { textRoles } from '@theme/typography';
 import { useTheme } from '@hooks/useTheme';
 import { useRole } from '@hooks/useRole';
+import { useProfile } from '@hooks/queries/useProfile';
+import { useAuthStore } from '@store/authStore';
+import { roleGate } from './roleGate';
 import { usePushTokenRegistration } from '@hooks/usePushTokenRegistration';
 import { onMainNavigatorReady } from './navigationRef';
+import { shouldShowLogAction } from './logActionVisibility';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
+
 
 // ── Tab item ──────────────────────────────────────────────────────────────────
 
@@ -76,24 +86,80 @@ function TabItem({ tab, label, focused, color, badge }: TabItemProps) {
         )}
       </View>
 
-      <Text style={[styles.tabLabel, { color, fontWeight: focused ? '700' : '400' }]}>
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        style={[styles.tabLabel, { color, fontWeight: focused ? '700' : '400' }]}
+      >
         {label}
       </Text>
     </View>
   );
 }
 
-// ── Log tab centre button ─────────────────────────────────────────────────────
+// ── Log action (floating, outside the row of destinations) ───────────────────
 
-function LogTabIcon({ focused }: { focused: boolean }) {
-  const { colors } = useTheme();
+/** A plain plus: the action is "add today's entry", not a place. */
+const LOG_ACTION_ICON = 'plus';
+const LOG_ACTION_HEIGHT = 44;
+
+function useKeyboardVisible(): boolean {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setVisible(true));
+    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setVisible(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+  return visible;
+}
+
+/**
+ * The tab bar, with the Log action in its own row directly above it.
+ *
+ * It used to float over the content, which covered the end of text lines on a
+ * scrolled screen. A row in the bar's own layout takes its height out of the
+ * screen area instead, so the scene above simply ends where the row begins and
+ * nothing can sit underneath the button.
+ */
+function MainTabBar(props: BottomTabBarProps) {
+  const { colors, spacing, typography, borderRadius } = useTheme();
+  const keyboardVisible = useKeyboardVisible();
+  const showLog = shouldShowLogAction(props.state as never, keyboardVisible);
+
   return (
-    <View style={[styles.logTabWrap, { backgroundColor: focused ? colors.primary : colors.primaryLight }]}>
-      <Icon
-        name={focused ? TAB_ICONS_ACTIVE.log : TAB_ICONS.log}
-        size={26}
-        color={focused ? colors.textOnPrimary : colors.primary}
-      />
+    <View>
+      {showLog ? (
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            paddingHorizontal: spacing[4],
+            paddingVertical: spacing[2],
+          }}
+        >
+          <PressScale
+            onPress={() => (props.navigation as never as { navigate: (n: string, p: object) => void }).navigate('LogTab', { screen: 'QuickLog' })}
+            accessibilityRole="button"
+            accessibilityLabel="ثبت سریع امروز"
+            scaleTo={0.985}
+            style={{
+              height: LOG_ACTION_HEIGHT,
+              borderRadius: borderRadius.pill,
+              backgroundColor: colors.primaryLight,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: spacing[2],
+            }}
+          >
+            <Icon name={LOG_ACTION_ICON} size={22} color={colors.primaryDark} />
+            <Text style={{ color: colors.primaryDark, fontSize: typography.bodySmall, fontWeight: '700' }}>ثبت امروز</Text>
+          </PressScale>
+        </View>
+      ) : null}
+      <BottomTabBar {...props} />
     </View>
   );
 }
@@ -103,7 +169,11 @@ function LogTabIcon({ focused }: { focused: boolean }) {
 export function MainNavigator() {
   const { data: unreadNotifs } = useUnreadNotifications();
   const { colors }             = useTheme();
-  const { isResolved, isPartner } = useRole();
+  const { isResolved, isPartner, hasTrustedRole } = useRole();
+  const sessionVerified = useAuthStore((s) => s.sessionVerified);
+  const revalidateSession = useAuthStore((s) => s.revalidateSession);
+  const { error: profileError, refetch: refetchProfile } = useProfile();
+  const gate = roleGate({ isResolved, hasTrustedRole, sessionVerified });
   // Registers the device's FCM token with the backend once authenticated —
   // both roles can receive a message, so this runs regardless of isPartner.
   // A no-op until the native Firebase setup exists (see the hook's own
@@ -114,10 +184,10 @@ export function MainNavigator() {
   // queued until the tab navigator (and so LogTab) actually exists — which
   // is only once the role gate below has opened. See navigationRef.ts.
   useEffect(() => {
-    if (isResolved) {
+    if (gate === 'open') {
       onMainNavigatorReady();
     }
-  }, [isResolved]);
+  }, [gate]);
 
   // Do not mount the tab navigator until the role is known.
   //
@@ -130,6 +200,23 @@ export function MainNavigator() {
       <View style={[styles.roleGate, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
+    );
+  }
+
+  // Started offline on saved tokens and nothing trustworthy says whether this
+  // is an owner or a partner: never guess 'owner' (see roleGate.ts). The
+  // session stays; retry asks the server again for the profile (and so the
+  // role) and re-checks the session.
+  if (gate === 'unknown') {
+    return (
+      <ErrorState
+        error={profileError}
+        onRetry={() => {
+          refetchProfile();
+          revalidateSession().catch(() => { /* stays unverified; retry again */ });
+        }}
+        fullScreen
+      />
     );
   }
 
@@ -151,6 +238,7 @@ export function MainNavigator() {
       // handles back first and pops its own screens; the tab navigator only
       // sees the press once a stack is at its root.
       backBehavior="history"
+      tabBar={(props) => <MainTabBar {...props} />}
       screenOptions={{
         headerShown:          false,
         tabBarShowLabel:      false,
@@ -211,18 +299,15 @@ export function MainNavigator() {
         }}
       />
 
-      {/* ── Log (centre action) ───────────────────────────────────────── */}
+      {/* ── Log: registered for navigation, hidden from the bar ───────
+          Notifications, cold start and several screens navigate to LogTab, so
+          the route must exist; the action button above opens it instead. */}
       <Tab.Screen
         name="LogTab"
         component={WellnessStack}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            e.preventDefault();
-            navigation.navigate('LogTab', { screen: 'QuickLog' });
-          },
-        })}
         options={{
-          tabBarIcon: ({ focused }) => <LogTabIcon focused={focused} />,
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
         }}
       />
 
@@ -244,6 +329,25 @@ export function MainNavigator() {
 
         </>
       )}
+
+      {/* ── Health (Contraception & Sexual Health) ───────────────────────
+          Its own area beside Cycle and Insights, for every role: a partner
+          keeps their own private records, so it is not in the owner-only
+          block above. */}
+      <Tab.Screen
+        name="HealthTab"
+        component={HealthStack}
+        options={{
+          tabBarIcon: ({ focused, color }) => (
+            <TabItem
+              tab="health"
+              label="سلامت جنسی"
+              focused={focused}
+              color={color}
+            />
+          ),
+        }}
+      />
 
       {/* ── Profile ───────────────────────────────────────────────────── */}
       <Tab.Screen
@@ -271,7 +375,9 @@ const styles = StyleSheet.create({
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 56,
+    // The slot's own width, not a fixed 56: with the Log button centred the
+    // slots are narrower on small phones, and a wider fixed box clipped labels.
+    width: '100%',
     gap: 3,
   },
   iconWrap: {
@@ -280,14 +386,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 30,
     position: 'relative',
-  },
-  logTabWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
   },
   badgeDot: {
     position: 'absolute',

@@ -10,10 +10,11 @@
  * else. The comparison of the user's own cycle lengths around a method is the
  * only Premium part, and it states that it does not explain any change.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '@hooks/useTheme';
 import { screen } from '@theme/spacing';
@@ -28,15 +29,17 @@ import {
   useContraceptionReminders, useContraceptionSummary, useCreateRecord, useCreateReminder, useDeleteRecord,
   useDeleteReminder, useUpdateRecord, useUpdateReminder,
 } from '@hooks/queries/useReproductiveRecords';
-import type { ProfileStackParamList } from '@navigation/types';
+import type { HealthStackParamList } from '@navigation/types';
 import type { ContraceptionRecord, MethodCode, ReminderKind } from '@types/reproductiveRecords.types';
 import { Callout, Choice, FormSheet, SectionTitle } from './components';
+import { Illustration } from '@components/illustrations';
+import { Collapsible } from '@components/ui/Collapsible';
 import {
   METHOD_CODES, METHOD_LABELS, NOT_CONTRACEPTION_FA, PRIVACY_NOTE_FA, REMINDER_NOTE_FA, TRACKING_NOT_PREVENTION_FA,
   describeReminder, deviceUtcOffsetMinutes, errorMessageFor, formatTime, parseTime, parseWhole,
 } from './healthGuideLogic';
 
-type Nav = NativeStackNavigationProp<ProfileStackParamList>;
+type Nav = NativeStackNavigationProp<HealthStackParamList>;
 const KIND_LABELS: Record<ReminderKind, string> = { daily: 'هر روز', every_n_days: 'هر چند روز', once: 'یک‌بار' };
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -73,6 +76,7 @@ export default function MyContraceptionScreen() {
   const { colors, spacing, typography, borderRadius } = useTheme();
   const toast = useToast();
   const confirm = useConfirm();
+  const intent = useRoute<RouteProp<HealthStackParamList, 'MyContraception'>>().params?.intent;
   const { isPremiumFree } = usePremiumStatus();
   const summary = useContraceptionSummary();
   const remindersQ = useContraceptionReminders();
@@ -100,6 +104,14 @@ export default function MyContraceptionScreen() {
   const [anchor, setAnchor] = useState(today);
   const [linkId, setLinkId] = useState<number | null>(null);
   const [remError, setRemError] = useState<string | null>(null);
+
+  // The hub can open the add-method form directly; consume the hint once.
+  useEffect(() => {
+    if (!intent) { return; }
+    if (intent === 'add_method') { setMethodOpen(true); }
+    if (intent === 'add_reminder') { setRemOpen(true); }
+    navigation.setParams({ intent: undefined });
+  }, [intent, navigation]);
 
   if (summary.isLoading || remindersQ.isLoading) { return <LoadingState fullScreen />; }
   // The reminder list must never fall back to "no reminders" when it simply
@@ -179,6 +191,16 @@ export default function MyContraceptionScreen() {
       </Text>
       <View style={{ flexDirection: 'row', gap: spacing[4], marginTop: spacing[1] }}>
         {r.is_active ? (
+          <TouchableOpacity
+            onPress={() => { resetReminder(); setLinkId(r.id); setRemOpen(true); }}
+            accessibilityRole="button"
+            accessibilityLabel={`ساختن یادآور برای ${METHOD_LABELS[r.method]}`}
+            style={{ minHeight: 44, justifyContent: 'center' }}
+          >
+            <Text style={{ color: colors.primary, fontSize: typography.bodySmall, fontWeight: '600' }}>یادآور برای این روش</Text>
+          </TouchableOpacity>
+        ) : null}
+        {r.is_active ? (
           <TouchableOpacity onPress={() => stopMethod(r)} accessibilityRole="button" accessibilityLabel={`متوقف کردن ${METHOD_LABELS[r.method]}`} style={{ minHeight: 44, justifyContent: 'center' }}>
             <Text style={{ color: colors.primary, fontSize: typography.bodySmall, fontWeight: '600' }}>متوقف کردم</Text>
           </TouchableOpacity>
@@ -206,21 +228,27 @@ export default function MyContraceptionScreen() {
         {s.notices.map((n) => <Callout key={n.code} tone="info" text={n.text_fa} />)}
 
         <SectionTitle>روش‌های فعلی</SectionTitle>
-        <Card style={{ paddingHorizontal: spacing[4] }}>
+        <Card noPadding style={{ paddingHorizontal: spacing[4] }}>
           {s.active_methods.length === 0 ? (
-            <Text style={{ color: colors.textSecondary, fontSize: typography.bodySmall, lineHeight: 22, paddingVertical: spacing[4] }}>
-              هنوز روشی ثبت نکرده‌ای. ثبت اختیاری است و برای دیدن راهنما لازم نیست.
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[3], paddingVertical: spacing[3] }}>
+              <Text style={{ flex: 1, color: colors.textSecondary, fontSize: typography.bodySmall, lineHeight: 22 }}>
+                هنوز روشی ثبت نکرده‌ای. ثبت اختیاری است و برای دیدن راهنما لازم نیست.
+              </Text>
+              <Illustration variant="record" size={56} />
+            </View>
           ) : s.active_methods.map((r, i) => <RecordRow key={r.id} r={r} last={i === s.active_methods.length - 1} />)}
         </Card>
         <Button label="ثبت یک روش" onPress={() => { resetMethod(); setMethodOpen(true); }} variant="outline" size="md" fullWidth style={{ marginTop: spacing[3] }} />
 
         <SectionTitle>یادآورها</SectionTitle>
-        <Card style={{ paddingHorizontal: spacing[4] }}>
+        <Card noPadding style={{ paddingHorizontal: spacing[4] }}>
           {reminders.length === 0 ? (
-            <Text style={{ color: colors.textSecondary, fontSize: typography.bodySmall, lineHeight: 22, paddingVertical: spacing[4] }}>
-              یادآوری نساخته‌ای. اعلان‌ها همیشه کلی‌اند و چیزی از روشت روی صفحه‌ی قفل نمی‌آید.
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[3], paddingVertical: spacing[3] }}>
+              <Text style={{ flex: 1, color: colors.textSecondary, fontSize: typography.bodySmall, lineHeight: 22 }}>
+                یادآوری نساخته‌ای. اعلان‌ها همیشه کلی‌اند و چیزی از روشت روی صفحه‌ی قفل نمی‌آید.
+              </Text>
+              <Illustration variant="reminder" size={56} />
+            </View>
           ) : reminders.map((r, i) => (
             <View key={r.id} style={{ paddingVertical: spacing[3], borderBottomWidth: i === reminders.length - 1 ? 0 : 1, borderBottomColor: colors.border }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[3] }}>
@@ -244,12 +272,13 @@ export default function MyContraceptionScreen() {
         <Text style={{ color: colors.textTertiary, fontSize: typography.caption, lineHeight: 20, marginTop: spacing[2] }}>{REMINDER_NOTE_FA}</Text>
 
         {s.history.length > 0 ? (
-          <>
-            <SectionTitle>سابقه</SectionTitle>
-            <Card style={{ paddingHorizontal: spacing[4] }}>
-              {s.history.map((r, i) => <RecordRow key={r.id} r={r} last={i === s.history.length - 1} />)}
-            </Card>
-          </>
+          <View style={{ marginTop: spacing[6] }}>
+            <Collapsible title="سابقه‌ی روش‌ها" count={toFa(s.history.length)}>
+              <Card noPadding style={{ paddingHorizontal: spacing[4], marginTop: spacing[1] }}>
+                {s.history.map((r, i) => <RecordRow key={r.id} r={r} last={i === s.history.length - 1} />)}
+              </Card>
+            </Collapsible>
+          </View>
         ) : null}
 
         {s.longitudinal ? (
@@ -277,15 +306,17 @@ export default function MyContraceptionScreen() {
             <SectionTitle>طول چرخه‌هایت پیش از و پس از یک روش</SectionTitle>
             <Card style={{ padding: spacing[4] }}>
               <Text style={{ color: colors.textSecondary, fontSize: typography.bodySmall, lineHeight: 22 }}>{s.premium_teaser_fa}</Text>
-              <Button label="دیدن پرمیوم" onPress={() => navigation.navigate('Upgrade', { featureName: 'مقایسه‌ی چرخه‌ها' })} variant="outline" size="md" style={{ marginTop: spacing[3], alignSelf: 'flex-start' }} />
+              <Button label="دیدن پرمیوم" onPress={() => navigation.getParent()?.navigate('ProfileTab' as never, { screen: 'Upgrade', params: { featureName: 'مقایسه‌ی چرخه‌ها' } } as never)} variant="outline" size="md" style={{ marginTop: spacing[3], alignSelf: 'flex-start' }} />
             </Card>
           </>
         ) : null}
 
         <View style={{ marginTop: spacing[6], padding: spacing[4], borderRadius: borderRadius.md, backgroundColor: colors.surfaceSecondary, gap: spacing[2] }}>
-          <Text style={{ color: colors.textSecondary, fontSize: typography.caption, lineHeight: 20 }}>{TRACKING_NOT_PREVENTION_FA}</Text>
+          {/* The server's wording already says tracking does not prevent pregnancy
+              (and that this is not medical advice), so it replaces the local copy
+              of the same sentence instead of repeating it. */}
+          <Text style={{ color: colors.textSecondary, fontSize: typography.caption, lineHeight: 20 }}>{s.disclaimer_fa || TRACKING_NOT_PREVENTION_FA}</Text>
           <Text style={{ color: colors.textSecondary, fontSize: typography.caption, lineHeight: 20 }}>{NOT_CONTRACEPTION_FA}</Text>
-          <Text style={{ color: colors.textSecondary, fontSize: typography.caption, lineHeight: 20 }}>{s.disclaimer_fa}</Text>
         </View>
       </ScrollView>
 

@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { QuickLogFocus } from '@screens/wellness/quickLogFocus';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { Insight } from '@types/intelligence.types';
 import type { PartnerGuideSection } from '@screens/home/partnerGuideContent';
@@ -18,7 +19,22 @@ export type MainTabParamList = {
   CycleTab:        undefined;
   LogTab:          undefined;
   InsightsTab:     undefined;
+  HealthTab:       undefined;
   ProfileTab:      undefined;
+};
+
+// ── Health Stack (Contraception & Sexual Health) ─────────────────────────────
+// A first-class area, its own tab. Education is public and free; the two record
+// screens are PRIVATE to the signed-in user. Every route here is listed in
+// analytics/sensitiveRoutes.ts.
+export type HealthStackParamList = {
+  HealthGuide:     undefined;
+  GuideArticle:    { slug: string };
+  MethodCompare:   undefined;
+  // `intent` lets the hub open the add-method or add-reminder form directly.
+  MyContraception: { intent?: 'add_method' | 'add_reminder' } | undefined;
+  // `kind` narrows the one checks screen to tests or to vaccines.
+  HealthChecks:    { kind?: 'tests' | 'vaccines' } | undefined;
 };
 
 // ── Home Stack ────────────────────────────────────────────────────────────────
@@ -52,7 +68,9 @@ export type CycleStackParamList = {
 
 // ── Wellness / Log Stack ──────────────────────────────────────────────────────
 export type WellnessStackParamList = {
-  QuickLog:          { logId?: number };
+  // `initialCategory` is the section Home's quick check-in chip opens (see
+  // screens/wellness/quickLogFocus.ts); absent means the top of the form.
+  QuickLog:          { logId?: number; initialCategory?: QuickLogFocus };
   WellnessDashboard: undefined;
   LogWellness:       { logId?: number };   // legacy full-form (keep for backward compat)
   Medications:       undefined;
@@ -95,13 +113,8 @@ export type ProfileStackParamList = {
   ChangePassword:  undefined;
   DeleteAccount:   undefined;
   Support:         undefined;
-  // Contraception & sexual-health area (reached only from Profile). Education is
-  // public and free; the two record screens are PRIVATE to the signed-in user.
-  HealthGuide:     undefined;
-  GuideArticle:    { slug: string };
-  MethodCompare:   undefined;
-  MyContraception: undefined;
-  HealthChecks:    undefined;
+  ReproductiveGoal: undefined;                // optional, owner-only; reached only from Profile
+  Feedback:        undefined;                 // optional product feedback; no Premium needed
   Upgrade:         { featureName?: string };  // paywall — featureName shown in headline
   Pregnancy:       undefined;                 // premium-gated; shows setup or status internally
   TTC:             undefined;                 // premium-gated; shows setup or status internally (P1.4.1)

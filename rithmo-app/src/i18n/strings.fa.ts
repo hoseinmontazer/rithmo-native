@@ -57,6 +57,8 @@ export const navTitles = {
   ChangePassword: 'تغییر رمز عبور',
   DeleteAccount: 'حذف حساب',
   Support: 'پشتیبانی',
+  ReproductiveGoal: 'هدف من',
+  Feedback: 'ارسال بازخورد',
   Upgrade: 'ریتمو پریمیوم',
   Pregnancy: 'بارداری',
   TTC: 'تلاش برای بارداری',

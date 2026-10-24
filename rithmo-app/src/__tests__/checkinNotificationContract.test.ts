@@ -61,7 +61,10 @@ describe('MainNavigator — flushes the cold-start intent only once LogTab can e
 
   it('calls onMainNavigatorReady once the role gate has opened', () => {
     expect(src).toMatch(/import \{ onMainNavigatorReady \} from '\.\/navigationRef'/);
-    expect(src).toMatch(/if \(isResolved\) \{\s*onMainNavigatorReady\(\);\s*\}/);
+    // The gate now opens only when the tabs actually mount (role known AND,
+    // for an unverified offline session, trusted; see navigation/roleGate.ts),
+    // so the flush still happens exactly when the tab navigator exists.
+    expect(src).toMatch(/if \(gate === 'open'\) \{\s*onMainNavigatorReady\(\);\s*\}/);
   });
 
   it('the navigationRef only navigates once LogTab is present in the root state', () => {

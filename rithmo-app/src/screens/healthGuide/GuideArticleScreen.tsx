@@ -12,12 +12,12 @@ import { useTheme } from '@hooks/useTheme';
 import { screen } from '@theme/spacing';
 import { ErrorState, LoadingState } from '@components/ui';
 import { useGuideArticle } from '@hooks/queries/useHealthGuide';
-import type { ProfileStackParamList } from '@navigation/types';
+import type { HealthStackParamList } from '@navigation/types';
 import { BlockView, Callout, SourceList } from './components';
 import { ESSENTIAL_SAFETY_FALLBACK, NOT_MEDICAL_ADVICE_FA, NO_CONTENT_YET_FA, isNotFound, reviewLine } from './healthGuideLogic';
 
 export default function GuideArticleScreen() {
-  const { params } = useRoute<RouteProp<ProfileStackParamList, 'GuideArticle'>>();
+  const { params } = useRoute<RouteProp<HealthStackParamList, 'GuideArticle'>>();
   const { colors, spacing, typography } = useTheme();
   const { data, isLoading, isError, error, refetch } = useGuideArticle(params.slug);
 

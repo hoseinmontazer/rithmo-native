@@ -14,9 +14,11 @@ import { extractErrorMessage } from '@utils/errorHandler';
 import type { GuideArea, GuideMeta } from '@types/healthGuide.types';
 import type {
   CheckType,
+  ContraceptionRecord,
   ContraceptionReminder,
   MethodCode,
   NoticeCode,
+  SexualHealthCheck,
 } from '@types/reproductiveRecords.types';
 
 export const METHOD_LABELS: Record<MethodCode, string> = {
@@ -47,6 +49,13 @@ export const CHECK_LABELS: Record<CheckType, string> = {
 };
 export const CHECK_TYPES = Object.keys(CHECK_LABELS) as CheckType[];
 
+/** Tests and vaccines are different things to a reader; the records are the same kind. */
+export type CheckKind = 'tests' | 'vaccines';
+export const CHECK_GROUPS: Record<CheckKind, { title: string; types: CheckType[] }> = {
+  tests: { title: 'آزمایش و معاینه', types: ['sti_screening', 'checkup'] },
+  vaccines: { title: 'واکسن‌ها', types: ['hpv_vaccine', 'hepatitis_b_vaccine'] },
+};
+
 export const AREA_TITLES: Record<GuideArea, string> = {
   contraception: 'پیشگیری از بارداری',
   sexual_health: 'سلامت جنسی',
@@ -59,7 +68,16 @@ export const NOTICE_ICONS: Record<NoticeCode, string> = {
 };
 
 export const HUB_INTRO_FA =
-  'آموزش‌های این بخش برای همه آزاد است و برای دیدنشان لازم نیست چیزی ثبت کنی یا کسی را دعوت کنی.';
+  'ثبت‌های شخصی‌ات و راهنماهای بازبینی‌شده، یک‌جا. همه‌چیز اختیاری است.';
+export const HUB_SECTION_URGENT_FA = 'کمک فوری';
+export const HUB_SECTION_RECORDS_FA = 'آزمایش‌ها و واکسن‌ها';
+export const HUB_SECTION_LEARN_FA = 'آموزش';
+export const HUB_LEARN_SUB_FA = 'راهنماهای بازبینی‌شده. برای خواندنشان لازم نیست چیزی ثبت کنی.';
+export const LEARN_EMPTY_TITLE_FA = 'راهنماها در حال بازبینی‌اند';
+export const LEARN_EMPTY_TEXT_FA = 'این راهنماها پیش از انتشار توسط متخصص بازبینی می‌شوند و هنوز آماده‌ی نمایش نیستند.';
+export const STATUS_LOADING_FA = 'در حال بارگذاری';
+export const STATUS_FAILED_FA = 'نمایش داده نشد. باز کن و دوباره تلاش کن.';
+export const CHECK_NOT_RECORDED_FA = 'ثبت نشده';
 export const NOT_MEDICAL_ADVICE_FA = 'این اطلاعات آموزشی است و جای نظر پزشک یا ماما را نمی‌گیرد.';
 export const NOT_CONTRACEPTION_FA =
   'تقویم یا پیش‌بینی چرخه‌ی ریتمو روش پیشگیری از بارداری نیست و روز «امن» را مشخص نمی‌کند.';
@@ -203,5 +221,41 @@ export function perHundred(value: number | null | undefined): string {
 export const GUIDE_ICON_NAMES = [
   'heart-pulse', 'shield-check-outline', 'book-open-variant', 'bell-outline', 'plus', 'delete-outline',
   'alert-circle-outline', 'information-outline', 'chevron-down', 'chevron-up', 'chevron-left',
-  'calendar-check-outline', 'lock-outline', 'stethoscope', 'table', 'clipboard-text-outline',
+  'calendar-check-outline', 'lock-outline', 'stethoscope', 'table', 'clipboard-text-outline', 'test-tube', 'needle',
 ] as const;
+
+
+// ── One-line status for the hub (what is set up, what is not) ─────────────────
+
+export function methodStatusLine(active: Pick<ContraceptionRecord, 'method'>[]): string {
+  if (active.length === 0) { return 'هنوز روشی ثبت نکرده‌ای'; }
+  const first = METHOD_LABELS[active[0].method];
+  return active.length === 1 ? first : `${first} و ${toFa(active.length - 1)} روش دیگر`;
+}
+
+export function reminderStatusLine(
+  reminders: Pick<ContraceptionReminder, 'is_active' | 'paused'>[],
+): string {
+  if (reminders.length === 0) { return 'یادآوری نساخته‌ای'; }
+  const on = reminders.filter((r) => r.is_active);
+  if (on.length === 0) { return 'یادآورها خاموش‌اند'; }
+  if (on.some((r) => r.paused)) { return 'یادآورها به‌خاطر بارداری متوقف‌اند'; }
+  return `${toFa(on.length)} یادآور فعال`;
+}
+
+/** Newest record per check type; a type never recorded is simply absent. */
+export function lastDoneByType(checks: SexualHealthCheck[]): Partial<Record<CheckType, SexualHealthCheck>> {
+  const out: Partial<Record<CheckType, SexualHealthCheck>> = {};
+  for (const c of checks) {
+    const cur = out[c.check_type];
+    if (!cur || c.done_on > cur.done_on) { out[c.check_type] = c; }
+  }
+  return out;
+}
+
+export function checksStatusLine(checks: SexualHealthCheck[], kind?: CheckKind): string {
+  if (kind) { checks = checks.filter((c) => CHECK_GROUPS[kind].types.includes(c.check_type)); }
+  if (checks.length === 0) { return 'چیزی ثبت نشده'; }
+  const latest = checks.reduce((a, b) => (b.done_on > a.done_on ? b : a));
+  return `آخرین ثبت: ${faDateShort(latest.done_on)}`;
+}
