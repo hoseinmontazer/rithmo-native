@@ -15,7 +15,7 @@
  * Usage: temporarily set this to e.g. 'http://127.0.0.1:8000', verify,
  * then set it back to null before committing.
  */
-const LOCAL_BACKEND_OVERRIDE: string | null = null;
+const LOCAL_BACKEND_OVERRIDE: string | null = 'http://127.0.0.1:8000';
 
 const DEV_API_URL = LOCAL_BACKEND_OVERRIDE || 'https://api.rithmo.ir';
 const PROD_API_URL = 'https://api.rithmo.ir';

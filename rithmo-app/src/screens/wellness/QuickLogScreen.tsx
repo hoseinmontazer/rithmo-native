@@ -37,7 +37,7 @@ import {
 import { usePeriods, useCycleAnalysis } from '@hooks/queries/usePeriods';
 import { useCreateContextEntry } from '@hooks/queries/useContextEntries';
 import { TodayFeedbackBlock } from '@components/TodayFeedbackBlock';
-import { Button, Card, Badge, CelebrationAnimation, AppIcon, SliderMetric } from '@components/ui';
+import { Button, Card, Badge, CelebrationAnimation, AppIcon, SliderMetric, ErrorState } from '@components/ui';
 import { focusScrollY, parseQuickLogFocus, type QuickLogFocus } from './quickLogFocus';
 import {
   EMPTY_QUICK_BASELINE,
@@ -46,9 +46,12 @@ import {
   QUICK_SLEEP_MAX,
   QUICK_SLEEP_MIN,
   buildQuickLogPayload,
+  canSaveWellness,
+  dayLoadState,
   contextEntriesFor,
   contextEntryKey,
   pendingContextEntries,
+  quickLogDayState,
   quickLogBaseline,
   reportedMetricCount,
   shouldResetQuickLog,
@@ -354,8 +357,12 @@ export default function QuickLogScreen() {
    * effect below). Never a user-chosen date — QuickLog only logs "today".
    */
   const [formDate, setFormDate] = useState(todayISO);
-  const { data: existing } = useWellnessLog(logId ?? 0);
-  const { data: todayLog, isLoading: todayLoading } = useTodayWellnessLog(formDate);
+  const { data: existing, isError: existingError, isFetching: existingFetching, refetch: refetchExisting } =
+    useWellnessLog(logId ?? 0);
+  const {
+    data: todayLog, isError: todayError, error: todayLoadError,
+    isFetching: todayFetching, refetch: refetchToday,
+  } = useTodayWellnessLog(formDate);
   /*
    * Personal baselines for the "today vs your usual" line.
    *
@@ -397,6 +404,25 @@ export default function QuickLogScreen() {
     ? existing
     : (todayLog && todayLog.date === formDate ? todayLog : null);
   const saveDate: string | undefined = logId ? existing?.date : formDate;
+  /*
+   * Whether the stored day is known (see wellnessEdits.dayLoadState for why
+   * this, and not isSuccess / !isFetching, is the right predicate). Until it
+   * is 'ready', saving is blocked and symptoms/notes cannot be edited: both
+   * are written by replacement, so a save or edit made against an unknown
+   * day could silently erase what is stored. 'failed' shows a retry; the
+   * draft is kept. After a good load, a failed background refetch keeps the
+   * last good log and stays 'ready'.
+   */
+  const dayLoad = logId
+    ? dayLoadState({ data: existing, isError: existingError }, { requireRecord: true })
+    : quickLogDayState({ data: todayLog, isError: todayError }, formDate);
+  const dayReady = dayLoad === 'ready';
+  const dayReadyRef = useRef(dayReady);
+  dayReadyRef.current = dayReady;
+  const dayRefetching = logId ? existingFetching : todayFetching;
+  const retryDayLoad = useCallback(() => {
+    if (logId) { refetchExisting(); } else { refetchToday(); }
+  }, [logId, refetchExisting, refetchToday]);
 
   // Behavioural only: whether this is an edit, never what is being logged.
   useEffect(() => {
@@ -449,6 +475,7 @@ export default function QuickLogScreen() {
   const editedRef = useRef({ ...touched, symptoms: false, notes: false });
   editedRef.current = { ...editedRef.current, ...touched };
   const onNotesChange = useCallback((text: string) => {
+    if (!dayReadyRef.current) { return; }
     editedRef.current.notes = true;
     setNotes(text);
   }, []);
@@ -523,6 +550,7 @@ export default function QuickLogScreen() {
   const cycleDay: number | null = (cycleAnalysis as any)?.current_status?.cycle_day ?? null;
 
   const toggleSymptom = useCallback((sym: string) => {
+    if (!dayReadyRef.current) { return; }
     editedRef.current.symptoms = true;
     setSelectedSymptoms(prev =>
       prev.includes(sym) ? prev.filter(s => s !== sym) : [...prev, sym]
@@ -580,7 +608,7 @@ export default function QuickLogScreen() {
 
   // ── Save handler ────────────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
-    if (submittingRef.current || !saveDate) { return; }
+    if (submittingRef.current || !saveDate || !dayReadyRef.current) { return; }
     submittingRef.current = true;
     setSubmitting(true);
     try {
@@ -910,6 +938,7 @@ export default function QuickLogScreen() {
                   <TouchableOpacity
                     key={sym.code}
                     onPress={() => toggleSymptom(sym.code)}
+                    disabled={!dayReady}
                     activeOpacity={0.7}
                     style={[
                       styles.symptomChip,
@@ -923,7 +952,7 @@ export default function QuickLogScreen() {
                       },
                     ]}
                     accessibilityRole="button"
-                    accessibilityState={{ selected: active }}
+                    accessibilityState={{ selected: active, disabled: !dayReady }}
                     accessibilityLabel={sym.label}
                   >
                     {/*
@@ -1046,20 +1075,32 @@ export default function QuickLogScreen() {
               placeholderTextColor={colors.textTertiary}
               value={notes}
               onChangeText={onNotesChange}
+              editable={dayReady}
               multiline
               numberOfLines={3}
               textAlignVertical="top"
             />
           </View>
 
+          {/* The day could not be loaded: nothing can be saved until it is,
+              and the retry keeps everything already entered. */}
+          {dayLoad === 'failed' && !dayRefetching && (
+            <ErrorState error={logId ? undefined : todayLoadError} onRetry={retryDayLoad} />
+          )}
+
           {/* ── Save Button ───────────────────────────────────────────── */}
-          {/* Held until the day's log has loaded, so a save can never be
-              composed against a form that has not shown what is stored. */}
+          {/* Held until the stored day is known and while it refetches, so a
+              save is never composed against a form that has not shown what
+              is stored. */}
           <Button
-            label={isPending || submitting ? 'در حال ذخیره...' : 'ثبت گزارش امروز'}
+            label={
+              isPending || submitting ? 'در حال ذخیره...'
+                : dayLoad === 'loading' ? 'در حال بارگذاری...'
+                  : 'ثبت گزارش امروز'
+            }
             onPress={handleSave}
-            loading={isPending || submitting}
-            disabled={isPending || submitting || todayLoading || !saveDate}
+            loading={isPending || submitting || (dayLoad !== 'ready' && dayRefetching)}
+            disabled={!canSaveWellness({ load: dayLoad, saving: isPending || submitting, refetching: dayRefetching }) || !saveDate}
             size="lg"
             fullWidth
           />

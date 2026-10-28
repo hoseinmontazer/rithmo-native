@@ -133,9 +133,10 @@ export function useWellnessStreaks() {
  * can never be handed a cached log from a different day; it extends
  * `wellness.today()`, so every existing prefix invalidation still covers it.
  */
-export function useTodayWellnessLog(date?: string) {
+export function useTodayWellnessLog(date?: string, options?: { enabled?: boolean }) {
   return useQuery<WellnessLog | null>({
     queryKey: date ? [...queryKeys.wellness.today(), date] : queryKeys.wellness.today(),
+    enabled: options?.enabled ?? true,
     queryFn: async () => {
       try {
         return await wellnessService.getTodayLog(date);

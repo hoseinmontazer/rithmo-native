@@ -21,17 +21,24 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '@hooks/useTheme';
 import { screen } from '@theme/spacing';
-import { useCreateOrUpdateWellnessLog, useUpdateWellnessLog, useWellnessLog } from '@hooks/queries/useWellness';
+import { useCreateOrUpdateWellnessLog, useTodayWellnessLog, useUpdateWellnessLog, useWellnessLog } from '@hooks/queries/useWellness';
 import {
   useContextEntriesForDate,
   useCreateContextEntry,
   useDeleteContextEntry,
 } from '@hooks/queries/useContextEntries';
-import { Button, Input, Card, SliderMetric } from '@components/ui';
+import { Button, Input, Card, SliderMetric, ErrorState } from '@components/ui';
 import { extractErrorMessage } from '@utils/errorHandler';
 import { todayISO } from '@utils/dateUtils';
 import { SYMPTOMS } from '@constants/symptoms';
-import { buildLogWellnessPayload, storedSymptoms, type WellnessForm } from './wellnessEdits';
+import {
+  buildLogWellnessPayload,
+  canSaveWellness,
+  dayLoadState,
+  quickLogDayState,
+  storedSymptoms,
+  type WellnessForm,
+} from './wellnessEdits';
 import { CONTEXT_TAGS } from '@constants/contextTags';
 import { symptomIcon, ICON_SIZE } from '@design-system/iconography';
 import type { WellnessScreenProps } from '@navigation/types';
@@ -50,7 +57,35 @@ export default function LogWellnessScreen() {
   const { colors, spacing, typography, borderRadius } = useTheme();
 
   const logId = route.params?.logId;
-  const { data: existing } = useWellnessLog(logId ?? 0);
+  const editQuery = useWellnessLog(logId ?? 0);
+  /*
+   * A new report (no logId) is an upsert onto today's row, so it is just as
+   * able to replace stored symptoms/notes as an edit is. It therefore loads
+   * today's log too (the same day it will save to, fixed at mount) and edits
+   * on top of it; without this, picking one symptom here replaced whatever
+   * QuickLog had already stored for today.
+   */
+  const [createDate] = useState(todayISO);
+  const todayQuery = useTodayWellnessLog(createDate, { enabled: !logId });
+  const existing = logId
+    ? editQuery.data
+    : (todayQuery.data && todayQuery.data.date === createDate ? todayQuery.data : undefined);
+  /*
+   * Saving and symptom/notes editing wait until the stored record is known
+   * (see wellnessEdits.dayLoadState for the predicate). An edit needs the
+   * record itself; a new report needs today's log or a confirmed "none".
+   * A failed load shows a retry and keeps every edit already made.
+   */
+  const dayLoad = logId
+    ? dayLoadState({ data: editQuery.data, isError: editQuery.isError }, { requireRecord: true })
+    : quickLogDayState({ data: todayQuery.data, isError: todayQuery.isError }, createDate);
+  const dayReady = dayLoad === 'ready';
+  const dayReadyRef = useRef(dayReady);
+  dayReadyRef.current = dayReady;
+  const dayRefetching = logId ? editQuery.isFetching : todayQuery.isFetching;
+  const retryLoad = useCallback(() => {
+    if (logId) { editQuery.refetch(); } else { todayQuery.refetch(); }
+  }, [logId, editQuery, todayQuery]);
   const { mutateAsync: saveLog, isPending: isCreating } = useCreateOrUpdateWellnessLog();
   const { mutateAsync: updateLog, isPending: isUpdating } = useUpdateWellnessLog();
   const isPending = isCreating || isUpdating;
@@ -77,7 +112,7 @@ export default function LogWellnessScreen() {
   // exactly as QuickLogScreen does; no new storage.
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
 
-  const logDate = existing?.date ?? todayISO();
+  const logDate = logId ? (existing?.date ?? '') : createDate;
 
   // Which fields the user changed, and what the form loaded — see
   // buildLogWellnessPayload. A ref for `edited` so the prefill below can
@@ -118,11 +153,14 @@ export default function LogWellnessScreen() {
   }, [existing]);
 
   const set = useCallback(<K extends keyof WellnessForm>(key: K, value: WellnessForm[K]) => {
+    // Notes are written by replacement: never editable over an unknown record.
+    if (key === 'notes' && !dayReadyRef.current) { return; }
     edited.current.add(key);
     setForm(prev => ({ ...prev, [key]: value }));
   }, []);
 
   const toggleSymptom = useCallback((code: string) => {
+    if (!dayReadyRef.current) { return; }
     symptomsEdited.current = true;
     setSelectedSymptoms(prev =>
       prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
@@ -130,6 +168,7 @@ export default function LogWellnessScreen() {
   }, []);
 
   const handleSave = useCallback(async () => {
+    if (!dayReadyRef.current) { return; }
     try {
       // Editing an existing (possibly historical) log goes through the
       // update-by-id endpoint — the create/upsert-by-date endpoint this
@@ -148,13 +187,13 @@ export default function LogWellnessScreen() {
       if (logId) {
         await updateLog({ id: logId, data: payload });
       } else {
-        await saveLog(payload);
+        await saveLog({ ...payload, date: createDate });
       }
       navigation.goBack();
     } catch (err) {
       Alert.alert('خطا', extractErrorMessage(err));
     }
-  }, [form, selectedSymptoms, baseline, symptomsBaseline, logId, saveLog, updateLog, navigation]);
+  }, [form, selectedSymptoms, baseline, symptomsBaseline, logId, createDate, saveLog, updateLog, navigation]);
 
   // ── Today 2.0: context entries for this exact day ────────────────────
   const { data: contextEntries } = useContextEntriesForDate(logDate);
@@ -163,6 +202,8 @@ export default function LogWellnessScreen() {
   const [addingTag, setAddingTag] = useState<ContextTag | null>(null);
 
   const handleAddContextTag = useCallback(async (tag: ContextTag) => {
+    // An edit's day is unknown until its record loads.
+    if (!logDate) { return; }
     setAddingTag(tag);
     try {
       await createContextEntry({ date: logDate, tag });
@@ -401,6 +442,7 @@ export default function LogWellnessScreen() {
                   <TouchableOpacity
                     key={sym.code}
                     onPress={() => toggleSymptom(sym.code)}
+                    disabled={!dayReady}
                     activeOpacity={0.7}
                     style={[
                       styles.chip,
@@ -515,18 +557,29 @@ export default function LogWellnessScreen() {
               placeholder="هر نکته‌ای در مورد احساسات یا علائم امروزت..."
               value={form.notes}
               onChangeText={(v) => set('notes', v)}
+              editable={dayReady}
               multiline
               numberOfLines={3}
               style={{ minHeight: 80, textAlignVertical: 'top', marginTop: spacing[3] }}
             />
           </Card>
 
+          {/* The record could not be loaded: nothing is saved until it is,
+              and the retry keeps every edit already made. */}
+          {dayLoad === 'failed' && !dayRefetching && (
+            <ErrorState error={logId ? editQuery.error : todayQuery.error} onRetry={retryLoad} />
+          )}
+
           {/* ── Action Buttons ────────────────────────────────────────── */}
           <Button
-            label={isPending ? 'در حال ذخیره...' : 'ذخیره گزارش سلامت'}
+            label={
+              isPending ? 'در حال ذخیره...'
+                : dayLoad === 'loading' ? 'در حال بارگذاری...'
+                  : 'ذخیره گزارش سلامت'
+            }
             onPress={handleSave}
-            loading={isPending}
-            disabled={isPending}
+            loading={isPending || (dayLoad !== 'ready' && dayRefetching)}
+            disabled={!canSaveWellness({ load: dayLoad, saving: isPending, refetching: dayRefetching })}
             fullWidth
             size="lg"
           />

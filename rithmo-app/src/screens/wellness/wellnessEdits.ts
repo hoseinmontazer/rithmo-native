@@ -19,6 +19,61 @@
 import type { WellnessLog, CreateWellnessLogRequest } from '@types/wellness.types';
 import { parseSymptomCodes } from '@constants/symptoms';
 
+// ── Whether the stored day is known ───────────────────────────────────────
+
+/**
+ * 'ready' = a successful response for this exact query exists, so the form's
+ * baseline is the stored record (or a confirmed absence of one). Only then
+ * may a save be composed: symptoms and notes are written by replacement, so
+ * a save built on an unknown baseline can erase what is stored.
+ *
+ * Why `data !== undefined` and not the obvious flags (TanStack Query v5):
+ * - `data` stays undefined until a fetch for this query key succeeds, and a
+ *   key change (a new day) starts undefined again — no placeholderData is
+ *   configured on these hooks.
+ * - The wellness query functions never resolve undefined: "no log" is `null`
+ *   (`unwrap` maps an empty body to null, and a 404 is caught as null).
+ * - A failed *background* refetch flips `status` to 'error' but keeps the
+ *   last good `data`, so `isSuccess` would wrongly reject a usable baseline.
+ * - `!isFetching` is also true after a failure, so it proves nothing.
+ *
+ * `requireRecord`: an edit by id needs the record itself; a null there is
+ * not a usable baseline.
+ */
+export type DayLoadState = 'loading' | 'failed' | 'ready';
+
+export function dayLoadState(
+  query: { data: unknown; isError: boolean },
+  opts: { requireRecord?: boolean } = {},
+): DayLoadState {
+  const usable = opts.requireRecord ? query.data !== undefined && query.data !== null : query.data !== undefined;
+  if (usable) { return 'ready'; }
+  return query.isError ? 'failed' : 'loading';
+}
+
+/**
+ * Whether a wellness form may save now: the stored day is known, no save is
+ * in flight, and the day is not mid-refetch (so the comparison point is the
+ * latest the server reported). A refetch that FAILED after a good load leaves
+ * the state 'ready' with the last good data, so saving stays possible.
+ */
+export function canSaveWellness(s: { load: DayLoadState; saving: boolean; refetching: boolean }): boolean {
+  return s.load === 'ready' && !s.saving && !s.refetching;
+}
+
+/**
+ * QuickLog's day query: as dayLoadState, except that a log for any other day
+ * is not a confirmation of anything about `formDate` (a server that ignored
+ * `?date=` would answer for its own day), so it counts as a failed load.
+ */
+export function quickLogDayState(
+  query: { data: WellnessLog | null | undefined; isError: boolean },
+  formDate: string,
+): DayLoadState {
+  if (query.data && query.data.date !== formDate) { return 'failed'; }
+  return dayLoadState(query);
+}
+
 // ── Generic edited-and-changed selection ──────────────────────────────────
 
 /**
